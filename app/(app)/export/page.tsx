@@ -4,7 +4,7 @@ import { PageSection } from "@/components/layout/page-section";
 
 export default function ExportPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="export-page">
       <PageSection
         title="Export Appointment Data"
         description="CSV preview and export selectors are scaffolded here for later mocked download testing."

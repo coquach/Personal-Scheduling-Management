@@ -4,7 +4,7 @@ import { PageSection } from "@/components/layout/page-section";
 
 export default function TagsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="tags-page">
       <PageSection
         title="Tags & Categories"
         description="Tag CRUD contracts are ready for duplicate validation, rename propagation, and delete confirmation."

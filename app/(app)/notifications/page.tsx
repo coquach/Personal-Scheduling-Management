@@ -3,7 +3,7 @@ import { PageSection } from "@/components/layout/page-section";
 
 export default function NotificationsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="notifications-page">
       <PageSection
         title="Notifications"
         description="Notification log, snooze actions, and unread-count selectors are available for future Playwright coverage."

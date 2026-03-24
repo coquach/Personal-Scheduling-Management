@@ -2,7 +2,7 @@ import { PageSection } from "@/components/layout/page-section";
 
 export default function StatisticsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="statistics-page">
       <PageSection
         title="Statistics Dashboard"
         description="Summary metrics and analytics placeholders are ready for TanStack Query data binding."

@@ -21,7 +21,9 @@ export default function AuthPage() {
         <CardContent>
           <Tabs defaultValue="login" className="gap-5">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="login" data-testid="auth-tab-login">
+                Login
+              </TabsTrigger>
               <TabsTrigger value="register" data-testid="auth-tab-register">
                 Register
               </TabsTrigger>
@@ -36,7 +38,11 @@ export default function AuthPage() {
                 <p className="text-sm text-muted-foreground" data-testid="login-error-banner">
                   Error states and server validation will be wired in Step 5.
                 </p>
-                <Link href="/forgot-password" className="text-sm font-medium text-cyan-700 underline-offset-4 hover:underline">
+                <Link
+                  href="/forgot-password"
+                  data-testid="forgot-password-link"
+                  className="text-sm font-medium text-cyan-700 underline-offset-4 hover:underline"
+                >
                   Forgot password?
                 </Link>
               </form>

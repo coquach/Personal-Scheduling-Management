@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
       title="Reset access without losing your schedule."
       description="The forgot-password flow is scaffolded before business logic so the real Playwright reset scenarios can plug straight into a stable screen contract."
     >
-      <Card className="w-full max-w-lg border-border/80 shadow-xl">
+      <Card className="w-full max-w-lg border-border/80 shadow-xl" data-testid="forgot-password-page">
         <CardHeader>
           <CardTitle>Forgot password</CardTitle>
           <CardDescription>Enter the registered email to receive a reset link.</CardDescription>

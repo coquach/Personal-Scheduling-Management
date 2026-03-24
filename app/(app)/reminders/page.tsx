@@ -4,7 +4,7 @@ import { PageSection } from "@/components/layout/page-section";
 
 export default function RemindersPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="reminders-page">
       <PageSection
         title="Reminder Settings"
         description="Reminder defaults and per-appointment reminder contracts are scaffolded here."

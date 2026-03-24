@@ -8,4 +8,18 @@ export const test = base.extend({
   },
 });
 
+export async function authenticate(page: import("@playwright/test").Page) {
+  await page.context().addCookies([
+    {
+      name: "psms-session",
+      value: "authenticated",
+      domain: "127.0.0.1",
+      path: "/",
+      sameSite: "Lax",
+      httpOnly: false,
+      secure: false,
+    },
+  ]);
+}
+
 export { expect };

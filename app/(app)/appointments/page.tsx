@@ -10,7 +10,7 @@ const rows = [
 
 export default function AppointmentsPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="appointments-page">
       <PageSection
         title="Appointments"
         description="Search, filter, and CRUD selectors are scaffolded here so Playwright can target stable elements before data logic exists."

@@ -4,7 +4,7 @@ import { PageSection } from "@/components/layout/page-section";
 
 export default function ProfilePage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="profile-page">
       <PageSection
         title="Profile Settings"
         description="Profile update, password update, and delete-account contracts are scaffolded for the next implementation steps."
