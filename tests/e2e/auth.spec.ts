@@ -1,25 +1,25 @@
 import { expect, test } from "./fixtures/app-fixture";
 
 test.describe("Authentication and recovery", () => {
-  test("redirects the root route to auth and allows login form interaction", async ({
+  test("shows a marketing landing page at the root route and keeps auth entry interactive", async ({
     page,
   }) => {
     await page.goto("/");
 
-    await expect(page).toHaveURL(/\/auth(?:\?.*)?$/);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByTestId("marketing-page")).toBeVisible();
+
+    await page.getByTestId("marketing-primary-cta").click();
+    await expect(page).toHaveURL(/\/auth$/);
     await expect(page.getByTestId("auth-page")).toBeVisible();
 
     await page.getByTestId("login-email-input").fill("john.doe@example.com");
     await page.getByTestId("login-password-input").fill("SuperSecret123");
+    await expect(page.getByTestId("login-success-banner")).toBeVisible();
     await page.getByTestId("login-submit").click();
 
-    await expect(page.getByTestId("login-email-input")).toHaveValue(
-      "john.doe@example.com",
-    );
-    await expect(page.getByTestId("login-password-input")).toHaveValue(
-      "SuperSecret123",
-    );
-    await expect(page.getByTestId("login-error-banner")).toBeVisible();
+    await expect(page).toHaveURL(/\/calendar$/);
+    await expect(page.getByTestId("calendar-page")).toBeVisible();
   });
 
   test("switches to the register tab and keeps registration fields stable", async ({
@@ -43,7 +43,6 @@ test.describe("Authentication and recovery", () => {
       "jane@example.com",
     );
     await expect(page.getByTestId("register-success-banner")).toBeVisible();
-    await expect(page.getByTestId("register-email-error")).toBeVisible();
   });
 
   test("navigates to forgot-password and submits the recovery form", async ({

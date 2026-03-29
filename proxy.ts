@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
-const protectedPaths = [
+const protectedRoutes = [
   "/calendar",
   "/appointments",
   "/tags",
@@ -12,28 +12,32 @@ const protectedPaths = [
   "/profile",
 ];
 
+const authRoutes = ["/auth", "/forgot-password", "/reset-password"];
+
 export function proxy(request: NextRequest) {
-  const isProtectedPath = protectedPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path),
-  );
+  const { pathname, search } = request.nextUrl;
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
+  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
+  const isAuthenticated = request.cookies.get("psms-session")?.value === "authenticated";
 
-  if (!isProtectedPath) {
-    return NextResponse.next();
+  if (isProtectedRoute && !isAuthenticated) {
+    const authUrl = new URL("/auth", request.url);
+    authUrl.searchParams.set("redirect", pathname + search);
+    return NextResponse.redirect(authUrl);
   }
 
-  const sessionCookie = request.cookies.get("psms-session")?.value;
-
-  if (sessionCookie === "authenticated") {
-    return NextResponse.next();
+  if (isAuthRoute && isAuthenticated && pathname === "/auth") {
+    return NextResponse.redirect(new URL("/calendar", request.url));
   }
 
-  const redirectUrl = new URL("/auth", request.url);
-  redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);
-  return NextResponse.redirect(redirectUrl);
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
+    "/auth/:path*",
+    "/forgot-password/:path*",
+    "/reset-password/:path*",
     "/calendar/:path*",
     "/appointments/:path*",
     "/tags/:path*",

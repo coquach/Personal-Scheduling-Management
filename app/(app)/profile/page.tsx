@@ -1,51 +1,118 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+"use client";
+
+import { useState } from "react";
+
+import { profileData } from "@/lib/scaffold-data";
 import { PageSection } from "@/components/layout/page-section";
+import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 export default function ProfilePage() {
+  const [successVisible, setSuccessVisible] = useState(false);
+  const [passwordErrorVisible, setPasswordErrorVisible] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   return (
-    <div className="space-y-6" data-testid="profile-page">
+    <div data-testid="profile-page" className="space-y-6">
       <PageSection
-        title="Profile Settings"
-        description="Profile update, password update, and delete-account contracts are scaffolded for the next implementation steps."
-        actions={<Button data-testid="profile-save">Save changes</Button>}
+        title="Profile"
+        description="Manage account settings, timezone preferences and security actions."
       >
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input data-testid="profile-name-input" placeholder="Full name" defaultValue="John Doe" />
-          <Input data-testid="profile-timezone-select" placeholder="UTC+07:00 - Indochina Time" />
-          <Input data-testid="profile-email-input" defaultValue="john.doe@example.com" readOnly />
-          <div className="rounded-2xl border border-dashed border-border/80 p-4 text-sm text-muted-foreground" data-testid="profile-success-banner">
-            Success banner placeholder.
-          </div>
-        </div>
-        <div className="mt-6 grid gap-3 md:grid-cols-4">
-          <Input data-testid="profile-current-password-input" type="password" placeholder="Current password" />
-          <Input data-testid="profile-new-password-input" type="password" placeholder="New password" />
-          <Input data-testid="profile-confirm-password-input" type="password" placeholder="Confirm password" />
-          <Button data-testid="profile-password-save" variant="outline">
-            Update password
-          </Button>
-        </div>
-        <p className="mt-3 text-sm text-muted-foreground" data-testid="profile-password-error">
-          Password validation placeholder.
-        </p>
-        <div className="mt-6 rounded-2xl border border-dashed border-border/80 p-4 text-sm text-muted-foreground" data-testid="profile-delete-dialog">
-          Delete-account confirmation placeholder.
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Button variant="outline" data-testid="profile-delete-trigger">
-              Delete account
-            </Button>
-            <Input
-              className="max-w-sm"
-              data-testid="profile-delete-confirmation-input"
-              placeholder="Type your email to confirm"
-            />
-            <Button data-testid="profile-delete-submit" variant="destructive">
-              Confirm delete
-            </Button>
-          </div>
+        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input defaultValue={profileData.fullName} data-testid="profile-name-input" />
+              <Input
+                defaultValue={profileData.email}
+                readOnly
+                data-testid="profile-email-input"
+              />
+              <Input defaultValue={profileData.timezone} data-testid="profile-timezone-select" />
+              <Button data-testid="profile-save" onClick={() => setSuccessVisible(true)}>
+                Save profile
+              </Button>
+              {successVisible ? (
+                <Alert data-testid="profile-success-banner">
+                  Profile preferences saved successfully.
+                </Alert>
+              ) : null}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Security</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input
+                type="password"
+                placeholder="Current password"
+                data-testid="profile-current-password-input"
+              />
+              <Input
+                type="password"
+                placeholder="New password"
+                data-testid="profile-new-password-input"
+              />
+              <Input
+                type="password"
+                placeholder="Confirm new password"
+                data-testid="profile-confirm-password-input"
+              />
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  data-testid="profile-password-save"
+                  onClick={() => setPasswordErrorVisible(true)}
+                >
+                  Update password
+                </Button>
+                <Button
+                  variant="destructive"
+                  data-testid="profile-delete-trigger"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete account
+                </Button>
+              </div>
+              {passwordErrorVisible ? (
+                <Alert variant="destructive" data-testid="profile-password-error">
+                  Current password validation failed. Re-enter credentials to continue.
+                </Alert>
+              ) : null}
+            </CardContent>
+          </Card>
         </div>
       </PageSection>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent data-testid="profile-delete-dialog">
+          <DialogHeader>
+            <DialogTitle>Delete account</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Type your email to confirm"
+            defaultValue={profileData.email}
+            data-testid="profile-delete-confirmation-input"
+          />
+          <DialogFooter>
+            <Button variant="outline">Cancel</Button>
+            <Button variant="destructive" data-testid="profile-delete-submit">
+              Confirm deletion
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

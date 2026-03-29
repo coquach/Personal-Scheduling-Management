@@ -32,6 +32,14 @@ async function fulfillJson(route: Route, payload: unknown) {
   });
 }
 
+function successEnvelope<T>(data: T, message = "OK") {
+  return {
+    success: true,
+    message,
+    data,
+  };
+}
+
 export async function mockPsmsApi(
   page: Page,
   overrides: Partial<PsmsApiMockPayload> = {},
@@ -43,6 +51,42 @@ export async function mockPsmsApi(
 
   await page.route("**/api/psms/**", async (route) => {
     const url = new URL(route.request().url());
+
+    if (url.pathname.endsWith("/auth/login")) {
+      await fulfillJson(
+        route,
+        successEnvelope({
+          accessToken: "test-access-token",
+          refreshToken: "test-refresh-token",
+          tokenType: "Bearer",
+          expiresIn: 3600,
+        }),
+      );
+      return;
+    }
+
+    if (url.pathname.endsWith("/auth/register")) {
+      await fulfillJson(
+        route,
+        successEnvelope({
+          id: "user-1",
+          email: "jane@example.com",
+          displayName: "Jane Planner",
+          createdAt: new Date().toISOString(),
+        }),
+      );
+      return;
+    }
+
+    if (
+      url.pathname.endsWith("/auth/forgot-password") ||
+      url.pathname.endsWith("/auth/reset-password") ||
+      url.pathname.endsWith("/auth/verify-email") ||
+      url.pathname.endsWith("/auth/resend-verification-email")
+    ) {
+      await fulfillJson(route, successEnvelope(null));
+      return;
+    }
 
     if (url.pathname.endsWith("/notifications")) {
       await fulfillJson(route, payload.notifications);

@@ -1,7 +1,7 @@
 import { authenticate, expect, test } from "./fixtures/app-fixture";
 
-test.describe("Protected navigation", () => {
-  test("redirects unauthenticated users away from protected routes", async ({
+test.describe("Workspace navigation", () => {
+  test("redirects unauthenticated users from workspace routes to auth", async ({
     page,
   }) => {
     await page.goto("/calendar");
@@ -10,7 +10,7 @@ test.describe("Protected navigation", () => {
     await expect(page.getByTestId("auth-page")).toBeVisible();
   });
 
-  test("navigates between authenticated sections from the shared sidebar", async ({
+  test("navigates between sections from the shared sidebar", async ({
     page,
   }) => {
     await authenticate(page);
@@ -36,7 +36,7 @@ test.describe("Protected navigation", () => {
     await expect(page.getByTestId("profile-page")).toBeVisible();
   });
 
-  test("keeps shared header controls stable across authenticated routes", async ({
+  test("keeps shared header controls stable across routes", async ({
     page,
   }) => {
     await authenticate(page);

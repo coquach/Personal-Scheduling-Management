@@ -1,43 +1,137 @@
-import { Bell, Search } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+"use client";
+
+import Link from "next/link";
+import { BellIcon, ChevronDownIcon, SearchIcon, Settings2Icon } from "lucide-react";
+import { usePathname } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbList,
+  BreadcrumbPage,
+} from "@/components/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+
+const pageMeta: Record<string, { title: string; description: string }> = {
+  "/calendar": {
+    title: "Calendar",
+    description: "Overview, quick create and schedule focus.",
+  },
+  "/appointments": {
+    title: "Appointments",
+    description: "Manage all events, statuses and reminders.",
+  },
+  "/tags": {
+    title: "Tags",
+    description: "Color labels for your planning system.",
+  },
+  "/reminders": {
+    title: "Reminders",
+    description: "Default notifications and snooze settings.",
+  },
+  "/notifications": {
+    title: "Notifications",
+    description: "Reminder feed and action history.",
+  },
+  "/statistics": {
+    title: "Statistics",
+    description: "Completion insights and time distribution.",
+  },
+  "/export": {
+    title: "Export",
+    description: "Generate date-range exports from your schedule.",
+  },
+  "/profile": {
+    title: "Profile",
+    description: "Account preferences, password and timezone.",
+  },
+};
 
 export function AppHeader() {
+  const pathname = usePathname();
+  const meta = pageMeta[pathname] ?? pageMeta["/calendar"];
+
   return (
-    <header className="sticky top-0 z-10 border-b border-border/70 bg-background/85 backdrop-blur">
-      <div className="flex items-center gap-4 px-4 py-4 sm:px-6">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            data-testid="global-search-input"
-            className="h-11 rounded-full border-border/80 bg-card pl-10"
-            placeholder="Search appointments, tags, and reminders"
-          />
-        </div>
-        <button
-          type="button"
-          className="relative flex size-11 items-center justify-center rounded-full border border-border/80 bg-card"
-          data-testid="notification-bell"
-          aria-label="Notifications"
-        >
-          <Bell className="size-4" />
-          <Badge
-            className="absolute -top-1 -right-1 min-w-5 justify-center rounded-full px-1"
-            data-testid="notification-bell-badge"
-          >
-            3
-          </Badge>
-        </button>
-        <div className="flex items-center gap-3 rounded-full border border-border/80 bg-card px-2 py-1.5">
-          <Avatar className="size-8">
-            <AvatarFallback>JD</AvatarFallback>
-          </Avatar>
-          <div className="hidden sm:block">
-            <p className="text-sm font-medium">John Doe</p>
-            <p className="text-xs text-muted-foreground">Productivity mode</p>
+    <header className="sticky top-0 z-20 border-b border-border/80 bg-background/88 backdrop-blur-xl">
+      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <SidebarTrigger />
+            <div className="min-w-0">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <Link href="/calendar" className="text-muted-foreground transition-colors hover:text-foreground">
+                      Workspace
+                    </Link>
+                  </BreadcrumbItem>
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{meta.title}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon-sm" className="hidden sm:inline-flex">
+              <Settings2Icon />
+              <span className="sr-only">Preferences</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="relative"
+              data-testid="notification-bell"
+            >
+              <BellIcon />
+              <span
+                className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
+                data-testid="notification-bell-badge"
+              >
+                3
+              </span>
+              <span className="sr-only">Notifications</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="ghost" className="h-10 rounded-xl px-2 sm:px-3" />
+                }
+              >
+                <Avatar size="sm">
+                  <AvatarFallback>JD</AvatarFallback>
+                </Avatar>
+                <span className="hidden text-sm font-medium sm:inline">John Doe</span>
+                <ChevronDownIcon className="hidden sm:inline size-4 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem render={<Link href="/profile" />}>Profile</DropdownMenuItem>
+                <DropdownMenuItem render={<Link href="/statistics" />}>Statistics</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href="/auth" />}>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+        <label className="relative block">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search appointments, notes or tags"
+            data-testid="global-search-input"
+          />
+        </label>
       </div>
     </header>
   );

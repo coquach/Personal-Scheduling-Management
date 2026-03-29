@@ -1,22 +1,19 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/query/query-provider";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-sans",
+const montserrat = Montserrat({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-sans",
 });
 
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-geist-mono",
-  weight: ["400", "500"],
-  subsets: ["latin"],
-});
+
 
 export const metadata: Metadata = {
-  title: "PSMS",
-  description: "Personal Scheduling Management System foundation",
+  title: "PSMS Dashboard",
+  description: "Personal scheduling management workspace.",
 };
 
 export default function RootLayout({
@@ -25,10 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${spaceGrotesk.variable} ${plexMono.variable} min-h-screen antialiased`}
-      >
+    <html lang="en" className={montserrat.variable}>
+      <body className="min-h-screen font-sans antialiased">
         <QueryProvider>{children}</QueryProvider>
       </body>
     </html>

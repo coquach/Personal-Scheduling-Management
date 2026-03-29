@@ -1,31 +1,36 @@
-import { ReactNode } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { ReactNode } from "react";
 
-type PageSectionProps = {
-  title: string;
-  description: string;
-  actions?: ReactNode;
-  children: ReactNode;
-  testId?: string;
-};
+import { cn } from "@/lib/utils";
 
 export function PageSection({
   title,
   description,
   actions,
+  className,
   children,
-  testId,
-}: PageSectionProps) {
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <Card className="border-border/80 shadow-sm" data-testid={testId}>
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription className="mt-1 max-w-2xl">{description}</CardDescription>
+    <section className={cn("space-y-5", className)}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-[1.85rem] leading-[1.04] font-bold tracking-[-0.045em] text-foreground">
+            {title}
+          </h1>
+          {description ? (
+            <p className="max-w-2xl text-[0.95rem] leading-6 text-muted-foreground">
+              {description}
+            </p>
+          ) : null}
         </div>
-        {actions}
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+        {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
+      </div>
+      {children}
+    </section>
   );
 }
