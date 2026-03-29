@@ -122,6 +122,7 @@ export default function VerifyEmailPage() {
           {status === "error" ? (
             <form className="space-y-4" onSubmit={handleResend} noValidate>
               <Input
+                data-testid="verify-email-resend-input"
                 type="email"
                 placeholder="Enter your email to resend verification"
                 autoComplete="email"
@@ -135,6 +136,7 @@ export default function VerifyEmailPage() {
                 </p>
               ) : null}
               <Button
+                data-testid="verify-email-resend-submit"
                 variant="outline"
                 type="submit"
                 disabled={resendPending || !resendForm.formState.isValid}
@@ -144,7 +146,7 @@ export default function VerifyEmailPage() {
                   : "Resend verification email"}
               </Button>
               {resendMessage ? (
-                <Alert>
+                <Alert data-testid="verify-email-resend-message">
                   <AlertDescription>{resendMessage}</AlertDescription>
                 </Alert>
               ) : null}

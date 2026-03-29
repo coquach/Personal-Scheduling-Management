@@ -9,6 +9,13 @@ export const test = base.extend({
 });
 
 export async function authenticate(page: import("@playwright/test").Page) {
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem(
+      "psms-auth-session",
+      JSON.stringify({ refreshToken: "test-refresh-token" }),
+    );
+  });
+
   await page.context().addCookies([
     {
       name: "psms-authenticated",

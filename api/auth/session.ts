@@ -15,7 +15,7 @@ type StoredAuthSession = {
 
 let accessTokenCache: string | null = null;
 let refreshTokenCache: string | null = null;
-let hasLoadedStoredSession = false;
+let hasLoadedBrowserStoredSession = false;
 
 function canUseBrowserStorage() {
   return typeof window !== "undefined";
@@ -62,11 +62,15 @@ function syncAuthStateCookie() {
 }
 
 function readStoredSession(): StoredAuthSession | null {
-  if (hasLoadedStoredSession) {
+  if (!canUseBrowserStorage()) {
     return refreshTokenCache ? { refreshToken: refreshTokenCache } : null;
   }
 
-  hasLoadedStoredSession = true;
+  if (hasLoadedBrowserStoredSession) {
+    return refreshTokenCache ? { refreshToken: refreshTokenCache } : null;
+  }
+
+  hasLoadedBrowserStoredSession = true;
 
   const storage = getStorage();
 
@@ -132,7 +136,7 @@ export function setAuthSession(session: AuthSession) {
 
   accessTokenCache = session.accessToken;
   refreshTokenCache = session.refreshToken;
-  hasLoadedStoredSession = true;
+  hasLoadedBrowserStoredSession = true;
 
   if (!storage) {
     syncAuthStateCookie();
@@ -158,7 +162,7 @@ export function clearAuthSession() {
 
   accessTokenCache = null;
   refreshTokenCache = null;
-  hasLoadedStoredSession = true;
+  hasLoadedBrowserStoredSession = true;
 
   if (!storage) {
     syncAuthStateCookie();

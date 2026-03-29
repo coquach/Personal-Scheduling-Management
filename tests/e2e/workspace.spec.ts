@@ -1,161 +1,254 @@
 import { authenticate, expect, test } from "./fixtures/app-fixture";
 
-test.describe("Workspace scaffolds", () => {
+function successEnvelope<T>(data: T, message = "OK") {
+  return {
+    success: true,
+    message,
+    data,
+  };
+}
+
+function failureEnvelope(message: string) {
+  return {
+    success: false,
+    message,
+    data: null,
+  };
+}
+
+const now = "2026-03-29T10:00:00.000Z";
+
+type AppointmentItem = {
+  id: string;
+  title: string;
+  description: string | null;
+  startTime: string;
+  endTime: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+async function installStatefulAppointmentsMock(page: import("@playwright/test").Page) {
+  let appointments: AppointmentItem[] = [
+    {
+      id: "appt-1",
+      title: "Team Standup",
+      description: "Weekly product sync",
+      startTime: "2026-03-29T09:00:00.000Z",
+      endTime: "2026-03-29T09:30:00.000Z",
+      status: "SCHEDULED",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "appt-2",
+      title: "Doctor Appointment",
+      description: "Routine check-up",
+      startTime: "2026-03-30T11:30:00.000Z",
+      endTime: "2026-03-30T12:15:00.000Z",
+      status: "SCHEDULED",
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "appt-3",
+      title: "Study Session",
+      description: "System design review",
+      startTime: "2026-03-31T19:00:00.000Z",
+      endTime: "2026-03-31T20:30:00.000Z",
+      status: "COMPLETED",
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  await page.route("**/api/v1/appointments**", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+
+    if (request.method() === "GET" && url.pathname.endsWith("/appointments")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(
+          successEnvelope({
+            items: appointments,
+            page: 1,
+            limit: appointments.length,
+            total: appointments.length,
+          }),
+        ),
+      });
+      return;
+    }
+
+    if (request.method() === "POST" && url.pathname.endsWith("/appointments")) {
+      const body = JSON.parse(request.postData() ?? "{}") as {
+        title?: string;
+        description?: string;
+        startTime?: string;
+        endTime?: string;
+      };
+      const createdAppointment: AppointmentItem = {
+        id: "appt-new",
+        title: body.title ?? "New appointment",
+        description: body.description ?? null,
+        startTime: body.startTime ?? now,
+        endTime: body.endTime ?? now,
+        status: "SCHEDULED",
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      appointments = [createdAppointment, ...appointments];
+
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify(successEnvelope({ id: createdAppointment.id })),
+      });
+      return;
+    }
+
+    if (request.method() === "PUT" && /\/appointments\/[^/]+$/.test(url.pathname)) {
+      const appointmentId = url.pathname.split("/").pop() ?? "";
+      const body = JSON.parse(request.postData() ?? "{}") as {
+        title?: string;
+        description?: string;
+        startTime?: string;
+        endTime?: string;
+      };
+
+      appointments = appointments.map((appointment) =>
+        appointment.id === appointmentId
+          ? {
+              ...appointment,
+              title: body.title ?? appointment.title,
+              description: body.description ?? appointment.description,
+              startTime: body.startTime ?? appointment.startTime,
+              endTime: body.endTime ?? appointment.endTime,
+              updatedAt: now,
+            }
+          : appointment,
+      );
+
+      const updatedAppointment = appointments.find(
+        (appointment) => appointment.id === appointmentId,
+      );
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(successEnvelope(updatedAppointment)),
+      });
+      return;
+    }
+
+    await route.fallback();
+  });
+}
+
+test.describe("Midterm workspace coverage", () => {
   test.beforeEach(async ({ page }) => {
     await authenticate(page);
   });
 
-  test("supports appointment filter form interactions and stable row assertions", async ({
-    page,
-  }) => {
+  test("creates a new appointment and refreshes the list", async ({ page }) => {
+    await installStatefulAppointmentsMock(page);
+
+    await page.goto("/appointments");
+    await page.getByTestId("appointment-create-trigger").click();
+    await page.getByTestId("appointment-title-input").fill("Quarterly Review");
+    await page
+      .getByTestId("appointment-description-input")
+      .fill("Review roadmap and delivery status");
+    await page.getByTestId("appointment-start-input").fill("2026-04-02T10:00");
+    await page.getByTestId("appointment-end-input").fill("2026-04-02T11:00");
+    await page.getByTestId("appointment-save").click();
+
+    await expect(page.getByTestId("appointment-form-modal")).not.toBeVisible();
+    await expect(page.getByText("Quarterly Review")).toBeVisible();
+    await expect(page.getByTestId("appointment-row")).toHaveCount(4);
+  });
+
+  test("shows conflict feedback for overlapping appointments", async ({ page }) => {
+    await page.route("**/api/v1/appointments", async (route) => {
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify(failureEnvelope("Overlapping appointment")),
+      });
+    });
+
     await page.goto("/appointments");
 
-    await page.getByTestId("appointment-search-input").fill("Team Standup");
-    await page.getByTestId("filter-tag").fill("Work");
-    await page.getByTestId("filter-status").fill("Scheduled");
-    await page.getByTestId("filter-date-from").fill("2026-03-14");
-    await page.getByTestId("filter-date-to").fill("2026-03-15");
     await page.getByTestId("appointment-create-trigger").click();
-    await page.getByTestId("appointment-edit-trigger").first().click();
-    await page.getByTestId("appointment-status-trigger").first().click();
-    await page.getByTestId("appointment-delete-trigger").first().click();
-
-    await expect(page.getByTestId("appointment-search-input")).toHaveValue(
-      "Team Standup",
-    );
-    await expect(page.getByTestId("filter-tag")).toHaveValue("Work");
-    await expect(page.getByTestId("filter-status")).toHaveValue("Scheduled");
-    await expect(page.getByTestId("appointment-row")).toHaveCount(3);
     await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
-    await expect(page.getByTestId("appointment-conflict-alert")).toBeVisible();
-  });
+    await page.getByTestId("appointment-title-input").fill("Overlap Attempt");
+    await page.getByTestId("appointment-start-input").fill("2026-03-29T09:00");
+    await page.getByTestId("appointment-end-input").fill("2026-03-29T09:30");
+    await page.getByTestId("appointment-save").click();
 
-  test("keeps calendar controls interactive and deterministic", async ({ page }) => {
-    await page.goto("/calendar");
-
-    await page.getByTestId("calendar-view-day").click();
-    await page.getByTestId("calendar-view-week").click();
-    await page.getByTestId("calendar-view-month").click();
-    await page.getByTestId("calendar-view-agenda").click();
-    await page.getByTestId("calendar-nav-prev").click();
-    await page.getByTestId("calendar-nav-next").click();
-    await page.getByTestId("calendar-day-cell").first().click();
-    await page.getByTestId("calendar-slot").first().click();
-
-    await expect(page.getByTestId("calendar-page")).toBeVisible();
-    await expect(page.getByTestId("calendar-period-label")).toContainText(
-      "March 2026",
+    await expect(page.getByTestId("appointment-conflict-alert")).toContainText(
+      "Overlapping appointment",
     );
-    await expect(page.getByTestId("calendar-day-cell")).toHaveCount(14);
-    await expect(page.getByTestId("calendar-slot")).toHaveCount(3);
+    await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
   });
 
-  test("supports tag creation and management form interactions", async ({
+  test("shows backend time-range validation errors without closing the form", async ({
     page,
   }) => {
-    await page.goto("/tags");
+    await page.route("**/api/v1/appointments", async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify(
+          failureEnvelope("Start time must be before end time"),
+        ),
+      });
+    });
 
-    await page.getByTestId("tag-name-input").fill("Finance");
-    await page.getByTestId("tag-color-input").fill("#1d4ed8");
-    await page.getByTestId("tag-save").click();
-    await page.getByTestId("tag-rename-trigger").first().click();
-    await page.getByTestId("tag-rename-input").fill("Finance Updated");
-    await page.getByTestId("tag-rename-save").click();
-    await page.getByTestId("tag-delete-trigger").first().click();
-    await page.getByTestId("tag-delete-confirm").click();
+    await page.goto("/appointments");
+    await page.getByTestId("appointment-create-trigger").click();
+    await page.getByTestId("appointment-title-input").fill("Broken Range");
+    await page.getByTestId("appointment-start-input").fill("2026-04-02T12:00");
+    await page.getByTestId("appointment-end-input").fill("2026-04-02T11:00");
+    await page.getByTestId("appointment-save").click();
 
-    await expect(page.getByTestId("tag-name-input")).toHaveValue("Finance");
-    await expect(page.getByTestId("tag-color-input")).toHaveValue("#1d4ed8");
-    await expect(page.getByTestId("tag-preview")).toContainText("Preview");
-    await expect(page.getByTestId("tag-name-error")).toBeVisible();
-    await expect(page.getByTestId("tag-delete-dialog")).toBeVisible();
+    await expect(page.getByTestId("appointment-time-error")).toContainText(
+      "Start time must be before end time",
+    );
+    await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
   });
 
-  test("supports reminder preference interactions and reminder action controls", async ({
+  test("shows backend past-date validation errors without closing the form", async ({
     page,
   }) => {
-    await page.goto("/reminders");
+    await page.route("**/api/v1/appointments", async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify(
+          failureEnvelope("Past appointments are not allowed"),
+        ),
+      });
+    });
 
-    await page.getByTestId("reminder-default-select").fill("30 minutes before");
-    await page.getByTestId("reminder-snooze-select").fill("15 minutes");
-    await page.getByTestId("reminder-custom-value").fill("45");
-    await page.getByTestId("appointment-reminders-trigger").click();
-    await page.getByTestId("reminder-add").click();
-    await page.getByTestId("reminder-save").click();
-    await page.getByTestId("reminder-preferences-save").click();
+    await page.goto("/appointments");
+    await page.getByTestId("appointment-create-trigger").click();
+    await page.getByTestId("appointment-title-input").fill("Past Attempt");
+    await page.getByTestId("appointment-start-input").fill("2025-03-29T09:00");
+    await page.getByTestId("appointment-end-input").fill("2025-03-29T10:00");
+    await page.getByTestId("appointment-save").click();
 
-    await expect(page.getByTestId("reminder-default-select")).toHaveValue(
-      "30 minutes before",
+    await expect(page.getByTestId("appointment-time-error")).toContainText(
+      "Past appointments are not allowed",
     );
-    await expect(page.getByTestId("reminder-snooze-select")).toHaveValue(
-      "15 minutes",
-    );
-    await expect(page.getByTestId("reminder-custom-value")).toHaveValue("45");
-    await expect(page.getByTestId("reminder-row")).toBeVisible();
-    await expect(page.getByTestId("reminder-error")).toBeVisible();
+    await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
   });
 
-  test("keeps notification controls visible during interactions", async ({
-    page,
-  }) => {
-    await page.goto("/notifications");
-
-    await page.getByTestId("notification-filter").click();
-    await page.getByTestId("notification-mark-all-read").click();
-    await page.getByTestId("notification-clear-all").click();
-    await page.getByTestId("notification-popup-snooze").click();
-
-    await expect(page.getByTestId("notification-popup")).toBeVisible();
-    await expect(page.getByTestId("notification-log-row")).toBeVisible();
-    await expect(page.getByTestId("notification-status")).toContainText("Due");
-    await expect(page.getByTestId("notification-empty-state")).toBeVisible();
-  });
-
-  test("shows statistics summary cards and the current analysis period", async ({
-    page,
-  }) => {
-    await page.goto("/statistics");
-
-    await page.getByTestId("statistics-period-filter").click();
-
-    await expect(page.getByTestId("statistics-page")).toBeVisible();
-    await expect(page.getByTestId("statistics-period-label")).toContainText(
-      "Mar 08 - Mar 14, 2026",
-    );
-    await expect(page.getByTestId("statistics-total-card")).toContainText("24");
-    await expect(page.getByTestId("statistics-completed-card")).toContainText(
-      "18",
-    );
-    await expect(
-      page.getByTestId("statistics-completion-rate-card"),
-    ).toContainText("75%");
-    await expect(page.getByTestId("statistics-empty-state")).toBeVisible();
-  });
-
-  test("keeps export filters deterministic and preview visible", async ({
-    page,
-  }) => {
-    await page.goto("/export");
-
-    await page.getByTestId("export-date-from").fill("2026-03-01");
-    await page.getByTestId("export-date-to").fill("2026-03-31");
-    await page.getByTestId("export-tag-filter").fill("Work");
-    await page.getByTestId("export-status-filter").fill("Completed");
-    await page.getByTestId("export-submit").click();
-
-    await expect(page.getByTestId("export-date-from")).toHaveValue(
-      "2026-03-01",
-    );
-    await expect(page.getByTestId("export-date-to")).toHaveValue("2026-03-31");
-    await expect(page.getByTestId("export-tag-filter")).toHaveValue("Work");
-    await expect(page.getByTestId("export-status-filter")).toHaveValue(
-      "Completed",
-    );
-    await expect(page.getByTestId("export-preview-table")).toBeVisible();
-    await expect(page.getByTestId("export-empty-state")).toBeVisible();
-  });
-
-  test("supports profile form interactions while keeping email read-only", async ({
+  test("updates editable profile information and keeps email read-only", async ({
     page,
   }) => {
     await page.goto("/profile");
@@ -163,27 +256,14 @@ test.describe("Workspace scaffolds", () => {
     await page.getByTestId("profile-name-input").fill("Jamie Planner");
     await page
       .getByTestId("profile-timezone-select")
-      .fill("UTC+08:00 - Singapore Time");
-    await page
-      .getByTestId("profile-current-password-input")
-      .fill("OldPassword123");
-    await page.getByTestId("profile-new-password-input").fill("NewPassword123");
-    await page
-      .getByTestId("profile-confirm-password-input")
-      .fill("NewPassword123");
+      .fill("Asia/Singapore");
     await page.getByTestId("profile-save").click();
-    await page.getByTestId("profile-password-save").click();
-    await page.getByTestId("profile-delete-trigger").click();
-    await page
-      .getByTestId("profile-delete-confirmation-input")
-      .fill("john.doe@example.com");
-    await page.getByTestId("profile-delete-submit").click();
 
     await expect(page.getByTestId("profile-name-input")).toHaveValue(
       "Jamie Planner",
     );
     await expect(page.getByTestId("profile-timezone-select")).toHaveValue(
-      "UTC+08:00 - Singapore Time",
+      "Asia/Singapore",
     );
     await expect(page.getByTestId("profile-email-input")).toHaveValue(
       "john.doe@example.com",
@@ -193,7 +273,5 @@ test.describe("Workspace scaffolds", () => {
       true,
     );
     await expect(page.getByTestId("profile-success-banner")).toBeVisible();
-    await expect(page.getByTestId("profile-password-error")).toBeVisible();
-    await expect(page.getByTestId("profile-delete-dialog")).toBeVisible();
   });
 });

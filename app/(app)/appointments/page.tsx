@@ -271,6 +271,13 @@ export default function AppointmentsPage() {
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
   const isConflictError = formError?.toLowerCase().includes("overlapping");
+  const isTimeError = Boolean(
+    formError &&
+      (formError.toLowerCase().includes("time") ||
+        formError.toLowerCase().includes("past") ||
+        formError.toLowerCase().includes("start") ||
+        formError.toLowerCase().includes("end")),
+  );
 
   return (
     <div data-testid="appointments-page" className="space-y-6">
@@ -402,6 +409,7 @@ export default function AppointmentsPage() {
                   <TableRow>
                     <TableCell
                       colSpan={5}
+                      data-testid="appointment-empty-state"
                       className="py-10 text-center text-sm text-muted-foreground"
                     >
                       No appointments match the current filters.
@@ -432,6 +440,7 @@ export default function AppointmentsPage() {
           </DialogHeader>
           <div className="grid gap-4">
             <Input
+              data-testid="appointment-title-input"
               placeholder="Title"
               value={formState.title}
               onChange={(event) =>
@@ -442,6 +451,7 @@ export default function AppointmentsPage() {
               }
             />
             <Textarea
+              data-testid="appointment-description-input"
               placeholder="Description"
               value={formState.description}
               onChange={(event) =>
@@ -453,6 +463,7 @@ export default function AppointmentsPage() {
             />
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
+                data-testid="appointment-start-input"
                 type="datetime-local"
                 value={formState.startTime}
                 onChange={(event) =>
@@ -463,6 +474,7 @@ export default function AppointmentsPage() {
                 }
               />
               <Input
+                data-testid="appointment-end-input"
                 type="datetime-local"
                 value={formState.endTime}
                 onChange={(event) =>
@@ -480,7 +492,12 @@ export default function AppointmentsPage() {
               </Alert>
             ) : null}
             {formError && !isConflictError ? (
-              <Alert variant="destructive">
+              <Alert
+                variant="destructive"
+                data-testid={
+                  isTimeError ? "appointment-time-error" : "appointment-error-banner"
+                }
+              >
                 <AlertDescription>{formError}</AlertDescription>
               </Alert>
             ) : null}
@@ -495,7 +512,11 @@ export default function AppointmentsPage() {
             <Button variant="outline" onClick={closeDialog}>
               Cancel
             </Button>
-            <Button disabled={isSaving} onClick={handleSaveAppointment}>
+            <Button
+              data-testid="appointment-save"
+              disabled={isSaving}
+              onClick={handleSaveAppointment}
+            >
               {isSaving ? "Saving..." : "Save appointment"}
             </Button>
           </DialogFooter>

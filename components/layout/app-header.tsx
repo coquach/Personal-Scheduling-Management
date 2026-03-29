@@ -130,6 +130,7 @@ export function AppHeader() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger
+                data-testid="profile-menu-trigger"
                 render={
                   <Button variant="ghost" className="h-10 rounded-xl px-2 sm:px-3" />
                 }
@@ -146,7 +147,11 @@ export function AppHeader() {
                 <DropdownMenuItem render={<Link href="/profile" />}>Profile</DropdownMenuItem>
                 <DropdownMenuItem render={<Link href="/statistics" />}>Statistics</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+                <DropdownMenuItem
+                  data-testid="sign-out-action"
+                  variant="destructive"
+                  onClick={handleSignOut}
+                >
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
