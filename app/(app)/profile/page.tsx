@@ -1,31 +1,73 @@
 "use client";
 
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { profileData } from "@/lib/scaffold-data";
+import { getProfile, updateProfile } from "@/api/profile";
+import { getApiErrorMessage } from "@/api/client";
 import { PageSection } from "@/components/layout/page-section";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { queryKeys } from "@/query/keys";
 
 export default function ProfilePage() {
-  const [successVisible, setSuccessVisible] = useState(false);
-  const [passwordErrorVisible, setPasswordErrorVisible] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const profileQuery = useQuery({
+    queryKey: queryKeys.profile.detail,
+    queryFn: getProfile,
+  });
+
+  const [draftProfile, setDraftProfile] = useState<{
+    displayName: string;
+    timezone: string;
+  } | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const updateMutation = useMutation({
+    mutationFn: updateProfile,
+    onSuccess: async (profile) => {
+      setFeedbackMessage("Profile preferences saved successfully.");
+      setErrorMessage(null);
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.profile.detail,
+      });
+      setDraftProfile({
+        displayName: profile.displayName ?? "",
+        timezone: profile.timezone,
+      });
+    },
+    onError: (error) => {
+      setFeedbackMessage(null);
+      setErrorMessage(
+        getApiErrorMessage(
+          error,
+          "Unable to save profile changes. Please check the values and try again.",
+        ),
+      );
+    },
+  });
+
+  function handleSaveProfile() {
+    setFeedbackMessage(null);
+    setErrorMessage(null);
+
+    updateMutation.mutate({
+      displayName: (draftProfile?.displayName ?? profileQuery.data?.displayName ?? "").trim(),
+      timezone: (draftProfile?.timezone ?? profileQuery.data?.timezone ?? "").trim(),
+    });
+  }
+
+  const displayName = draftProfile?.displayName ?? profileQuery.data?.displayName ?? "";
+  const timezone = draftProfile?.timezone ?? profileQuery.data?.timezone ?? "";
 
   return (
     <div data-testid="profile-page" className="space-y-6">
       <PageSection
         title="Profile"
-        description="Manage account settings, timezone preferences and security actions."
+        description="Manage account settings and timezone preferences using the current backend profile APIs."
       >
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <Card>
@@ -33,19 +75,72 @@ export default function ProfilePage() {
               <CardTitle>Personal information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input defaultValue={profileData.fullName} data-testid="profile-name-input" />
+              {profileQuery.isLoading ? (
+                <Alert>
+                  <AlertDescription>Loading profile...</AlertDescription>
+                </Alert>
+              ) : null}
+              {profileQuery.isError ? (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    {getApiErrorMessage(
+                      profileQuery.error,
+                      "Unable to load profile information.",
+                    )}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
               <Input
-                defaultValue={profileData.email}
+                value={displayName}
+                onChange={(event) =>
+                  setDraftProfile((current) => ({
+                    displayName: event.target.value,
+                    timezone: current?.timezone ?? profileQuery.data?.timezone ?? "",
+                  }))
+                }
+                data-testid="profile-name-input"
+                disabled={profileQuery.isLoading || updateMutation.isPending}
+              />
+              <Input
+                value={profileQuery.data?.email ?? ""}
                 readOnly
                 data-testid="profile-email-input"
               />
-              <Input defaultValue={profileData.timezone} data-testid="profile-timezone-select" />
-              <Button data-testid="profile-save" onClick={() => setSuccessVisible(true)}>
-                Save profile
+              <Input
+                value={timezone}
+                onChange={(event) =>
+                  setDraftProfile((current) => ({
+                    displayName:
+                      current?.displayName ?? profileQuery.data?.displayName ?? "",
+                    timezone: event.target.value,
+                  }))
+                }
+                data-testid="profile-timezone-select"
+                placeholder="Asia/Ho_Chi_Minh"
+                disabled={profileQuery.isLoading || updateMutation.isPending}
+              />
+              <p className="text-xs leading-5 text-muted-foreground">
+                Backend currently validates timezone in IANA format, for example{" "}
+                <span className="font-medium text-foreground">
+                  Asia/Ho_Chi_Minh
+                </span>
+                .
+              </p>
+              <Button
+                data-testid="profile-save"
+                disabled={profileQuery.isLoading || updateMutation.isPending}
+                onClick={handleSaveProfile}
+              >
+                {updateMutation.isPending ? "Saving..." : "Save profile"}
               </Button>
-              {successVisible ? (
+              {feedbackMessage ? (
                 <Alert data-testid="profile-success-banner">
-                  Profile preferences saved successfully.
+                  <AlertDescription>{feedbackMessage}</AlertDescription>
+                </Alert>
+              ) : null}
+              {errorMessage ? (
+                <Alert variant="destructive">
+                  <AlertDescription>{errorMessage}</AlertDescription>
                 </Alert>
               ) : null}
             </CardContent>
@@ -55,64 +150,58 @@ export default function ProfilePage() {
               <CardTitle>Security</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <Alert>
+                <AlertTitle>API scope aligned to backend</AlertTitle>
+                <AlertDescription>
+                  The current SE113 backend exposes profile read/update APIs.
+                  Password change and account deletion are not available yet, so
+                  these actions are intentionally disabled in the frontend.
+                </AlertDescription>
+              </Alert>
               <Input
                 type="password"
                 placeholder="Current password"
                 data-testid="profile-current-password-input"
+                disabled
               />
               <Input
                 type="password"
                 placeholder="New password"
                 data-testid="profile-new-password-input"
+                disabled
               />
               <Input
                 type="password"
                 placeholder="Confirm new password"
                 data-testid="profile-confirm-password-input"
+                disabled
               />
               <div className="flex flex-wrap gap-3">
                 <Button
                   variant="outline"
                   data-testid="profile-password-save"
-                  onClick={() => setPasswordErrorVisible(true)}
+                  disabled
                 >
                   Update password
                 </Button>
                 <Button
                   variant="destructive"
                   data-testid="profile-delete-trigger"
-                  onClick={() => setDeleteDialogOpen(true)}
+                  disabled
                 >
                   Delete account
                 </Button>
               </div>
-              {passwordErrorVisible ? (
-                <Alert variant="destructive" data-testid="profile-password-error">
-                  Current password validation failed. Re-enter credentials to continue.
-                </Alert>
-              ) : null}
+              <Alert data-testid="profile-password-error">
+                <AlertDescription>
+                  Waiting for backend APIs for password updates and account
+                  deletion.
+                </AlertDescription>
+              </Alert>
             </CardContent>
           </Card>
         </div>
       </PageSection>
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent data-testid="profile-delete-dialog">
-          <DialogHeader>
-            <DialogTitle>Delete account</DialogTitle>
-          </DialogHeader>
-          <Input
-            placeholder="Type your email to confirm"
-            defaultValue={profileData.email}
-            data-testid="profile-delete-confirmation-input"
-          />
-          <DialogFooter>
-            <Button variant="outline">Cancel</Button>
-            <Button variant="destructive" data-testid="profile-delete-submit">
-              Confirm deletion
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { BellIcon, ChevronDownIcon, SearchIcon, Settings2Icon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import { logout } from "@/api/auth";
+import { getProfile } from "@/api/profile";
+import { queryKeys } from "@/query/keys";
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   "/calendar": {
@@ -59,7 +63,28 @@ const pageMeta: Record<string, { title: string; description: string }> = {
 
 export function AppHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const meta = pageMeta[pathname] ?? pageMeta["/calendar"];
+  const profileQuery = useQuery({
+    queryKey: queryKeys.profile.detail,
+    queryFn: getProfile,
+  });
+
+  async function handleSignOut() {
+    try {
+      await logout();
+    } finally {
+      router.replace("/auth");
+      router.refresh();
+    }
+  }
+
+  const displayName = profileQuery.data?.displayName?.trim() || "Account";
+  const initials = displayName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "AC";
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-background/88 backdrop-blur-xl">
@@ -110,16 +135,20 @@ export function AppHeader() {
                 }
               >
                 <Avatar size="sm">
-                  <AvatarFallback>JD</AvatarFallback>
+                  <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
-                <span className="hidden text-sm font-medium sm:inline">John Doe</span>
+                <span className="hidden text-sm font-medium sm:inline">
+                  {displayName}
+                </span>
                 <ChevronDownIcon className="hidden sm:inline size-4 text-muted-foreground" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 <DropdownMenuItem render={<Link href="/profile" />}>Profile</DropdownMenuItem>
                 <DropdownMenuItem render={<Link href="/statistics" />}>Statistics</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem render={<Link href="/auth" />}>Sign out</DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={handleSignOut}>
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

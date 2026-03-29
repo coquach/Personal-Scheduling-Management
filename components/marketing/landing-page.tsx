@@ -66,7 +66,7 @@ export function MarketingLandingPage() {
       className="min-h-screen bg-background text-foreground"
       data-testid="marketing-page"
     >
-      <div className="absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(26,115,232,0.18),_transparent_26%),radial-gradient(circle_at_top_right,_rgba(52,168,83,0.14),_transparent_22%),linear-gradient(180deg,_rgba(255,255,255,0.6),_rgba(248,250,253,0))]" />
+      <div className="absolute inset-x-0 top-0 -z-10 h-136 bg-[radial-gradient(circle_at_top_left,_rgba(26,115,232,0.18),_transparent_26%),radial-gradient(circle_at_top_right,_rgba(52,168,83,0.14),_transparent_22%),linear-gradient(180deg,_rgba(255,255,255,0.6),_rgba(248,250,253,0))]" />
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex items-center justify-between rounded-[18px] border border-border/80 bg-white/72 px-4 py-3 backdrop-blur-xl sm:px-5">
           <div className="flex items-center gap-3">

@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { AUTH_STATE_COOKIE_NAME } from "@/api/auth/session";
+
 const protectedRoutes = [
   "/calendar",
   "/appointments",
@@ -12,13 +14,14 @@ const protectedRoutes = [
   "/profile",
 ];
 
-const authRoutes = ["/auth", "/forgot-password", "/reset-password"];
+const authRoutes = ["/auth", "/forgot-password", "/reset-password", "/verify-email"];
 
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
   const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
-  const isAuthenticated = request.cookies.get("psms-session")?.value === "authenticated";
+  const isAuthenticated =
+    request.cookies.get(AUTH_STATE_COOKIE_NAME)?.value === "1";
 
   if (isProtectedRoute && !isAuthenticated) {
     const authUrl = new URL("/auth", request.url);
@@ -38,6 +41,7 @@ export const config = {
     "/auth/:path*",
     "/forgot-password/:path*",
     "/reset-password/:path*",
+    "/verify-email/:path*",
     "/calendar/:path*",
     "/appointments/:path*",
     "/tags/:path*",

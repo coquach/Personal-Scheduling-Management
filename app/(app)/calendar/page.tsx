@@ -1,15 +1,48 @@
 "use client";
 
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 
-import { calendarAgenda, calendarDays } from "@/lib/scaffold-data";
+import { getAppointments } from "@/api/appointments";
+import { getApiErrorMessage } from "@/api/client";
 import { PageSection } from "@/components/layout/page-section";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { calendarDays } from "@/lib/scaffold-data";
+import { queryKeys } from "@/query/keys";
+
+function formatTimeRange(startTime: string, endTime: string) {
+  const formatter = new Intl.DateTimeFormat("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  return `${formatter.format(new Date(startTime))} - ${formatter.format(new Date(endTime))}`;
+}
 
 export default function CalendarPage() {
+  const appointmentsQuery = useQuery({
+    queryKey: queryKeys.appointments.list({ page: "1", limit: "20" }),
+    queryFn: () => getAppointments({ page: 1, limit: 20 }),
+  });
+
+  const todayDate = new Date().toISOString().slice(0, 10);
+  const todayAppointments = useMemo(
+    () => {
+      const items = appointmentsQuery.data?.items ?? [];
+      const currentDayItems = items.filter(
+        (appointment) => appointment.startTime.slice(0, 10) === todayDate,
+      );
+
+      return currentDayItems.length > 0 ? currentDayItems : items.slice(0, 3);
+    },
+    [appointmentsQuery.data?.items, todayDate],
+  );
+
   return (
     <div data-testid="calendar-page" className="space-y-6">
       <PageSection
@@ -114,10 +147,27 @@ export default function CalendarPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Today</CardTitle>
-                <p className="text-sm text-muted-foreground">Friday, March 14, 2026</p>
+                <p className="text-sm text-muted-foreground">
+                  Live appointments from backend
+                </p>
               </CardHeader>
               <CardContent className="space-y-3">
-                {calendarAgenda.map((appointment) => (
+                {appointmentsQuery.isLoading ? (
+                  <Alert>
+                    <AlertDescription>Loading today&apos;s agenda...</AlertDescription>
+                  </Alert>
+                ) : null}
+                {appointmentsQuery.isError ? (
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      {getApiErrorMessage(
+                        appointmentsQuery.error,
+                        "Unable to load appointments for the calendar.",
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                {todayAppointments.map((appointment) => (
                   <div
                     key={appointment.id}
                     className="rounded-[16px] border border-border bg-background p-4"
@@ -125,21 +175,36 @@ export default function CalendarPage() {
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-foreground">{appointment.title}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{appointment.time}</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {appointment.title}
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {formatTimeRange(
+                            appointment.startTime,
+                            appointment.endTime,
+                          )}
+                        </p>
                       </div>
-                      <Badge
-                        className="rounded-md border-0 px-2.5"
-                        style={{ backgroundColor: `${appointment.color}14`, color: appointment.color }}
-                      >
-                        {appointment.tag}
+                      <Badge className="rounded-md border-0 px-2.5">
+                        {appointment.status}
                       </Badge>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                      {appointment.description}
-                    </p>
+                    {appointment.description ? (
+                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                        {appointment.description}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
+                {!appointmentsQuery.isLoading &&
+                !appointmentsQuery.isError &&
+                todayAppointments.length === 0 ? (
+                  <Alert>
+                    <AlertDescription>
+                      No appointments scheduled for today.
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
               </CardContent>
             </Card>
             <Card>
@@ -148,7 +213,8 @@ export default function CalendarPage() {
               </CardHeader>
               <CardContent className="grid gap-3 text-sm text-muted-foreground">
                 <div className="rounded-[14px] border border-border bg-muted/55 p-4">
-                  Conflict detection, event chips and month overview are ready for real API wiring.
+                  The agenda card now uses live appointment data while the month
+                  grid remains a visual overview.
                 </div>
                 <div className="rounded-[14px] border border-border bg-muted/55 p-4">
                   Mobile will use sidebar drawer while the calendar collapses into an agenda-first view.
