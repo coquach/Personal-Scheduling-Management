@@ -1,21 +1,5 @@
 import { expect, test } from "./fixtures/app-fixture";
 
-function successEnvelope<T>(data: T, message = "OK") {
-  return {
-    success: true,
-    message,
-    data,
-  };
-}
-
-function failureEnvelope(message: string) {
-  return {
-    success: false,
-    message,
-    data: null,
-  };
-}
-
 test.describe("Authentication and recovery", () => {
   test("shows a marketing landing page and links users to the auth entry", async ({
     page,
@@ -30,16 +14,17 @@ test.describe("Authentication and recovery", () => {
     await expect(page.getByTestId("auth-page")).toBeVisible();
   });
 
-  test("logs in successfully from the auth page", async ({
-    page,
-  }) => {
+  test("logs in successfully from the auth page", async ({ page }) => {
     await page.goto("/auth");
 
-    await page.getByTestId("login-email-input").fill("john.doe@example.com");
-    await page.getByTestId("login-password-input").fill("SuperSecret123");
+    await page.getByTestId("login-email-input").fill("profile@example.com");
+    await page.getByTestId("login-password-input").fill("ValidPass123");
     await expect(page.getByTestId("login-success-banner")).toBeVisible();
     await expect(page.getByTestId("login-submit")).toBeEnabled();
-    await page.getByTestId("login-submit").click();
+    await Promise.all([
+      page.waitForURL(/\/calendar$/),
+      page.getByTestId("login-submit").click(),
+    ]);
 
     await expect(page).toHaveURL(/\/calendar$/);
     await expect(page.getByTestId("calendar-page")).toBeVisible();
@@ -66,19 +51,23 @@ test.describe("Authentication and recovery", () => {
     await expect(page.getByTestId("register-email-input")).toHaveValue(
       "jane@example.com",
     );
+    await expect(page.getByTestId("register-password-input")).toHaveValue("");
+    await expect(page.getByTestId("register-confirm-password-input")).toHaveValue(
+      "",
+    );
     await expect(page.getByTestId("register-success-banner")).toBeVisible();
   });
 
   test("shows duplicate-email registration error from the backend", async ({
     page,
+    psmsApi,
   }) => {
-    await page.route("**/api/v1/auth/register", async (route) => {
-      await route.fulfill({
-        status: 409,
-        contentType: "application/json",
-        body: JSON.stringify(failureEnvelope("Email already registered")),
-      });
-    });
+    psmsApi.mockFailure(
+      { method: "POST", path: "/auth/register" },
+      409,
+      "Email already registered",
+      { once: true },
+    );
 
     await page.goto("/auth");
     await page.getByTestId("auth-tab-register").click();
@@ -102,20 +91,13 @@ test.describe("Authentication and recovery", () => {
   }) => {
     let registerRequestCount = 0;
 
-    await page.route("**/api/v1/auth/register", async (route) => {
-      registerRequestCount += 1;
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successEnvelope({
-            id: "user-1",
-            email: "jane@example.com",
-            displayName: "Jane Planner",
-            createdAt: new Date("2026-03-29T10:00:00.000Z").toISOString(),
-          }),
-        ),
-      });
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("/auth/register")
+      ) {
+        registerRequestCount += 1;
+      }
     });
 
     await page.goto("/auth");
@@ -127,6 +109,7 @@ test.describe("Authentication and recovery", () => {
     await page
       .getByTestId("register-confirm-password-input")
       .fill("Password456");
+    await page.getByTestId("register-confirm-password-input").blur();
 
     await expect(page.getByTestId("register-confirm-error")).toContainText(
       "Password confirmation does not match",
@@ -137,17 +120,17 @@ test.describe("Authentication and recovery", () => {
 
   test("shows invalid-credentials feedback when login fails", async ({
     page,
+    psmsApi,
   }) => {
-    await page.route("**/api/v1/auth/login", async (route) => {
-      await route.fulfill({
-        status: 401,
-        contentType: "application/json",
-        body: JSON.stringify(failureEnvelope("Invalid credentials")),
-      });
-    });
+    psmsApi.mockFailure(
+      { method: "POST", path: "/auth/login" },
+      401,
+      "Invalid credentials",
+      { once: true },
+    );
 
     await page.goto("/auth");
-    await page.getByTestId("login-email-input").fill("john.doe@example.com");
+    await page.getByTestId("login-email-input").fill("profile@example.com");
     await page.getByTestId("login-password-input").fill("WrongPassword");
     await expect(page.getByTestId("login-submit")).toBeEnabled();
     await page.getByTestId("login-submit").click();
@@ -163,7 +146,10 @@ test.describe("Authentication and recovery", () => {
   }) => {
     await page.goto("/auth");
 
-    await page.getByTestId("forgot-password-link").click();
+    await Promise.all([
+      page.waitForURL(/\/forgot-password$/),
+      page.getByTestId("forgot-password-link").click(),
+    ]);
     await expect(page).toHaveURL(/\/forgot-password$/);
     await expect(page.getByTestId("forgot-password-page")).toBeVisible();
 
@@ -178,29 +164,20 @@ test.describe("Authentication and recovery", () => {
     await expect(page.getByTestId("forgot-password-success")).toBeVisible();
   });
 
-  test("shows forgot-password error when the backend rejects the email", async ({
+  test("keeps forgot-password responses generic for unknown email", async ({
     page,
   }) => {
-    await page.route("**/api/v1/auth/forgot-password", async (route) => {
-      await route.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: JSON.stringify(failureEnvelope("Email not registered")),
-      });
-    });
-
     await page.goto("/forgot-password");
     await page
       .getByTestId("forgot-password-email-input")
       .fill("missing.user@example.com");
     await page.getByTestId("forgot-password-submit").click();
 
-    await expect(page.getByTestId("forgot-password-error")).toContainText(
-      "Email not registered",
-    );
+    await expect(page.getByTestId("forgot-password-success")).toBeVisible();
+    await expect(page.getByTestId("forgot-password-error")).toHaveCount(0);
   });
 
-  test("opens reset-password with a token and keeps the reset flow deterministic", async ({
+  test("opens reset-password with an invalid token and keeps the flow deterministic", async ({
     page,
   }) => {
     await page.goto("/reset-password?token=expired-token");
@@ -213,13 +190,15 @@ test.describe("Authentication and recovery", () => {
       .fill("FreshPassword123");
     await page.getByTestId("reset-password-submit").click();
 
+    await expect(page.getByTestId("reset-password-error")).toContainText(
+      "Invalid or expired reset token",
+    );
     await expect(page.getByTestId("reset-password-new-input")).toHaveValue(
       "FreshPassword123",
     );
     await expect(page.getByTestId("reset-password-confirm-input")).toHaveValue(
       "FreshPassword123",
     );
-    await expect(page.getByTestId("reset-password-error")).toBeVisible();
   });
 
   test("completes verify-email successfully when the token is valid", async ({
@@ -230,25 +209,26 @@ test.describe("Authentication and recovery", () => {
     await expect(page.getByTestId("verify-email-success")).toContainText(
       "Verification completed",
     );
+    await expect(page.getByTestId("verify-email-success")).toContainText(
+      "Your email has been verified successfully",
+    );
   });
 
   test("shows verify-email failure and allows resending the email", async ({
     page,
+    psmsApi,
   }) => {
-    await page.route("**/api/v1/auth/verify-email", async (route) => {
-      await route.fulfill({
-        status: 400,
-        contentType: "application/json",
-        body: JSON.stringify(
-          failureEnvelope("Verification token is invalid or expired"),
-        ),
-      });
-    });
+    psmsApi.mockFailure(
+      { method: "POST", path: "/auth/verify-email" },
+      400,
+      "Invalid or expired verification token",
+      { once: true },
+    );
 
     await page.goto("/verify-email?token=expired-token");
 
     await expect(page.getByTestId("verify-email-error")).toContainText(
-      "Verification token is invalid or expired",
+      "Invalid or expired verification token",
     );
 
     await page

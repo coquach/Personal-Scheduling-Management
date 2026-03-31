@@ -1,20 +1,7 @@
+import type { Page, Route } from "@playwright/test";
+
 import { authenticate, expect, test } from "./fixtures/app-fixture";
-
-function successEnvelope<T>(data: T, message = "OK") {
-  return {
-    success: true,
-    message,
-    data,
-  };
-}
-
-function failureEnvelope(message: string) {
-  return {
-    success: false,
-    message,
-    data: null,
-  };
-}
+import type { PsmsApiMockController } from "./mocks/psms-api";
 
 const now = "2026-03-29T10:00:00.000Z";
 
@@ -29,7 +16,23 @@ type AppointmentItem = {
   updatedAt: string;
 };
 
-async function installStatefulAppointmentsMock(page: import("@playwright/test").Page) {
+function successEnvelope<T>(data: T, message = "OK") {
+  return {
+    success: true,
+    message,
+    data,
+  };
+}
+
+async function fulfillJson(route: Route, payload: unknown, status = 200) {
+  await route.fulfill({
+    status,
+    contentType: "application/json",
+    body: JSON.stringify(payload),
+  });
+}
+
+function installStatefulAppointmentsMock(psmsApi: PsmsApiMockController) {
   let appointments: AppointmentItem[] = [
     {
       id: "appt-1",
@@ -63,27 +66,21 @@ async function installStatefulAppointmentsMock(page: import("@playwright/test").
     },
   ];
 
-  await page.route("**/api/v1/appointments**", async (route) => {
-    const request = route.request();
-    const url = new URL(request.url());
-
-    if (request.method() === "GET" && url.pathname.endsWith("/appointments")) {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(
-          successEnvelope({
-            items: appointments,
-            page: 1,
-            limit: appointments.length,
-            total: appointments.length,
-          }),
-        ),
-      });
-      return;
+  psmsApi.mockHandler(async ({ route, request, path }) => {
+    if (request.method() === "GET" && path === "/appointments") {
+      await fulfillJson(
+        route,
+        successEnvelope({
+          items: appointments,
+          page: 1,
+          limit: appointments.length,
+          total: appointments.length,
+        }),
+      );
+      return true;
     }
 
-    if (request.method() === "POST" && url.pathname.endsWith("/appointments")) {
+    if (request.method() === "POST" && path === "/appointments") {
       const body = JSON.parse(request.postData() ?? "{}") as {
         title?: string;
         description?: string;
@@ -103,16 +100,12 @@ async function installStatefulAppointmentsMock(page: import("@playwright/test").
 
       appointments = [createdAppointment, ...appointments];
 
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify(successEnvelope({ id: createdAppointment.id })),
-      });
-      return;
+      await fulfillJson(route, successEnvelope({ id: createdAppointment.id }), 201);
+      return true;
     }
 
-    if (request.method() === "PUT" && /\/appointments\/[^/]+$/.test(url.pathname)) {
-      const appointmentId = url.pathname.split("/").pop() ?? "";
+    if (request.method() === "PUT" && /^\/appointments\/[^/]+$/.test(path)) {
+      const appointmentId = path.split("/").pop() ?? "";
       const body = JSON.parse(request.postData() ?? "{}") as {
         title?: string;
         description?: string;
@@ -137,15 +130,11 @@ async function installStatefulAppointmentsMock(page: import("@playwright/test").
         (appointment) => appointment.id === appointmentId,
       );
 
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify(successEnvelope(updatedAppointment)),
-      });
-      return;
+      await fulfillJson(route, successEnvelope(updatedAppointment));
+      return true;
     }
 
-    await route.fallback();
+    return false;
   });
 }
 
@@ -154,8 +143,11 @@ test.describe("Midterm workspace coverage", () => {
     await authenticate(page);
   });
 
-  test("creates a new appointment and refreshes the list", async ({ page }) => {
-    await installStatefulAppointmentsMock(page);
+  test("creates a new appointment and refreshes the list", async ({
+    page,
+    psmsApi,
+  }) => {
+    installStatefulAppointmentsMock(psmsApi);
 
     await page.goto("/appointments");
     await page.getByTestId("appointment-create-trigger").click();
@@ -172,14 +164,16 @@ test.describe("Midterm workspace coverage", () => {
     await expect(page.getByTestId("appointment-row")).toHaveCount(4);
   });
 
-  test("shows conflict feedback for overlapping appointments", async ({ page }) => {
-    await page.route("**/api/v1/appointments", async (route) => {
-      await route.fulfill({
-        status: 409,
-        contentType: "application/json",
-        body: JSON.stringify(failureEnvelope("Overlapping appointment")),
-      });
-    });
+  test("shows conflict feedback for overlapping appointments", async ({
+    page,
+    psmsApi,
+  }) => {
+    psmsApi.mockFailure(
+      { method: "POST", path: "/appointments" },
+      409,
+      "Overlapping appointment",
+      { once: true },
+    );
 
     await page.goto("/appointments");
 
@@ -198,16 +192,14 @@ test.describe("Midterm workspace coverage", () => {
 
   test("shows backend time-range validation errors without closing the form", async ({
     page,
+    psmsApi,
   }) => {
-    await page.route("**/api/v1/appointments", async (route) => {
-      await route.fulfill({
-        status: 400,
-        contentType: "application/json",
-        body: JSON.stringify(
-          failureEnvelope("Start time must be before end time"),
-        ),
-      });
-    });
+    psmsApi.mockFailure(
+      { method: "POST", path: "/appointments" },
+      400,
+      "startTime must be before endTime",
+      { once: true },
+    );
 
     await page.goto("/appointments");
     await page.getByTestId("appointment-create-trigger").click();
@@ -217,23 +209,21 @@ test.describe("Midterm workspace coverage", () => {
     await page.getByTestId("appointment-save").click();
 
     await expect(page.getByTestId("appointment-time-error")).toContainText(
-      "Start time must be before end time",
+      "startTime must be before endTime",
     );
     await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
   });
 
   test("shows backend past-date validation errors without closing the form", async ({
     page,
+    psmsApi,
   }) => {
-    await page.route("**/api/v1/appointments", async (route) => {
-      await route.fulfill({
-        status: 400,
-        contentType: "application/json",
-        body: JSON.stringify(
-          failureEnvelope("Past appointments are not allowed"),
-        ),
-      });
-    });
+    psmsApi.mockFailure(
+      { method: "POST", path: "/appointments" },
+      400,
+      "startTime must not be in the past",
+      { once: true },
+    );
 
     await page.goto("/appointments");
     await page.getByTestId("appointment-create-trigger").click();
@@ -243,7 +233,7 @@ test.describe("Midterm workspace coverage", () => {
     await page.getByTestId("appointment-save").click();
 
     await expect(page.getByTestId("appointment-time-error")).toContainText(
-      "Past appointments are not allowed",
+      "startTime must not be in the past",
     );
     await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
   });
@@ -266,7 +256,7 @@ test.describe("Midterm workspace coverage", () => {
       "Asia/Singapore",
     );
     await expect(page.getByTestId("profile-email-input")).toHaveValue(
-      "john.doe@example.com",
+      "profile@example.com",
     );
     await expect(page.getByTestId("profile-email-input")).toHaveJSProperty(
       "readOnly",

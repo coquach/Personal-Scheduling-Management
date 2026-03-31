@@ -1,5 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const port = Number(process.env.PLAYWRIGHT_PORT ?? 3000);
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const shouldReuseExistingServer =
+  process.env.PLAYWRIGHT_REUSE_SERVER != null
+    ? process.env.PLAYWRIGHT_REUSE_SERVER === "1"
+    : !process.env.CI;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
@@ -8,7 +16,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
+    baseURL,
     trace: "on-first-retry",
   },
   projects: [
@@ -18,9 +26,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev -- --hostname 127.0.0.1 --port 3000",
-    port: 3000,
-    reuseExistingServer: !process.env.CI,
+    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    port,
+    reuseExistingServer: shouldReuseExistingServer,
     timeout: 120_000,
   },
 });

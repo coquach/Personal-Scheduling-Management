@@ -1,11 +1,19 @@
 import { test as base, expect } from "@playwright/test";
-import { mockPsmsApi } from "../mocks/psms-api";
+import {
+  mockPsmsApi,
+  type PsmsApiMockController,
+} from "../mocks/psms-api";
 
-export const test = base.extend({
-  page: async ({ page }, runWithPage) => {
-    await mockPsmsApi(page);
-    await runWithPage(page);
-  },
+export const test = base.extend<{
+  psmsApi: PsmsApiMockController;
+}>({
+  psmsApi: [
+    async ({ page }, use) => {
+      const controller = await mockPsmsApi(page);
+      await use(controller);
+    },
+    { auto: true },
+  ],
 });
 
 export async function authenticate(page: import("@playwright/test").Page) {
