@@ -1,4 +1,5 @@
 export const AUTH_REFRESH_TOKEN_COOKIE_NAME = "psms-refresh-token";
+export const AUTH_BYPASS_ROUTE_GUARD_ENV = "AUTH_BYPASS_ROUTE_GUARD";
 
 export const AUTH_ROUTE_PATHS = {
   alias: "/auth",
@@ -7,7 +8,7 @@ export const AUTH_ROUTE_PATHS = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   verifyEmail: "/verify-email",
-  dashboard: "/dashboard",
+  calendar: "/calendar",
 } as const;
 
 export const AUTH_ROUTE_MATCHER_PATHS = [

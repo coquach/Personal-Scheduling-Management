@@ -16,7 +16,7 @@ import { setAccessToken } from "@/lib/auth-store";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? AUTH_ROUTE_PATHS.dashboard;
+  const redirectTo = searchParams.get("redirect") ?? AUTH_ROUTE_PATHS.calendar;
   const [state, formAction, pending] = useActionState(
     loginAction,
     initialLoginActionState,

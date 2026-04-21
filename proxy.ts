@@ -6,10 +6,11 @@ import {
   AUTH_ROUTE_MATCHER_PATHS,
   AUTH_ROUTE_PATHS,
 } from "@/lib/constants/auth";
+import { isAuthRouteBypassEnabled } from "@/lib/auth-flags";
 
 function sanitizeRedirectTarget(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return AUTH_ROUTE_PATHS.dashboard;
+    return AUTH_ROUTE_PATHS.calendar;
   }
 
   return value;
@@ -50,6 +51,10 @@ function hasActiveAuthSession(request: NextRequest) {
 }
 
 export function proxy(request: NextRequest) {
+  if (isAuthRouteBypassEnabled()) {
+    return NextResponse.next();
+  }
+
   const { pathname, searchParams } = request.nextUrl;
   const authenticated = hasActiveAuthSession(request);
   const isAuthAlias =

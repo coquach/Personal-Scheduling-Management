@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { isAuthRouteBypassEnabled } from "@/lib/auth-flags";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 
 import {
@@ -17,6 +18,13 @@ import {
 export type AuthSession = {
   accessToken: string;
   user: AuthUser;
+};
+
+const AUTH_BYPASS_DEV_USER: AuthUser = {
+  id: "dev-bypass-user",
+  email: "dev-bypass@local",
+  displayName: "Dev Bypass User",
+  roles: ["developer", "admin"],
 };
 
 export async function resolveSessionFromRefreshCookie(options?: {
@@ -54,7 +62,11 @@ export async function resolveSessionFromRefreshCookie(options?: {
   }
 }
 
-export async function requireUser(redirectTo = AUTH_ROUTE_PATHS.dashboard) {
+export async function requireUser(redirectTo = AUTH_ROUTE_PATHS.calendar) {
+  if (isAuthRouteBypassEnabled()) {
+    return AUTH_BYPASS_DEV_USER;
+  }
+
   // During an RSC render we can read the refresh cookie, but cookie mutation is
   // not reliable there. That means refresh-token rotation should be finalized
   // inside explicit Server Actions such as refreshSessionAction/loginAction.
@@ -67,11 +79,15 @@ export async function requireUser(redirectTo = AUTH_ROUTE_PATHS.dashboard) {
   return session.user;
 }
 
-export async function requireRole(role: string, redirectTo = AUTH_ROUTE_PATHS.dashboard) {
+export async function requireRole(role: string, redirectTo = AUTH_ROUTE_PATHS.calendar) {
+  if (isAuthRouteBypassEnabled()) {
+    return AUTH_BYPASS_DEV_USER;
+  }
+
   const user = await requireUser(redirectTo);
 
   if (!user.roles.includes(role)) {
-    redirect(AUTH_ROUTE_PATHS.dashboard);
+    redirect(AUTH_ROUTE_PATHS.calendar);
   }
 
   return user;
