@@ -1,4 +1,4 @@
-import type { Page, Route } from "@playwright/test";
+import type { Route } from "@playwright/test";
 
 import { authenticate, expect, test } from "./fixtures/app-fixture";
 import type { PsmsApiMockController } from "./mocks/psms-api";

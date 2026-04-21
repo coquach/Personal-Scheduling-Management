@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/client";
+import { browserApiRequest } from "@/lib/browser-api";
 
 export type AppointmentStatus =
   | "SCHEDULED"
@@ -39,7 +39,7 @@ export async function getAppointments(input: {
   }
 
   const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  return apiClient<AppointmentListResponse>(`/appointments${suffix}`);
+  return browserApiRequest<AppointmentListResponse>(`/appointments${suffix}`);
 }
 
 export async function createAppointment(input: {
@@ -49,7 +49,7 @@ export async function createAppointment(input: {
   endTime: string;
   isAllDay?: boolean;
 }) {
-  return apiClient<{ id: string }>("/appointments", {
+  return browserApiRequest<{ id: string }>("/appointments", {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -66,14 +66,14 @@ export async function updateAppointment(
     scope?: "single";
   },
 ) {
-  return apiClient<Appointment>(`/appointments/${id}`, {
+  return browserApiRequest<Appointment>(`/appointments/${id}`, {
     method: "PUT",
     body: JSON.stringify(input),
   });
 }
 
 export async function deleteAppointment(id: string) {
-  return apiClient<{ success: boolean; deletedCount: number }>(
+  return browserApiRequest<{ success: boolean; deletedCount: number }>(
     `/appointments/${id}?scope=single`,
     {
       method: "DELETE",

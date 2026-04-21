@@ -17,6 +17,9 @@ export const test = base.extend<{
 });
 
 export async function authenticate(page: import("@playwright/test").Page) {
+  const refreshToken =
+    "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJleHAiOjQxMDI0NDQ4MDB9.signature";
+
   await page.addInitScript(() => {
     window.sessionStorage.setItem(
       "psms-auth-session",
@@ -26,12 +29,12 @@ export async function authenticate(page: import("@playwright/test").Page) {
 
   await page.context().addCookies([
     {
-      name: "psms-authenticated",
-      value: "1",
+      name: "psms-refresh-token",
+      value: refreshToken,
       domain: "127.0.0.1",
       path: "/",
       sameSite: "Lax",
-      httpOnly: false,
+      httpOnly: true,
       secure: false,
     },
   ]);

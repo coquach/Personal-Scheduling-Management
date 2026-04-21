@@ -4,16 +4,16 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 
-import { getAppointments } from "@/api/appointments";
-import { getApiErrorMessage } from "@/api/client";
 import { PageSection } from "@/components/layout/page-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getApiErrorMessage } from "@/lib/backend-api";
 import { calendarDays } from "@/lib/scaffold-data";
 import { queryKeys } from "@/query/keys";
+import { getAppointments } from "@/services/appointments.service";
 
 function formatTimeRange(startTime: string, endTime: string) {
   const formatter = new Intl.DateTimeFormat("en-GB", {

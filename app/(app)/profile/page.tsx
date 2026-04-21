@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { getProfile, updateProfile } from "@/api/profile";
-import { getApiErrorMessage } from "@/api/client";
 import { PageSection } from "@/components/layout/page-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { getApiErrorMessage } from "@/lib/backend-api";
 import { queryKeys } from "@/query/keys";
+import { getProfile, updateProfile } from "@/services/profile.service";
 
 export default function ProfilePage() {
   const queryClient = useQueryClient();

@@ -6,31 +6,37 @@ import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getApiErrorMessage } from "@/lib/backend-api";
+import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import {
-  resendVerificationEmail,
-  verifyEmail,
-} from "@/api/auth";
+  useResendVerificationEmailMutation,
+  useVerifyEmailMutation,
+} from "@/query/auth-hooks";
 import {
   resendVerificationEmailRequestSchema,
   verifyEmailRequestSchema,
   type ResendVerificationEmailRequestDto,
-} from "@/api/auth/dto";
-import { getApiErrorMessage } from "@/api/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+} from "@/lib/validation/auth";
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
   const hasAttemptedRef = useRef(false);
+  const initialTokenValidation = verifyEmailRequestSchema.safeParse({ token });
+  const verifyEmailMutation = useVerifyEmailMutation();
+  const resendVerificationEmailMutation = useResendVerificationEmailMutation();
 
   const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading",
+    initialTokenValidation.success ? "loading" : "error",
   );
-  const [message, setMessage] = useState("Verifying your email address...");
-  const [resendPending, setResendPending] = useState(false);
+  const [message, setMessage] = useState(
+    initialTokenValidation.success
+      ? "Verifying your email address..."
+      : "Verification token is missing or invalid.",
+  );
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const resendForm = useForm<ResendVerificationEmailRequestDto>({
     resolver: zodResolver(resendVerificationEmailRequestSchema),
@@ -50,14 +56,14 @@ export default function VerifyEmailPage() {
     const tokenValidation = verifyEmailRequestSchema.safeParse({ token });
 
     if (!tokenValidation.success) {
-      setStatus("error");
-      setMessage("Verification token is missing or invalid.");
       return;
     }
 
     void (async () => {
       try {
-        await verifyEmail(tokenValidation.data.token);
+        await verifyEmailMutation.mutateAsync({
+          token: tokenValidation.data.token,
+        });
         setStatus("success");
         setMessage("Your email has been verified successfully.");
       } catch (error) {
@@ -70,14 +76,15 @@ export default function VerifyEmailPage() {
         );
       }
     })();
-  }, [token]);
+  }, [token, verifyEmailMutation]);
 
   const handleResend = resendForm.handleSubmit(async (values) => {
-    setResendPending(true);
     setResendMessage(null);
 
     try {
-      await resendVerificationEmail(values.email.trim());
+      await resendVerificationEmailMutation.mutateAsync({
+        email: values.email,
+      });
       setResendMessage(
         "If the account exists and is not verified, a new verification email has been sent.",
       );
@@ -88,75 +95,78 @@ export default function VerifyEmailPage() {
           "Unable to resend verification email. Please try again.",
         ),
       );
-    } finally {
-      setResendPending(false);
     }
   });
 
   return (
-    <div data-testid="verify-email-page">
-      <Card className="border-0 bg-transparent shadow-none">
-        <CardHeader className="px-2">
-          <CardTitle className="text-[2.15rem] leading-[1.04] font-bold tracking-[-0.05em]">
-            Verify email
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4 px-2">
-          {status === "loading" ? (
-            <Alert>
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
+    <div data-testid="verify-email-page" className="space-y-6">
+      <div className="space-y-3">
+        <p className="inline-flex items-center rounded-full border border-border/80 bg-accent/55 px-3 py-1 text-[11px] font-semibold tracking-[0.07em] text-accent-foreground uppercase">
+          Email verification
+        </p>
+        <h1 className="text-[2.25rem] leading-[1.02] font-bold tracking-[-0.045em] text-foreground">
+          Verify email
+        </h1>
+      </div>
+
+      {status === "loading" ? (
+        <Alert>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
+      {status === "success" ? (
+        <Alert data-testid="verify-email-success">
+          <AlertTitle>Verification completed</AlertTitle>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
+      {status === "error" ? (
+        <Alert variant="destructive" data-testid="verify-email-error">
+          <AlertTitle>Verification failed</AlertTitle>
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
+      {status === "error" ? (
+        <form className="space-y-4" onSubmit={handleResend} noValidate>
+          <Input
+            data-testid="verify-email-resend-input"
+            type="email"
+            placeholder="Enter your email to resend verification"
+            autoComplete="email"
+            className="h-11 rounded-xl border-border/80 bg-background/75"
+            {...resendForm.register("email", {
+              onChange: () => setResendMessage(null),
+            })}
+          />
+          {resendForm.formState.errors.email ? (
+            <p className="text-sm text-destructive">
+              {resendForm.formState.errors.email.message}
+            </p>
           ) : null}
-          {status === "success" ? (
-            <Alert data-testid="verify-email-success">
-              <AlertTitle>Verification completed</AlertTitle>
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          ) : null}
-          {status === "error" ? (
-            <Alert variant="destructive" data-testid="verify-email-error">
-              <AlertTitle>Verification failed</AlertTitle>
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          ) : null}
-          {status === "error" ? (
-            <form className="space-y-4" onSubmit={handleResend} noValidate>
-              <Input
-                data-testid="verify-email-resend-input"
-                type="email"
-                placeholder="Enter your email to resend verification"
-                autoComplete="email"
-                {...resendForm.register("email", {
-                  onChange: () => setResendMessage(null),
-                })}
-              />
-              {resendForm.formState.errors.email ? (
-                <p className="text-sm text-destructive">
-                  {resendForm.formState.errors.email.message}
-                </p>
-              ) : null}
-              <Button
-                data-testid="verify-email-resend-submit"
-                variant="outline"
-                type="submit"
-                disabled={resendPending || !resendForm.formState.isValid}
-              >
-                {resendPending
-                  ? "Sending verification..."
-                  : "Resend verification email"}
-              </Button>
-              {resendMessage ? (
-                <Alert data-testid="verify-email-resend-message">
-                  <AlertDescription>{resendMessage}</AlertDescription>
-                </Alert>
-              ) : null}
-            </form>
-          ) : null}
-          <Button render={<Link href="/auth" />}>
-            Back to login
+          <Button
+            data-testid="verify-email-resend-submit"
+            variant="outline"
+            className="h-11 rounded-xl"
+            type="submit"
+            disabled={resendVerificationEmailMutation.isPending || !resendForm.formState.isValid}
+          >
+            {resendVerificationEmailMutation.isPending
+              ? "Sending verification..."
+              : "Resend verification email"}
           </Button>
-        </CardContent>
-      </Card>
+          {resendMessage ? (
+            <Alert data-testid="verify-email-resend-message">
+              <AlertDescription>{resendMessage}</AlertDescription>
+            </Alert>
+          ) : null}
+        </form>
+      ) : null}
+      <Button
+        className="rounded-full"
+        render={<Link href={AUTH_ROUTE_PATHS.login} />}
+      >
+        Back to login
+      </Button>
     </div>
   );
 }

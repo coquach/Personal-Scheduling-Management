@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { BellIcon, ChevronDownIcon, SearchIcon, Settings2Icon } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Button } from "@/components/ui/button";
 import {
   Breadcrumb,
@@ -22,9 +23,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { logout } from "@/api/auth";
-import { getProfile } from "@/api/profile";
 import { queryKeys } from "@/query/keys";
+import { getProfile } from "@/services/profile.service";
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   "/calendar": {
@@ -63,21 +63,11 @@ const pageMeta: Record<string, { title: string; description: string }> = {
 
 export function AppHeader() {
   const pathname = usePathname();
-  const router = useRouter();
   const meta = pageMeta[pathname] ?? pageMeta["/calendar"];
   const profileQuery = useQuery({
     queryKey: queryKeys.profile.detail,
     queryFn: getProfile,
   });
-
-  async function handleSignOut() {
-    try {
-      await logout();
-    } finally {
-      router.replace("/auth");
-      router.refresh();
-    }
-  }
 
   const displayName = profileQuery.data?.displayName?.trim() || "Account";
   const initials = displayName
@@ -147,13 +137,12 @@ export function AppHeader() {
                 <DropdownMenuItem render={<Link href="/profile" />}>Profile</DropdownMenuItem>
                 <DropdownMenuItem render={<Link href="/statistics" />}>Statistics</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
+                <LogoutButton
                   data-testid="sign-out-action"
+                  label="Sign out"
                   variant="destructive"
-                  onClick={handleSignOut}
-                >
-                  Sign out
-                </DropdownMenuItem>
+                  className="px-1.5 py-1"
+                />
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

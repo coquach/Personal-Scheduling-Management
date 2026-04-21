@@ -1,54 +1,84 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import {
+  AUTH_PUBLIC_PAGE_PATHS,
+  AUTH_REFRESH_TOKEN_COOKIE_NAME,
+  AUTH_ROUTE_MATCHER_PATHS,
+  AUTH_ROUTE_PATHS,
+} from "@/lib/constants/auth";
 
-import { AUTH_STATE_COOKIE_NAME } from "@/api/auth/session";
-
-const protectedRoutes = [
-  "/calendar",
-  "/appointments",
-  "/tags",
-  "/reminders",
-  "/notifications",
-  "/statistics",
-  "/export",
-  "/profile",
-];
-
-const authRoutes = ["/auth", "/forgot-password", "/reset-password", "/verify-email"];
-
-export function proxy(request: NextRequest) {
-  const { pathname, search } = request.nextUrl;
-  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
-  const isAuthRoute = authRoutes.some((route) => pathname.startsWith(route));
-  const isAuthenticated =
-    request.cookies.get(AUTH_STATE_COOKIE_NAME)?.value === "1";
-
-  if (isProtectedRoute && !isAuthenticated) {
-    const authUrl = new URL("/auth", request.url);
-    authUrl.searchParams.set("redirect", pathname + search);
-    return NextResponse.redirect(authUrl);
+function sanitizeRedirectTarget(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return AUTH_ROUTE_PATHS.dashboard;
   }
 
-  if (isAuthRoute && isAuthenticated && pathname === "/auth") {
-    return NextResponse.redirect(new URL("/calendar", request.url));
+  return value;
+}
+
+function decodeJwtPayload(token: string) {
+  const payloadPart = token.split(".")[1];
+
+  if (!payloadPart) {
+    return null;
+  }
+
+  try {
+    const base64 = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const payload = JSON.parse(atob(padded)) as { exp?: number };
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+function hasActiveAuthSession(request: NextRequest) {
+  const refreshToken = request.cookies.get(AUTH_REFRESH_TOKEN_COOKIE_NAME)?.value;
+
+  if (!refreshToken) {
+    return false;
+  }
+
+  const payload = decodeJwtPayload(refreshToken);
+
+  if (!payload?.exp) {
+    return false;
+  }
+
+  return payload.exp * 1000 > Date.now();
+}
+
+export function proxy(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl;
+  const authenticated = hasActiveAuthSession(request);
+  const isAuthAlias =
+    pathname === AUTH_ROUTE_PATHS.alias || pathname === `${AUTH_ROUTE_PATHS.alias}/`;
+  const isAuthPage = AUTH_PUBLIC_PAGE_PATHS.has(pathname);
+  const redirectTarget = sanitizeRedirectTarget(searchParams.get("redirect"));
+
+  if (isAuthAlias) {
+    if (authenticated) {
+      return NextResponse.redirect(new URL(redirectTarget, request.url));
+    }
+
+    const loginUrl = new URL(AUTH_ROUTE_PATHS.login, request.url);
+    const requestedRedirect = searchParams.get("redirect");
+
+    if (requestedRedirect) {
+      loginUrl.searchParams.set("redirect", redirectTarget);
+    }
+
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (authenticated && isAuthPage) {
+    return NextResponse.redirect(new URL(redirectTarget, request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/auth/:path*",
-    "/forgot-password/:path*",
-    "/reset-password/:path*",
-    "/verify-email/:path*",
-    "/calendar/:path*",
-    "/appointments/:path*",
-    "/tags/:path*",
-    "/reminders/:path*",
-    "/notifications/:path*",
-    "/statistics/:path*",
-    "/export/:path*",
-    "/profile/:path*",
-  ],
+  matcher: AUTH_ROUTE_MATCHER_PATHS,
 };

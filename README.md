@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Personal Scheduling Management
 
-## Getting Started
+PSM la ung dung Next.js quan ly lich ca nhan, nhac viec va thong bao. Repo nay da duoc bo sung CI/CD voi GitHub Actions va Playwright de chan loi giao dien truoc khi deploy production.
 
-First, run the development server:
+## Yeu cau moi truong
+
+- Node.js 20
+- npm 10+
+- Playwright Chromium browser cho local E2E
+
+## Cai dat va chay local
 
 ```bash
+npm ci
+copy .env.example .env.local
+# hoac tren macOS/Linux:
+# cp .env.example .env.local
+npx playwright install chromium
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Mac dinh ung dung dung:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `NEXT_PUBLIC_PSMS_API_URL=http://localhost:4000/api/v1`
+- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000`
+- `PLAYWRIGHT_PORT=3000`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+E2E hien tai mock API ngay trong browser, vi vay local va CI khong can dung backend rieng de chay Playwright.
 
-## Learn More
+## Scripts chinh
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+npm run test
+npm run build
+npm run test:e2e
+npm run test:e2e:ui
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run test` chi chay Jest unit/integration va bo qua `tests/e2e`.
+- `npm run test:e2e` dung Playwright tren thu muc `tests/e2e`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## CI/CD da cau hinh
 
-## Deploy on Vercel
+Workflow nam tai `.github/workflows/ci-cd.yml`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### CI
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Khi mo `pull_request` vao `main` hoac `push` len `main`, pipeline se chay:
+
+1. `npm ci`
+2. `npm run lint`
+3. `npm test`
+4. `npm run build`
+5. `npm run test:e2e`
+
+Playwright tren CI se:
+
+- build app truoc
+- dung `next start` thay vi `next dev`
+- retry 2 lan khi fail
+- gioi han 1 worker de giam flaky
+- upload `playwright-report` va `test-results` lam artifact
+
+### CD
+
+Neu pipeline `push` len `main` thanh cong va da khai bao du 3 secrets Vercel, workflow se deploy production:
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`
+
+Neu chua co secrets, job deploy se tu dong bi skip, CI van chay binh thuong.
+
+## Cach lay thong tin Vercel
+
+1. Dang nhap Vercel CLI: `vercel login`
+2. Link project neu chua co: `vercel link`
+3. Lay `VERCEL_ORG_ID` va `VERCEL_PROJECT_ID` trong `.vercel/project.json`
+4. Tao `VERCEL_TOKEN` tai Vercel dashboard, sau do add vao GitHub repository secrets
+
+## Bien moi truong GitHub Actions
+
+Workflow dang set san bien sau cho luc build/test:
+
+```text
+NEXT_PUBLIC_PSMS_API_URL=http://127.0.0.1:4000/api/v1
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000
+PLAYWRIGHT_PORT=3000
+```
+
+Vi Playwright dang mock request `/api/**`, gia tri API URL trong CI chu yeu de dam bao Next.js build duoc on dinh.
+
+## Mo rong them neu can
+
+- Them preview deployment cho branch khac `main`
+- Tach workflow thanh `ci.yml` va `deploy.yml` neu muon quan ly rieng
+- Them unit test that su de `npm test` bao phu logic business thay vi chi la sanity check pipeline

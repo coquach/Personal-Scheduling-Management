@@ -17,7 +17,7 @@ export type SrsTestCase = {
 };
 
 export const srsTestCases: readonly SrsTestCase[] = [
-  { id: "NAV-01", route: "/calendar", feature: "navigation", title: "redirect unauthenticated users to /auth", priority: "P0", kind: "error", scope: "core", source: ["BR-2", "BR-3", "BR-34"], mocks: [], selectors: ["auth-page", "auth-login-form"], expected: "Protected routes redirect to /auth and hide private content." },
+  { id: "NAV-01", route: "/calendar", feature: "navigation", title: "redirect unauthenticated users to /login", priority: "P0", kind: "error", scope: "core", source: ["BR-2", "BR-3", "BR-34"], mocks: [], selectors: ["login-page", "login-email-input"], expected: "Protected routes redirect to /login and hide private content." },
   { id: "NAV-02", route: "/calendar", feature: "navigation", title: "navigate between authenticated sections from the app shell", priority: "P0", kind: "happy", scope: "core", source: ["Wireframe: calendar-dashboard"], mocks: ["GET /appointments", "GET /notifications"], selectors: ["app-sidebar", "nav-calendar", "nav-appointments", "nav-tags", "nav-profile"], expected: "Sidebar navigation changes routes and shows the destination heading." },
 
   { id: "AUTH-01", route: "/auth", feature: "authentication", title: "register a new account", priority: "P0", kind: "happy", scope: "core", source: ["UC-1", "BR-1", "BR-32"], mocks: ["POST /auth/register"], selectors: ["auth-tab-register", "register-name-input", "register-email-input", "register-password-input", "register-confirm-password-input", "register-submit", "register-success-banner"], expected: "Registration succeeds and shows a verification-required banner." },

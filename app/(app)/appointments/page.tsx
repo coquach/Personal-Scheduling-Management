@@ -15,8 +15,7 @@ import {
   getAppointments,
   type Appointment,
   updateAppointment,
-} from "@/api/appointments";
-import { getApiErrorMessage } from "@/api/client";
+} from "@/services/appointments.service";
 import { PageSection } from "@/components/layout/page-section";
 import {
   Alert,
@@ -43,6 +42,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { getApiErrorMessage } from "@/lib/backend-api";
 import { queryKeys } from "@/query/keys";
 
 function FilterInput({

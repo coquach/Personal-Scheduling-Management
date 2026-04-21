@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/client";
+import { browserApiRequest } from "@/lib/browser-api";
 
 export type UserProfile = {
   id: string;
@@ -10,14 +10,14 @@ export type UserProfile = {
 };
 
 export async function getProfile() {
-  return apiClient<UserProfile>("/profile");
+  return browserApiRequest<UserProfile>("/profile");
 }
 
 export async function updateProfile(input: {
   displayName?: string;
   timezone?: string;
 }) {
-  return apiClient<UserProfile>("/profile", {
+  return browserApiRequest<UserProfile>("/profile", {
     method: "PUT",
     body: JSON.stringify(input),
   });

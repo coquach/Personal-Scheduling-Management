@@ -6,8 +6,20 @@ test.describe("Workspace navigation", () => {
   }) => {
     await page.goto("/calendar");
 
-    await expect(page).toHaveURL(/\/auth\?redirect=%2Fcalendar$/);
-    await expect(page.getByTestId("auth-page")).toBeVisible();
+    await expect(page).toHaveURL(/\/login\?redirect=%2Fcalendar$/);
+    await expect(page.getByTestId("login-page")).toBeVisible();
+  });
+
+  test("redirects authenticated users away from auth routes", async ({
+    page,
+  }) => {
+    await authenticate(page);
+
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/dashboard$/);
+
+    await page.goto("/register");
+    await expect(page).toHaveURL(/\/dashboard$/);
   });
 
   test("navigates between sections from the shared sidebar", async ({
@@ -105,6 +117,6 @@ test.describe("Workspace navigation", () => {
       .toBeNull();
 
     await page.goto("/calendar");
-    await expect(page).toHaveURL(/\/auth\?redirect=%2Fcalendar$/);
+    await expect(page).toHaveURL(/\/login\?redirect=%2Fcalendar$/);
   });
 });

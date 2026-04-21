@@ -7,14 +7,20 @@ const shouldReuseExistingServer =
   process.env.PLAYWRIGHT_REUSE_SERVER != null
     ? process.env.PLAYWRIGHT_REUSE_SERVER === "1"
     : !process.env.CI;
+const webServerCommand = process.env.CI
+  ? `npm run start -- --hostname 127.0.0.1 --port ${port}`
+  : `npm run dev -- --hostname 127.0.0.1 --port ${port}`;
 
 export default defineConfig({
   testDir: "./tests/e2e",
   testMatch: "**/*.spec.ts",
   timeout: 45_000,
   fullyParallel: true,
+  workers: process.env.CI ? 1 : undefined,
   retries: process.env.CI ? 2 : 0,
-  reporter: process.env.CI ? "github" : "list",
+  reporter: process.env.CI
+    ? [["github"], ["html", { open: "never" }]]
+    : "list",
   use: {
     baseURL,
     trace: "on-first-retry",
@@ -26,7 +32,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: webServerCommand,
     port,
     reuseExistingServer: shouldReuseExistingServer,
     timeout: 120_000,
