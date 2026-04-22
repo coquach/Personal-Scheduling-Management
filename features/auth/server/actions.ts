@@ -20,13 +20,13 @@ import {
   logout,
 } from "@/services/auth.service";
 
-export async function requireUser(redirectTo = AUTH_ROUTE_PATHS.appointments) {
+export async function requireUser(redirectTo = AUTH_ROUTE_PATHS.calendar) {
   return requireUserFromSession(redirectTo);
 }
 
 export async function requireRole(
   role: string,
-  redirectTo = AUTH_ROUTE_PATHS.appointments,
+  redirectTo = AUTH_ROUTE_PATHS.calendar,
 ) {
   return requireRoleFromSession(role, redirectTo);
 }

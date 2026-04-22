@@ -8,6 +8,7 @@ export const AUTH_ROUTE_PATHS = {
   forgotPassword: "/forgot-password",
   resetPassword: "/reset-password",
   verifyEmail: "/verify-email",
+  dashboard: "/dashboard",
   calendar: "/calendar",
 } as const;
 
@@ -38,5 +39,5 @@ export const AUTH_API_PATHS = {
   resendVerificationEmail: "/auth/resend-verification-email",
   forgotPassword: "/auth/forgot-password",
   resetPassword: "/auth/reset-password",
-  currentUser: "/profile",
+  currentUser: "/users/me",
 } as const;

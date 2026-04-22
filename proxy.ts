@@ -3,10 +3,21 @@ import { NextResponse } from "next/server";
 import {
   AUTH_PUBLIC_PAGE_PATHS,
   AUTH_REFRESH_TOKEN_COOKIE_NAME,
-  AUTH_ROUTE_MATCHER_PATHS,
   AUTH_ROUTE_PATHS,
 } from "@/lib/constants/auth";
 import { isAuthRouteBypassEnabled } from "@/lib/auth-flags";
+
+const PROTECTED_PATHS = new Set<string>([
+  "/calendar",
+  "/appointments",
+  "/tags",
+  "/reminders",
+  "/notifications",
+  "/statistics",
+  "/export",
+  "/profile",
+  "/dashboard",
+]);
 
 function sanitizeRedirectTarget(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
@@ -55,12 +66,18 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { pathname, searchParams } = request.nextUrl;
+  const { pathname, search, searchParams } = request.nextUrl;
   const authenticated = hasActiveAuthSession(request);
+  const isRootPath = pathname === "/";
   const isAuthAlias =
     pathname === AUTH_ROUTE_PATHS.alias || pathname === `${AUTH_ROUTE_PATHS.alias}/`;
   const isAuthPage = AUTH_PUBLIC_PAGE_PATHS.has(pathname);
+  const isProtectedPath = PROTECTED_PATHS.has(pathname);
   const redirectTarget = sanitizeRedirectTarget(searchParams.get("redirect"));
+
+  if (isRootPath && authenticated) {
+    return NextResponse.redirect(new URL(AUTH_ROUTE_PATHS.calendar, request.url));
+  }
 
   if (isAuthAlias) {
     if (authenticated) {
@@ -77,13 +94,37 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (authenticated && isAuthPage) {
+  if (isAuthPage && authenticated) {
     return NextResponse.redirect(new URL(redirectTarget, request.url));
+  }
+
+  if (isProtectedPath && !authenticated) {
+    const loginUrl = new URL(AUTH_ROUTE_PATHS.login, request.url);
+    loginUrl.searchParams.set("redirect", `${pathname}${search}`);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: AUTH_ROUTE_MATCHER_PATHS,
+  matcher: [
+    "/",
+    "/auth",
+    "/auth/",
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+    "/calendar",
+    "/appointments",
+    "/tags",
+    "/reminders",
+    "/notifications",
+    "/statistics",
+    "/export",
+    "/profile",
+    "/dashboard",
+  ],
 };

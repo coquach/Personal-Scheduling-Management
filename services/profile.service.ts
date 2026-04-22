@@ -10,14 +10,14 @@ export type UserProfile = {
 };
 
 export async function getProfile() {
-  return browserApiRequest<UserProfile>("/profile");
+  return browserApiRequest<UserProfile>("/users/me");
 }
 
 export async function updateProfile(input: {
   displayName?: string;
   timezone?: string;
 }) {
-  return browserApiRequest<UserProfile>("/profile", {
+  return browserApiRequest<UserProfile>("/users/me", {
     method: "PUT",
     body: JSON.stringify(input),
   });

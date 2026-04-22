@@ -1,7 +1,5 @@
 import type { ReactNode } from "react";
 
-import { requireUser } from "@/actions/auth.actions";
-import { SessionBootstrap } from "@/components/auth/SessionBootstrap";
 import { AppShell } from "@/components/layout/app-shell";
 
 export default async function ProtectedLayout({
@@ -9,11 +7,5 @@ export default async function ProtectedLayout({
 }: Readonly<{
   children: ReactNode;
 }>) {
-  await requireUser();
-
-  return (
-    <SessionBootstrap>
-      <AppShell>{children}</AppShell>
-    </SessionBootstrap>
-  );
+  return <AppShell>{children}</AppShell>;
 }

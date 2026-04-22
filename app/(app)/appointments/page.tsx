@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarClockIcon,
   PencilLineIcon,
@@ -10,13 +9,17 @@ import {
 } from "lucide-react";
 
 import {
-  createAppointment,
-  deleteAppointment,
-  getAppointments,
   type Appointment,
-  updateAppointment,
+  type AppointmentStatus,
 } from "@/services/appointments.service";
 import { PageSection } from "@/components/layout/page-section";
+import {
+  useAppointmentsListQuery,
+  useCreateAppointmentMutation,
+  useDeleteAppointmentMutation,
+  useUpdateAppointmentMutation,
+  useUpdateAppointmentStatusMutation,
+} from "@/query/appointments-hooks";
 import {
   Alert,
   AlertDescription,
@@ -43,7 +46,6 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { getApiErrorMessage } from "@/lib/backend-api";
-import { queryKeys } from "@/query/keys";
 
 function FilterInput({
   value,
@@ -97,15 +99,17 @@ const defaultFormState = {
   description: "",
   startTime: "",
   endTime: "",
-  isAllDay: false,
 };
 
+const APPOINTMENT_STATUS_ORDER: AppointmentStatus[] = [
+  "SCHEDULED",
+  "COMPLETED",
+  "MISSED",
+  "CANCELLED",
+];
+
 export default function AppointmentsPage() {
-  const queryClient = useQueryClient();
-  const appointmentsQuery = useQuery({
-    queryKey: queryKeys.appointments.list({ page: "1", limit: "50" }),
-    queryFn: () => getAppointments({ page: 1, limit: 50 }),
-  });
+  const appointmentsQuery = useAppointmentsListQuery({ page: 1, limit: 10 });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] =
@@ -116,7 +120,7 @@ export default function AppointmentsPage() {
   const [dateToValue, setDateToValue] = useState("");
   const [formState, setFormState] = useState(defaultFormState);
   const [formError, setFormError] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const filteredAppointments = useMemo(() => {
     const items = appointmentsQuery.data?.items ?? [];
@@ -149,15 +153,8 @@ export default function AppointmentsPage() {
     statusValue,
   ]);
 
-  const invalidateAppointments = () =>
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.appointments.all,
-    });
-
-  const createMutation = useMutation({
-    mutationFn: createAppointment,
-    onSuccess: async () => {
-      await invalidateAppointments();
+  const createMutation = useCreateAppointmentMutation({
+    onSuccess: () => {
       closeDialog();
     },
     onError: (error) => {
@@ -170,16 +167,8 @@ export default function AppointmentsPage() {
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: string;
-      payload: Parameters<typeof updateAppointment>[1];
-    }) => updateAppointment(id, payload),
-    onSuccess: async () => {
-      await invalidateAppointments();
+  const updateMutation = useUpdateAppointmentMutation({
+    onSuccess: () => {
       closeDialog();
     },
     onError: (error) => {
@@ -192,15 +181,24 @@ export default function AppointmentsPage() {
     },
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteAppointment,
-    onSuccess: async () => {
-      setDeleteError(null);
-      await invalidateAppointments();
+  const deleteMutation = useDeleteAppointmentMutation({
+    onSuccess: () => {
+      setActionError(null);
     },
     onError: (error) => {
-      setDeleteError(
+      setActionError(
         getApiErrorMessage(error, "Unable to delete appointment."),
+      );
+    },
+  });
+
+  const updateStatusMutation = useUpdateAppointmentStatusMutation({
+    onSuccess: () => {
+      setActionError(null);
+    },
+    onError: (error) => {
+      setActionError(
+        getApiErrorMessage(error, "Unable to update appointment status."),
       );
     },
   });
@@ -219,7 +217,6 @@ export default function AppointmentsPage() {
       description: appointment.description ?? "",
       startTime: toDateTimeLocalValue(appointment.startTime),
       endTime: toDateTimeLocalValue(appointment.endTime),
-      isAllDay: false,
     });
     setFormError(null);
     setIsDialogOpen(true);
@@ -232,8 +229,26 @@ export default function AppointmentsPage() {
     setFormError(null);
   }
 
-  function handleDelete(id: string) {
-    deleteMutation.mutate(id);
+  function handleDelete(seriesId: string | null | undefined) {
+    if (!seriesId) {
+      setActionError("This appointment cannot be deleted because seriesId is missing.");
+      return;
+    }
+
+    deleteMutation.mutate(seriesId);
+  }
+
+  function handleUpdateStatus(appointment: Appointment) {
+    const currentIndex = APPOINTMENT_STATUS_ORDER.indexOf(appointment.status);
+    const nextStatus =
+      currentIndex === -1
+        ? APPOINTMENT_STATUS_ORDER[0]
+        : APPOINTMENT_STATUS_ORDER[(currentIndex + 1) % APPOINTMENT_STATUS_ORDER.length];
+
+    updateStatusMutation.mutate({
+      appointmentId: appointment.id,
+      status: nextStatus,
+    });
   }
 
   function handleSaveAppointment() {
@@ -254,13 +269,16 @@ export default function AppointmentsPage() {
       description: formState.description.trim() || undefined,
       startTime: new Date(formState.startTime).toISOString(),
       endTime: new Date(formState.endTime).toISOString(),
-      isAllDay: formState.isAllDay,
-      scope: "single" as const,
     };
 
     if (editingAppointment) {
+      if (!editingAppointment.seriesId) {
+        setFormError("This appointment cannot be edited because seriesId is missing.");
+        return;
+      }
+
       updateMutation.mutate({
-        id: editingAppointment.id,
+        id: editingAppointment.seriesId,
         payload,
       });
       return;
@@ -340,9 +358,9 @@ export default function AppointmentsPage() {
                 </AlertDescription>
               </Alert>
             ) : null}
-            {deleteError ? (
+            {actionError ? (
               <Alert variant="destructive">
-                <AlertDescription>{deleteError}</AlertDescription>
+                <AlertDescription>{actionError}</AlertDescription>
               </Alert>
             ) : null}
             <Table>
@@ -387,7 +405,9 @@ export default function AppointmentsPage() {
                           variant="outline"
                           size="icon-sm"
                           data-testid="appointment-status-trigger"
-                          disabled
+                          disabled={updateStatusMutation.isPending}
+                          onClick={() => handleUpdateStatus(row)}
+                          title={`Set status after ${row.status}`}
                         >
                           <CalendarClockIcon />
                         </Button>
@@ -396,7 +416,7 @@ export default function AppointmentsPage() {
                           size="icon-sm"
                           data-testid="appointment-delete-trigger"
                           disabled={deleteMutation.isPending}
-                          onClick={() => handleDelete(row.id)}
+                          onClick={() => handleDelete(row.seriesId)}
                         >
                           <Trash2Icon />
                         </Button>
@@ -503,8 +523,8 @@ export default function AppointmentsPage() {
             ) : null}
             <Alert>
               <AlertDescription>
-                Status changes and tag assignment will be enabled after the
-                corresponding backend endpoints are available.
+                Tag assignment will be enabled after the corresponding backend
+                endpoints are available.
               </AlertDescription>
             </Alert>
           </div>

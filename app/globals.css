@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@schedule-x/theme-default/dist/index.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -139,4 +140,10 @@
   ::selection {
     background: rgba(26, 115, 232, 0.18);
   }
+}
+
+.sx-react-calendar-wrapper {
+  width: 100%;
+  height: 760px;
+  max-height: 82vh;
 }

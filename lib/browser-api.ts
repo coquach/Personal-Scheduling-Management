@@ -47,7 +47,7 @@ function redirectToLogin() {
 
 async function refreshAccessToken() {
   if (!refreshAccessTokenPromise) {
-    refreshAccessTokenPromise = import("@/actions/auth.actions")
+    refreshAccessTokenPromise = import("@/features/auth/server/actions")
       .then(({ refreshSessionAction }) => refreshSessionAction())
       .then((response) => {
         if (response.status !== "authenticated") {

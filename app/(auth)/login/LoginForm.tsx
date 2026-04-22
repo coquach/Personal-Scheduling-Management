@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import {
   loginAction,
-} from "@/actions/auth.actions";
+} from "@/features/auth/server/actions";
 import { initialLoginActionState } from "@/features/auth/server/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? AUTH_ROUTE_PATHS.calendar;
+  const hasNavigatedRef = useRef(false);
   const [state, formAction, pending] = useActionState(
     loginAction,
     initialLoginActionState,
@@ -27,9 +28,13 @@ export function LoginForm() {
       return;
     }
 
+    if (hasNavigatedRef.current) {
+      return;
+    }
+    hasNavigatedRef.current = true;
+
     setAccessToken(state.accessToken);
     router.replace(state.redirectTo || redirectTo);
-    router.refresh();
   }, [redirectTo, router, state.accessToken, state.redirectTo, state.status]);
 
   return (

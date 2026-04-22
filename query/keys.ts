@@ -7,6 +7,8 @@ export const queryKeys = {
   },
   appointments: {
     all: ["appointments"] as const,
+    calendar: (filters: Record<string, string | undefined>) =>
+      ["appointments", "calendar", filters] as const,
     list: (filters: Record<string, string | undefined>) =>
       ["appointments", "list", filters] as const,
   },

@@ -62,7 +62,7 @@ export async function resolveSessionFromRefreshCookie(options?: {
   }
 }
 
-export async function requireUser(redirectTo = AUTH_ROUTE_PATHS.calendar) {
+export async function requireUser(redirectTo: string = AUTH_ROUTE_PATHS.calendar) {
   if (isAuthRouteBypassEnabled()) {
     return AUTH_BYPASS_DEV_USER;
   }
@@ -79,7 +79,10 @@ export async function requireUser(redirectTo = AUTH_ROUTE_PATHS.calendar) {
   return session.user;
 }
 
-export async function requireRole(role: string, redirectTo = AUTH_ROUTE_PATHS.calendar) {
+export async function requireRole(
+  role: string,
+  redirectTo: string = AUTH_ROUTE_PATHS.calendar,
+) {
   if (isAuthRouteBypassEnabled()) {
     return AUTH_BYPASS_DEV_USER;
   }

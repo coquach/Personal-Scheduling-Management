@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { PanelLeftIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -224,41 +225,23 @@ function SidebarMenuButton({
   href,
   isActive,
   children,
-  onClick,
   ...props
-}: Omit<React.ComponentProps<"a">, "href"> & {
+}: Omit<React.ComponentProps<typeof Link>, "href"> & {
   href: string;
   isActive?: boolean;
 }) {
   return (
-    <a
+    <Link
       href={href}
       data-active={isActive}
       className={cn(
         "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
         className,
       )}
-      onClick={(event) => {
-        onClick?.(event);
-
-        if (
-          event.defaultPrevented ||
-          event.button !== 0 ||
-          event.metaKey ||
-          event.ctrlKey ||
-          event.shiftKey ||
-          event.altKey
-        ) {
-          return;
-        }
-
-        event.preventDefault();
-        window.location.href = href;
-      }}
       {...props}
     >
       {children}
-    </a>
+    </Link>
   );
 }
 

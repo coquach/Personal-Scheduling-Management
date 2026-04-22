@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import type { VariantProps } from "class-variance-authority";
 import { useRouter } from "next/navigation";
 
-import { logoutAction } from "@/actions/auth.actions";
+import { logoutAction } from "@/features/auth/server/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { clear } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
