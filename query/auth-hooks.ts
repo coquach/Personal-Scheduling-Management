@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 
-import { browserApiRequest } from "@/lib/browser-api";
+import { browserApiRequest } from "@/lib/api-client";
 import { AUTH_API_PATHS } from "@/lib/constants/auth";
 
 type RegisterInput = {

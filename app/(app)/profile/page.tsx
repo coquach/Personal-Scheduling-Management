@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getApiErrorMessage } from "@/lib/backend-api";
+import { getApiErrorMessage } from "@/lib/api-core";
 import { queryKeys } from "@/query/keys";
 import { getProfile, updateProfile } from "@/services/profile.service";
 

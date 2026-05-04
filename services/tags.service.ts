@@ -1,4 +1,4 @@
-import { browserApiRequest } from "@/lib/browser-api";
+import { browserApiRequest } from "@/lib/api-client";
 
 export type Tag = {
   id: string;

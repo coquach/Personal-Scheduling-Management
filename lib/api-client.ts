@@ -3,7 +3,7 @@
 import axios, { AxiosHeaders, type Method } from "axios";
 
 import { clear, getAccessToken, setAccessToken } from "@/lib/auth-store";
-import { createBackendApiInstance, toBackendApiError } from "@/lib/backend-api";
+import { createBackendApiInstance, toBackendApiError } from "@/lib/api-core";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 
 type ApiEnvelope<T> = {

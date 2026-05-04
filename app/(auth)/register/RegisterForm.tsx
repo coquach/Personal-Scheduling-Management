@@ -8,13 +8,13 @@ import { useForm } from "react-hook-form";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getApiErrorMessage } from "@/lib/backend-api";
+import { getApiErrorMessage } from "@/lib/api-core";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import { useRegisterMutation } from "@/query/auth-hooks";
 import {
   registerFormSchema,
   type RegisterFormDto,
-} from "@/lib/validation/auth";
+} from "@/model/validation/auth";
 
 export function RegisterForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);

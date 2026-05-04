@@ -4,7 +4,7 @@ import type { CalendarEvent } from "@schedule-x/calendar";
 
 import { CALENDAR_STATUS_IDS } from "@/lib/constants/calendar";
 import type { Appointment } from "@/services/appointments.service";
-import type { AppointmentStatus } from "@/lib/validation/appointments";
+import type { AppointmentStatus } from "@/model/validation/appointments";
 
 function statusToCalendarId(status: AppointmentStatus) {
   switch (status) {

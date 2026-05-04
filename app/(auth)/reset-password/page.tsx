@@ -9,14 +9,14 @@ import { useForm } from "react-hook-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getApiErrorMessage } from "@/lib/backend-api";
+import { getApiErrorMessage } from "@/lib/api-core";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import { useResetPasswordMutation } from "@/query/auth-hooks";
 import {
   resetPasswordFormSchema,
   verifyEmailRequestSchema,
   type ResetPasswordFormDto,
-} from "@/lib/validation/auth";
+} from "@/model/validation/auth";
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();

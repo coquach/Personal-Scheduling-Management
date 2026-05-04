@@ -1,4 +1,4 @@
-import { browserApiRequest } from "@/lib/browser-api";
+import { browserApiRequest } from "@/lib/api-client";
 import {
   appointmentListResponseSchema,
   createAppointmentInputSchema,
@@ -13,36 +13,28 @@ import {
   updateAppointmentStatusResponseSchema,
   updateSeriesRequestSchema,
   type AppointmentBackendDto,
-  type AppointmentStatus as AppointmentStatusType,
-  type AppointmentTag,
   type CreateSeriesRequest,
-  type DeleteAppointmentScope,
-  type RecurrenceType,
   type UpdateSeriesRequest,
-} from "@/lib/validation/appointments";
+} from "@/model/validation/appointments";
+import type {
+  Appointment,
+  AppointmentListResponse,
+  AppointmentStatus,
+  CreateAppointmentInput,
+  DeleteAppointmentScopeInput,
+  GetAppointmentsInput,
+  UpdateAppointmentInput,
+} from "@/model/appointments.model";
 
-export type AppointmentStatus = AppointmentStatusType;
-
-export type Appointment = {
-  id: string;
-  userId: string;
-  seriesId: string;
-  title: string;
-  description: string | null;
-  startTime: string;
-  endTime: string;
-  isRecurringInstance: boolean;
-  status: AppointmentStatus;
-  jobId: string | null;
-  tags: AppointmentTag[];
-};
-
-export type AppointmentListResponse = {
-  items: Appointment[];
-  page: number;
-  limit: number;
-  total: number;
-};
+export type {
+  Appointment,
+  AppointmentListResponse,
+  AppointmentStatus,
+  CreateAppointmentInput,
+  DeleteAppointmentScopeInput,
+  GetAppointmentsInput,
+  UpdateAppointmentInput,
+} from "@/model/appointments.model";
 
 function mapAppointmentFromBackend(dto: AppointmentBackendDto): Appointment {
   return {
@@ -68,10 +60,7 @@ function getBrowserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
-export async function getAppointments(input: {
-  page?: number;
-  limit?: number;
-}) {
+export async function getAppointments(input: GetAppointmentsInput) {
   const parsedInput = getAppointmentsInputSchema.parse(input);
   const searchParams = new URLSearchParams();
 
@@ -97,19 +86,7 @@ export async function getAppointments(input: {
   } satisfies AppointmentListResponse;
 }
 
-export async function createAppointment(input: {
-  title: string;
-  description?: string;
-  startTime: string;
-  endTime: string;
-  recurrenceType?: RecurrenceType;
-  weeklyDay?: string[];
-  monthlyDay?: number | null;
-  yearlyDay?: number | null;
-  yearlyMonth?: number | null;
-  seriesTimezone?: string;
-  tagIds?: string[];
-}) {
+export async function createAppointment(input: CreateAppointmentInput) {
   const parsedInput = createAppointmentInputSchema.parse(input);
 
   const payload: CreateSeriesRequest = {
@@ -137,19 +114,7 @@ export async function createAppointment(input: {
 
 export async function updateAppointment(
   seriesId: string,
-  input: {
-    title?: string;
-    description?: string;
-    startTime?: string;
-    endTime?: string;
-    recurrenceType?: RecurrenceType;
-    weeklyDay?: string[];
-    monthlyDay?: number | null;
-    yearlyDay?: number | null;
-    yearlyMonth?: number | null;
-    seriesTimezone?: string;
-    tagIds?: string[];
-  },
+  input: UpdateAppointmentInput,
 ) {
   const parsedSeriesId = uuidSchema.parse(seriesId);
   const parsedInput = updateAppointmentInputSchema.parse(input);
@@ -183,7 +148,7 @@ export async function updateAppointment(
 
 export async function deleteAppointment(
   seriesId: string,
-  scope: DeleteAppointmentScope = "series",
+  scope: DeleteAppointmentScopeInput = "series",
 ) {
   const parsedSeriesId = uuidSchema.parse(seriesId);
   const parsedScope = deleteAppointmentScopeSchema.parse(scope);

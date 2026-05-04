@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { getApiErrorMessage } from "@/lib/backend-api";
+import { getApiErrorMessage } from "@/lib/api-core";
 import {
   type Tag,
 } from "@/services/tags.service";

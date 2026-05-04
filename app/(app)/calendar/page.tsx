@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getApiErrorMessage } from "@/lib/backend-api";
+import { getApiErrorMessage } from "@/lib/api-core";
 import { useCalendarAppointments } from "@/query/calendar-hooks";
 
 function formatTimeRange(startTime: string, endTime: string) {

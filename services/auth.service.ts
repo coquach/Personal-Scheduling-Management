@@ -1,50 +1,18 @@
 import "server-only";
 
-import { backendApi, toBackendApiError } from "@/lib/backend-api";
+import { backendApi, toBackendApiError } from "@/lib/api-core";
 import { AUTH_API_PATHS } from "@/lib/constants/auth";
-import { type LoginPayload } from "@/lib/validation/auth";
+import { type LoginPayload } from "@/model/validation/auth";
+import type {
+  ApiEnvelope,
+  AuthUser,
+  LoginResponse,
+  LogoutPayload,
+  ProfileResponse,
+  RefreshResponse,
+} from "@/model/auth.model";
 
-export type AuthUser = {
-  id: string;
-  email: string;
-  displayName: string | null;
-  roles: string[];
-};
-
-type ProfileResponse = {
-  id: string;
-  email: string;
-  displayName: string | null;
-  roles?: string[];
-};
-
-type AuthTokenBundle = {
-  accessToken: string;
-  tokenType: "Bearer";
-  expiresIn: number;
-};
-
-export type LoginResponse = AuthTokenBundle & {
-  refreshToken: string;
-  refreshTokenExpiresIn?: number;
-  user: AuthUser;
-};
-
-export type RefreshResponse = AuthTokenBundle & {
-  refreshToken?: string;
-  refreshTokenExpiresIn?: number;
-  user: AuthUser;
-};
-
-type LogoutPayload = {
-  refreshToken: string;
-};
-
-type ApiEnvelope<T> = {
-  success: boolean;
-  message: string;
-  data: T;
-};
+export type { AuthUser, LoginResponse, RefreshResponse } from "@/model/auth.model";
 
 function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>) {
   if (
