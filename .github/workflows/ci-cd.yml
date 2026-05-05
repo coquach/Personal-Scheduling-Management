@@ -54,6 +54,7 @@ jobs:
       NEXT_PUBLIC_PSMS_API_URL: http://127.0.0.1:4000/api/v1
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
       PLAYWRIGHT_PORT: 3000
+      PLAYWRIGHT_REUSE_SERVER: 1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -72,6 +73,38 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Start mock API server
+        shell: bash
+        run: |
+          nohup node tests/e2e/mock-api-server.mjs > mock-api.log 2>&1 &
+          echo "Started mock API server. Waiting for readiness..."
+          for i in {1..30}; do
+            if curl -sSf http://127.0.0.1:4000/api/v1/health >/dev/null; then
+              echo "Mock API server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Mock API server failed to become ready in time."
+          cat mock-api.log || true
+          exit 1
+
+      - name: Start application server
+        shell: bash
+        run: |
+          nohup npm run start -- --hostname 127.0.0.1 --port 3000 > next-start.log 2>&1 &
+          echo "Started Next.js server. Waiting for readiness..."
+          for i in {1..90}; do
+            if curl -sSf http://127.0.0.1:3000/login >/dev/null; then
+              echo "Server is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Server failed to become ready in time."
+          cat next-start.log || true
+          exit 1
 
       - name: Run Playwright tests
         run: npm run test:e2e
@@ -92,36 +125,69 @@ jobs:
           path: test-results/
           retention-days: 14
 
+      - name: Upload Next.js start log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-start-log
+          path: next-start.log
+          retention-days: 14
+
+      - name: Upload mock API log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mock-api-log
+          path: mock-api.log
+          retention-days: 14
+
   deploy-production:
     name: Deploy Production
     runs-on: ubuntu-latest
     needs:
       - quality
       - e2e
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '' && secrets.VERCEL_ORG_ID != '' && secrets.VERCEL_PROJECT_ID != ''
-    environment:
-      name: production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
     steps:
+      - name: Check deploy secrets
+        id: deploy_secrets
+        shell: bash
+        run: |
+          if [[ -n "$VERCEL_TOKEN" && -n "$VERCEL_ORG_ID" && -n "$VERCEL_PROJECT_ID" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "Deploy secrets available."
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Deploy secrets missing. Skipping deploy steps."
+          fi
+
       - name: Checkout repository
+        if: steps.deploy_secrets.outputs.ready == 'true'
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        if: steps.deploy_secrets.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install Vercel CLI
+        if: steps.deploy_secrets.outputs.ready == 'true'
         run: npm install --global vercel@latest
 
       - name: Pull Vercel environment
+        if: steps.deploy_secrets.outputs.ready == 'true'
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build Vercel artifacts
+        if: steps.deploy_secrets.outputs.ready == 'true'
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy to Vercel
+        if: steps.deploy_secrets.outputs.ready == 'true'
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
