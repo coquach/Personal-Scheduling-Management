@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { clearRefreshTokenCookie, getRefreshTokenCookie, setRefreshTokenCookie } from "@/lib/session";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
-import { loginPayloadSchema } from "@/lib/validation/auth";
+import { loginPayloadSchema } from "@/model/validation/auth";
 import { sanitizeRedirectTarget } from "@/features/auth/server/redirect";
 import {
   requireRole as requireRoleFromSession,

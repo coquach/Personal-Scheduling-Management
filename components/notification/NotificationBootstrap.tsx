@@ -113,8 +113,8 @@ export function NotificationBootstrap() {
       const body = messageFromData || payload.notification?.body?.trim() || "";
       const link = resolveNotificationLink(data);
 
-      toast({
-        description: body || title,
+      toast(title, {
+        description: body || undefined,
         action: {
           label: "Open",
           onClick: () => {

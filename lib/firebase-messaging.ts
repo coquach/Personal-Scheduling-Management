@@ -15,6 +15,7 @@ import { getFirebaseWebConfig } from "@/lib/firebase-config";
 let firebaseApp: FirebaseApp | null = null;
 let messagingInstance: Messaging | null = null;
 const REGISTERED_FCM_TOKEN_STORAGE_KEY = "psms:registered-fcm-token";
+const TEST_FOREGROUND_EVENT_NAME = "psms:test-foreground-message";
 
 function buildServiceWorkerUrl() {
   const config = getFirebaseWebConfig();
@@ -112,6 +113,16 @@ export async function requestNotificationPermission() {
 }
 
 export async function getFirebaseMessagingToken() {
+  if (typeof window !== "undefined") {
+    const maybeTestToken = (
+      window as Window & { __PSMS_TEST_FCM_TOKEN__?: string }
+    ).__PSMS_TEST_FCM_TOKEN__;
+
+    if (typeof maybeTestToken === "string" && maybeTestToken.trim()) {
+      return maybeTestToken.trim();
+    }
+  }
+
   const permission = await requestNotificationPermission();
 
   if (permission !== "granted") {
@@ -136,13 +147,39 @@ export async function getFirebaseMessagingToken() {
 export async function onForegroundMessage(
   callback: (payload: MessagePayload) => void,
 ) {
+  const testListener = (event: Event) => {
+    const customEvent = event as CustomEvent<MessagePayload>;
+    callback(customEvent.detail);
+  };
+
+  if (typeof window !== "undefined") {
+    window.addEventListener(TEST_FOREGROUND_EVENT_NAME, testListener as EventListener);
+  }
+
   const messaging = await getFirebaseMessaging();
 
   if (!messaging) {
-    return () => undefined;
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener(
+          TEST_FOREGROUND_EVENT_NAME,
+          testListener as EventListener,
+        );
+      }
+    };
   }
 
-  return onMessage(messaging, callback);
+  const unsubscribe = onMessage(messaging, callback);
+
+  return () => {
+    unsubscribe();
+    if (typeof window !== "undefined") {
+      window.removeEventListener(
+        TEST_FOREGROUND_EVENT_NAME,
+        testListener as EventListener,
+      );
+    }
+  };
 }
 
 export function getRegisteredFcmToken() {

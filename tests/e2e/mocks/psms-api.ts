@@ -1,7 +1,24 @@
 import type { BrowserContext, Page, Request, Route } from "@playwright/test";
 
 export type PsmsApiMockPayload = {
-  notifications: Array<{ id: string; message: string; status: string }>;
+  notifications: Array<{
+    id: string;
+    userId: string;
+    appointmentId: string | null;
+    reminderId: string | null;
+    type: "REMINDER" | "SYSTEM";
+    message: string;
+    triggeredAt: string | null;
+    readAt: string | null;
+    createdAt: string;
+  }>;
+  devices: Array<{
+    id: string;
+    fcmToken: string;
+    deviceName: string | null;
+    platform: string | null;
+    lastActiveAt: string;
+  }>;
   appointments: Array<{
     id: string;
     title: string;
@@ -62,10 +79,41 @@ const now = new Date("2026-03-29T10:00:00.000Z").toISOString();
 
 const defaultPayload: PsmsApiMockPayload = {
   notifications: [
-    { id: "notif-1", message: "Team Standup in 10 minutes", status: "UNREAD" },
-    { id: "notif-2", message: "Quarterly review tomorrow", status: "UNREAD" },
-    { id: "notif-3", message: "Profile updated successfully", status: "READ" },
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      userId: "33333333-3333-4333-8333-333333333333",
+      appointmentId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      reminderId: null,
+      type: "REMINDER",
+      message: "Team Standup in 10 minutes",
+      triggeredAt: now,
+      readAt: null,
+      createdAt: now,
+    },
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      userId: "33333333-3333-4333-8333-333333333333",
+      appointmentId: null,
+      reminderId: null,
+      type: "SYSTEM",
+      message: "Quarterly review tomorrow",
+      triggeredAt: now,
+      readAt: null,
+      createdAt: now,
+    },
+    {
+      id: "44444444-4444-4444-8444-444444444444",
+      userId: "33333333-3333-4333-8333-333333333333",
+      appointmentId: null,
+      reminderId: null,
+      type: "SYSTEM",
+      message: "Profile updated successfully",
+      triggeredAt: now,
+      readAt: now,
+      createdAt: now,
+    },
   ],
+  devices: [],
   appointments: [
     {
       id: "appt-1",
@@ -234,7 +282,13 @@ export async function mockPsmsApi(
     const url = new URL(request.url());
     const path = normalizeApiPath(url);
 
-    if (!path.startsWith("/auth") && !path.startsWith("/appointments") && !path.startsWith("/profile") && !path.startsWith("/notifications")) {
+    if (
+      !path.startsWith("/auth") &&
+      !path.startsWith("/appointments") &&
+      !path.startsWith("/profile") &&
+      !path.startsWith("/notifications") &&
+      !path.startsWith("/users")
+    ) {
       await route.fallback();
       return;
     }
@@ -376,7 +430,7 @@ export async function mockPsmsApi(
     }
 
     if (
-      ["/notifications", "/appointments", "/profile"].some(
+      ["/notifications", "/appointments", "/profile", "/users/me", "/users/me/notifications", "/users/devices"].some(
         (prefix) => path === prefix || path.startsWith(`${prefix}/`),
       ) &&
       !hasBearerAuthorization(request)
@@ -385,8 +439,37 @@ export async function mockPsmsApi(
       return;
     }
 
-    if (path === "/notifications" && request.method() === "GET") {
+    if (path === "/users/me/notifications" && request.method() === "GET") {
       await fulfillJson(route, successEnvelope(payloadStore.get().notifications));
+      return;
+    }
+
+    if (/^\/users\/me\/notifications\/[^/]+$/.test(path) && request.method() === "PATCH") {
+      const notificationId = path.split("/").pop() ?? "";
+      const payload = payloadStore.get();
+      const updatedNotifications = payload.notifications.map((item) =>
+        item.id === notificationId ? { ...item, readAt: item.readAt ?? now } : item,
+      );
+      payloadStore.set({ notifications: updatedNotifications });
+      await fulfillJson(
+        route,
+        successEnvelope(
+          updatedNotifications.find((item) => item.id === notificationId) ?? null,
+        ),
+      );
+      return;
+    }
+
+    if (path === "/users/me/notifications/all" && request.method() === "PATCH") {
+      const payload = payloadStore.get();
+      const unreadCount = payload.notifications.filter((item) => !item.readAt).length;
+      payloadStore.set({
+        notifications: payload.notifications.map((item) => ({
+          ...item,
+          readAt: item.readAt ?? now,
+        })),
+      });
+      await fulfillJson(route, successEnvelope({ count: unreadCount }));
       return;
     }
 
@@ -464,12 +547,12 @@ export async function mockPsmsApi(
       return;
     }
 
-    if (path === "/profile" && request.method() === "GET") {
+    if (path === "/users/me" && request.method() === "GET") {
       await fulfillJson(route, successEnvelope(payloadStore.get().profile));
       return;
     }
 
-    if (path === "/profile" && request.method() === "PUT") {
+    if (path === "/users/me" && request.method() === "PUT") {
       const body = JSON.parse(request.postData() ?? "{}") as {
         displayName?: string;
         timezone?: string;
@@ -484,6 +567,42 @@ export async function mockPsmsApi(
 
       payloadStore.set({ profile: updatedProfile });
       await fulfillJson(route, successEnvelope(updatedProfile));
+      return;
+    }
+
+    if (path === "/users/devices" && request.method() === "GET") {
+      await fulfillJson(route, successEnvelope(payloadStore.get().devices));
+      return;
+    }
+
+    if (path === "/users/devices" && request.method() === "POST") {
+      const body = JSON.parse(request.postData() ?? "{}") as {
+        fcmToken?: string;
+        deviceName?: string;
+        platform?: string;
+      };
+      const payload = payloadStore.get();
+      const nextDevice = {
+        id: "device-1",
+        fcmToken: body.fcmToken ?? "test-fcm-token",
+        deviceName: body.deviceName ?? null,
+        platform: body.platform ?? null,
+        lastActiveAt: now,
+      };
+      const deduped = payload.devices.filter((device) => device.fcmToken !== nextDevice.fcmToken);
+      payloadStore.set({ devices: [nextDevice, ...deduped] });
+      await fulfillJson(route, successEnvelope(nextDevice), 201);
+      return;
+    }
+
+    if (path === "/users/devices" && request.method() === "DELETE") {
+      const body = JSON.parse(request.postData() ?? "{}") as { fcmToken?: string };
+      const payload = payloadStore.get();
+      const target = payload.devices.find((device) => device.fcmToken === body.fcmToken);
+      payloadStore.set({
+        devices: payload.devices.filter((device) => device.fcmToken !== body.fcmToken),
+      });
+      await fulfillJson(route, successEnvelope(target ?? null));
       return;
     }
 
