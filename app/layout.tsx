@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Montserrat } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
 import { QueryProvider } from "@/query/query-provider";
 
@@ -24,7 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={montserrat.variable}>
       <body className="min-h-screen font-sans antialiased">
-        <QueryProvider>{children}</QueryProvider>
+        <QueryProvider>
+          {children}
+          <Toaster richColors position="bottom-right" closeButton />
+        </QueryProvider>
       </body>
     </html>
   );

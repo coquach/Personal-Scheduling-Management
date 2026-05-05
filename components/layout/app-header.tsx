@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BellIcon, ChevronDownIcon, SearchIcon, Settings2Icon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -63,6 +64,7 @@ const pageMeta: Record<string, { title: string; description: string }> = {
 };
 
 export function AppHeader() {
+  const router = useRouter();
   const pathname = usePathname();
   const meta = pageMeta[pathname] ?? pageMeta["/calendar"];
   const profileQuery = useQuery({
@@ -110,6 +112,7 @@ export function AppHeader() {
               size="icon-sm"
               className="relative"
               data-testid="notification-bell"
+              onClick={() => router.push("/notifications")}
             >
               <BellIcon />
               <span
