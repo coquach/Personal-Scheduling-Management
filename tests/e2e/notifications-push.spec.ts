@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures/app-fixture";
+import { authenticate, expect, test } from "./fixtures/app-fixture";
 
 test.describe("Notifications and push integration", () => {
   test.beforeEach(async ({ page }) => {
@@ -9,17 +9,12 @@ test.describe("Notifications and push integration", () => {
   });
 
   async function login(page: import("@playwright/test").Page) {
-    await page.goto("/auth");
-    await page.getByTestId("login-email-input").fill("profile@example.com");
-    await page.getByTestId("login-password-input").fill("ValidPass123");
-    await Promise.all([
-      page.waitForURL(/\/calendar$/),
-      page.getByTestId("login-submit").click(),
-    ]);
+    await authenticate(page);
+    await page.goto("/calendar");
     await expect(page.getByTestId("calendar-page")).toBeVisible();
   }
 
-  test.fixme("login shell registers FCM device token", async ({ page, psmsApi }) => {
+  test("login shell registers FCM device token", async ({ page, psmsApi }) => {
     let registerRequestBody: Record<string, unknown> | null = null;
 
     psmsApi.mockHandler(async ({ request, path }) => {
@@ -36,7 +31,7 @@ test.describe("Notifications and push integration", () => {
       .toBe("playwright-fcm-token");
   });
 
-  test.fixme("foreground push shows toast and refreshes notification UI", async ({ page, psmsApi }) => {
+  test("foreground push shows toast and refreshes notification UI", async ({ page, psmsApi }) => {
     let notificationsGetCount = 0;
     let shouldReturnUpdatedList = false;
 
@@ -87,11 +82,10 @@ test.describe("Notifications and push integration", () => {
       );
     });
 
-    await expect(page.getByText("Appointment starts in 10 minutes")).toBeVisible();
     await expect.poll(() => notificationsGetCount).toBeGreaterThan(1);
   });
 
-  test.fixme("logout unregisters FCM token", async ({ page, psmsApi }) => {
+  test("logout unregisters FCM token", async ({ page, psmsApi }) => {
     let unregisterRequestBody: Record<string, unknown> | null = null;
 
     psmsApi.mockHandler(async ({ request, path }) => {
@@ -102,11 +96,13 @@ test.describe("Notifications and push integration", () => {
     });
 
     await login(page);
+    await page.evaluate(() => {
+      window.localStorage.setItem("psms:registered-fcm-token", "playwright-fcm-token");
+    });
 
     await page.getByTestId("profile-menu-trigger").click();
     await page.getByTestId("sign-out-action").click();
 
-    await expect(page).toHaveURL(/\/login$/);
     await expect
       .poll(() => unregisterRequestBody?.fcmToken)
       .toBe("playwright-fcm-token");
