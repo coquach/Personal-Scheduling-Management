@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { queryKeys } from "@/query/keys";
+import { useUnreadNotificationCount } from "@/query/notifications-hooks";
 import { getProfile } from "@/services/profile.service";
 
 const pageMeta: Record<string, { title: string; description: string }> = {
@@ -68,6 +69,7 @@ export function AppHeader() {
     queryKey: queryKeys.profile.detail,
     queryFn: getProfile,
   });
+  const notificationsQuery = useUnreadNotificationCount();
 
   const displayName = profileQuery.data?.displayName?.trim() || "Account";
   const initials = displayName
@@ -114,7 +116,7 @@ export function AppHeader() {
                 className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
                 data-testid="notification-bell-badge"
               >
-                3
+                {notificationsQuery.unreadCount}
               </span>
               <span className="sr-only">Notifications</span>
             </Button>

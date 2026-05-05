@@ -1,12 +1,95 @@
 "use client";
 
-import { notificationRows } from "@/lib/scaffold-data";
+import { useMemo, useState } from "react";
+
+import { NotificationLogCard } from "@/components/notification/NotificationLogCard";
+import { NotificationSideCards } from "@/components/notification/NotificationSideCards";
 import { PageSection } from "@/components/layout/page-section";
-import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getApiErrorMessage } from "@/lib/api-core";
+import {
+  useMarkAllNotificationsReadMutation,
+  useMarkNotificationReadMutation,
+  useNotificationsQuery,
+} from "@/query/notifications-hooks";
+import type { NotificationItem } from "@/model/notification.model";
+
+function formatDateTime(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function getNotificationTitle(notification: NotificationItem) {
+  if (notification.type === "REMINDER") {
+    return "Appointment reminder";
+  }
+
+  return "System update";
+}
 
 export default function NotificationsPage() {
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const notificationsQuery = useNotificationsQuery();
+
+  const markReadMutation = useMarkNotificationReadMutation({
+    onSuccess: () => {
+      setErrorMessage(null);
+      setFeedbackMessage("Notification marked as read.");
+    },
+    onError: (error) => {
+      setFeedbackMessage(null);
+      setErrorMessage(getApiErrorMessage(error, "Unable to update notification."));
+    },
+  });
+
+  const markAllReadMutation = useMarkAllNotificationsReadMutation({
+    onSuccess: () => {
+      setErrorMessage(null);
+      setFeedbackMessage("All notifications are marked as read.");
+    },
+    onError: (error) => {
+      setFeedbackMessage(null);
+      setErrorMessage(getApiErrorMessage(error, "Unable to update notifications."));
+    },
+  });
+
+  const notifications = useMemo(() => {
+    const items = notificationsQuery.data ?? [];
+
+    if (!showUnreadOnly) {
+      return items;
+    }
+
+    return items.filter((item) => item.status === "UNREAD");
+  }, [notificationsQuery.data, showUnreadOnly]);
+
+  const unreadCount =
+    notificationsQuery.data?.filter((item) => item.status === "UNREAD").length ?? 0;
+
+  function handleMarkRead(notificationId: string) {
+    setErrorMessage(null);
+    setFeedbackMessage(null);
+    markReadMutation.mutate(notificationId);
+  }
+
+  function handleMarkAllRead() {
+    setErrorMessage(null);
+    setFeedbackMessage(null);
+    markAllReadMutation.mutate();
+  }
+
   return (
     <div data-testid="notifications-page" className="space-y-6">
       <PageSection
@@ -14,70 +97,50 @@ export default function NotificationsPage() {
         description="A calm feed for due reminders, unread updates and quick actions."
         actions={
           <>
-            <Button variant="outline" data-testid="notification-filter">
-              Filter
+            <Button
+              variant="outline"
+              data-testid="notification-filter"
+              onClick={() => setShowUnreadOnly((value) => !value)}
+            >
+              {showUnreadOnly ? "Show all" : "Unread only"}
             </Button>
-            <Button variant="outline" data-testid="notification-mark-all-read">
+            <Button
+              variant="outline"
+              data-testid="notification-mark-all-read"
+              disabled={markAllReadMutation.isPending || unreadCount === 0}
+              onClick={handleMarkAllRead}
+            >
               Mark all as read
             </Button>
-            <Button data-testid="notification-clear-all">Clear all</Button>
+            <Button data-testid="notification-clear-all" disabled title="Not supported yet by backend API">
+              Clear all
+            </Button>
           </>
         }
       >
+        {errorMessage ? (
+          <Alert variant="destructive">
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        ) : null}
+        {feedbackMessage ? (
+          <Alert>
+            <AlertDescription>{feedbackMessage}</AlertDescription>
+          </Alert>
+        ) : null}
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification log</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {notificationRows.map((notification, index) => (
-                <div
-                  key={notification.id}
-                  className="flex flex-col gap-3 rounded-[16px] border border-border bg-background p-4 sm:flex-row sm:items-center sm:justify-between"
-                  data-testid={index === 0 ? "notification-log-row" : undefined}
-                >
-                  <div>
-                    <p className="font-medium text-foreground">{notification.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {notification.channel} at {notification.time}
-                    </p>
-                  </div>
-                  <Badge
-                    data-testid={index === 0 ? "notification-status" : undefined}
-                    className="rounded-md"
-                  >
-                    {notification.status}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-          <div className="space-y-6">
-            <Card data-testid="notification-popup">
-              <CardHeader>
-                <CardTitle>Popup preview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-[16px] border border-primary/20 bg-[#e8f0fe] p-4">
-                  <p className="font-medium text-[#174ea6]">Team Standup starts in 10 minutes</p>
-                  <p className="mt-1 text-sm text-[#174ea6]/80">
-                    Confirm your notes and join from the linked room.
-                  </p>
-                </div>
-                <Button variant="outline" data-testid="notification-popup-snooze">
-                  Snooze 10 min
-                </Button>
-              </CardContent>
-            </Card>
-            <Card data-testid="notification-empty-state">
-              <CardHeader>
-                <CardTitle>Quiet mode</CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm leading-6 text-muted-foreground">
-                When you are caught up, this panel becomes the empty state for your notification feed.
-              </CardContent>
-            </Card>
-          </div>
+          <NotificationLogCard
+            isLoading={notificationsQuery.isLoading}
+            isError={notificationsQuery.isError}
+            queryError={notificationsQuery.error}
+            notifications={notifications}
+            markReadPending={markReadMutation.isPending}
+            onMarkRead={handleMarkRead}
+            getApiErrorMessage={getApiErrorMessage}
+            formatDateTime={formatDateTime}
+            getNotificationTitle={getNotificationTitle}
+          />
+          <NotificationSideCards unreadCount={unreadCount} />
         </div>
       </PageSection>
     </div>

@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { appNavigation } from "@/lib/navigation";
 import { tagRows } from "@/lib/scaffold-data";
 import { cn } from "@/lib/utils";
+import { useUnreadNotificationCount } from "@/query/notifications-hooks";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -37,6 +38,7 @@ const navigationGroups = [
 export function AppSidebar() {
   const pathname = usePathname();
   const { collapsed, setOpenMobile } = useSidebar();
+  const notificationsQuery = useUnreadNotificationCount();
 
   return (
     <Sidebar className="text-sidebar-foreground" data-testid="app-sidebar">
@@ -84,6 +86,11 @@ export function AppSidebar() {
                     >
                       <Icon className="size-4 shrink-0" />
                       {!collapsed ? <span>{item.label}</span> : null}
+                      {!collapsed && item.href === "/notifications" ? (
+                        <Badge variant="secondary" className="ml-auto rounded-md">
+                          {notificationsQuery.unreadCount}
+                        </Badge>
+                      ) : null}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -132,7 +139,9 @@ export function AppSidebar() {
         <SidebarSeparator />
         <div className={cn("rounded-[16px] border border-sidebar-border bg-accent/50 p-3", collapsed && "p-2 text-center")}>
           <p className="text-xs font-medium text-sidebar-foreground">
-            {collapsed ? "3" : "3 unread notifications"}
+            {collapsed
+              ? String(notificationsQuery.unreadCount)
+              : `${notificationsQuery.unreadCount} unread notifications`}
           </p>
           {!collapsed ? (
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
