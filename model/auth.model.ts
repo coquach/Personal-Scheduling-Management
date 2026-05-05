@@ -1,3 +1,5 @@
+export type { ApiEnvelope } from "@/model/common.model";
+
 export type AuthUser = {
   id: string;
   email: string;
@@ -32,10 +34,4 @@ export type RefreshResponse = AuthTokenBundle & {
 
 export type LogoutPayload = {
   refreshToken: string;
-};
-
-export type ApiEnvelope<T> = {
-  success: boolean;
-  message: string;
-  data: T;
 };
