@@ -21,13 +21,20 @@ export type PsmsApiMockPayload = {
   }>;
   appointments: Array<{
     id: string;
+    userId: string;
+    seriesId: string;
     title: string;
     description: string | null;
-    startTime: string;
-    endTime: string;
+    startAt: string;
+    endAt: string;
+    isRecurringInstance: boolean;
     status: string;
-    createdAt: string;
-    updatedAt: string;
+    jobId: string | null;
+    tags: Array<{
+      id: string;
+      name: string;
+      color: string;
+    }>;
   }>;
   profile: {
     id: string;
@@ -116,34 +123,43 @@ const defaultPayload: PsmsApiMockPayload = {
   devices: [],
   appointments: [
     {
-      id: "appt-1",
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      userId: "33333333-3333-4333-8333-333333333333",
+      seriesId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       title: "Team Standup",
       description: "Weekly product sync",
-      startTime: "2026-03-29T09:00:00.000Z",
-      endTime: "2026-03-29T09:30:00.000Z",
+      startAt: "2026-03-29T09:00:00.000Z",
+      endAt: "2026-03-29T09:30:00.000Z",
+      isRecurringInstance: false,
       status: "SCHEDULED",
-      createdAt: now,
-      updatedAt: now,
+      jobId: null,
+      tags: [],
     },
     {
-      id: "appt-2",
+      id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      userId: "33333333-3333-4333-8333-333333333333",
+      seriesId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
       title: "Doctor Appointment",
       description: "Routine check-up",
-      startTime: "2026-03-30T11:30:00.000Z",
-      endTime: "2026-03-30T12:15:00.000Z",
+      startAt: "2026-03-30T11:30:00.000Z",
+      endAt: "2026-03-30T12:15:00.000Z",
+      isRecurringInstance: false,
       status: "SCHEDULED",
-      createdAt: now,
-      updatedAt: now,
+      jobId: null,
+      tags: [],
     },
     {
-      id: "appt-3",
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      userId: "33333333-3333-4333-8333-333333333333",
+      seriesId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
       title: "Study Session",
       description: "System design review",
-      startTime: "2026-03-31T19:00:00.000Z",
-      endTime: "2026-03-31T20:30:00.000Z",
+      startAt: "2026-03-31T19:00:00.000Z",
+      endAt: "2026-03-31T20:30:00.000Z",
+      isRecurringInstance: false,
       status: "COMPLETED",
-      createdAt: now,
-      updatedAt: now,
+      jobId: null,
+      tags: [],
     },
   ],
   profile: {
@@ -285,6 +301,7 @@ export async function mockPsmsApi(
     if (
       !path.startsWith("/auth") &&
       !path.startsWith("/appointments") &&
+      !path.startsWith("/series") &&
       !path.startsWith("/profile") &&
       !path.startsWith("/notifications") &&
       !path.startsWith("/users")
@@ -487,16 +504,18 @@ export async function mockPsmsApi(
       return;
     }
 
-    if (path === "/appointments" && request.method() === "POST") {
+    if (path === "/series" && request.method() === "POST") {
       const payload = payloadStore.get();
       const body = JSON.parse(request.postData() ?? "{}") as {
-        startTime?: string;
-        endTime?: string;
+        startAt?: string;
+        endAt?: string;
+        title?: string;
+        description?: string | null;
       };
 
       if (
-        body.startTime === payload.appointments[0]?.startTime &&
-        body.endTime === payload.appointments[0]?.endTime
+        body.startAt === payload.appointments[0]?.startAt &&
+        body.endAt === payload.appointments[0]?.endAt
       ) {
         await fulfillJson(
           route,
@@ -506,43 +525,66 @@ export async function mockPsmsApi(
         return;
       }
 
-      await fulfillJson(route, successEnvelope({ id: "appt-new" }), 201);
+      const newSeriesId = "abababab-abab-4bab-8bab-abababababab";
+      payloadStore.set({
+        appointments: [
+          {
+            id: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+            userId: "33333333-3333-4333-8333-333333333333",
+            seriesId: newSeriesId,
+            title: body.title ?? "New appointment",
+            description: body.description ?? null,
+            startAt: body.startAt ?? now,
+            endAt: body.endAt ?? now,
+            isRecurringInstance: false,
+            status: "SCHEDULED",
+            jobId: null,
+            tags: [],
+          },
+          ...payload.appointments,
+        ],
+      });
+      await fulfillJson(route, successEnvelope({ id: newSeriesId }), 201);
       return;
     }
 
-    if (/^\/appointments\/[^/]+$/.test(path) && request.method() === "PUT") {
+    if (/^\/series\/[^/]+$/.test(path) && request.method() === "PATCH") {
       const payload = payloadStore.get();
       const body = JSON.parse(request.postData() ?? "{}") as {
         title?: string;
         description?: string;
-        startTime?: string;
-        endTime?: string;
+        startAt?: string;
+        endAt?: string;
       };
-      const appointmentId = path.split("/").pop() ?? "appt-1";
+      const seriesId = path.split("/").pop() ?? "";
 
-      await fulfillJson(
-        route,
-        successEnvelope({
-          id: appointmentId,
-          title: body.title ?? payload.appointments[0]?.title ?? "Updated",
-          description: body.description ?? null,
-          startTime: body.startTime ?? payload.appointments[0]?.startTime ?? now,
-          endTime: body.endTime ?? payload.appointments[0]?.endTime ?? now,
-          status: "SCHEDULED",
-          createdAt: now,
-          updatedAt: now,
-        }),
-      );
+      payloadStore.set({
+        appointments: payload.appointments.map((item) =>
+          item.seriesId === seriesId
+            ? {
+                ...item,
+                title: body.title ?? item.title,
+                description: body.description ?? item.description,
+                startAt: body.startAt ?? item.startAt,
+                endAt: body.endAt ?? item.endAt,
+              }
+            : item,
+        ),
+      });
+
+      await fulfillJson(route, successEnvelope({ id: seriesId }));
       return;
     }
 
-    if (/^\/appointments\/[^/]+$/.test(path) && request.method() === "DELETE") {
+    if (/^\/series\/[^/]+$/.test(path) && request.method() === "DELETE") {
+      const seriesId = path.split("/").pop()?.split("?")[0] ?? "";
+      const payload = payloadStore.get();
+      payloadStore.set({
+        appointments: payload.appointments.filter((item) => item.seriesId !== seriesId),
+      });
       await fulfillJson(
         route,
-        successEnvelope({
-          success: true,
-          deletedCount: 1,
-        }),
+        successEnvelope({ message: "Appointment series deleted successfully." }),
       );
       return;
     }

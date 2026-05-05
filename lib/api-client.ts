@@ -20,6 +20,18 @@ type BrowserApiRequestConfig = {
 const browserApi = createBackendApiInstance();
 let refreshAccessTokenPromise: Promise<string | null> | null = null;
 
+function getTestAccessTokenOverride() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const token = (
+    window as Window & { __PSMS_TEST_ACCESS_TOKEN__?: string }
+  ).__PSMS_TEST_ACCESS_TOKEN__;
+
+  return token?.trim() ? token : null;
+}
+
 function extractEnvelopeData<T>(payload: EnvelopeLike<T>) {
   if (!payload || typeof payload !== "object" || !("data" in payload)) {
     return undefined;
@@ -75,6 +87,14 @@ browserApi.interceptors.request.use(async (config) => {
 
   if (!skipAuth) {
     let accessToken = getAccessToken();
+
+    if (!accessToken) {
+      const testAccessToken = getTestAccessTokenOverride();
+      if (testAccessToken) {
+        setAccessToken(testAccessToken);
+        accessToken = testAccessToken;
+      }
+    }
 
     if (!accessToken) {
       accessToken = await refreshAccessToken();

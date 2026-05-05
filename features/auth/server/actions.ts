@@ -90,6 +90,8 @@ export async function logoutAction() {
     if (refreshToken) {
       await logout({ refreshToken });
     }
+  } catch {
+    // Ignore backend logout failures in order to always clear local session state.
   } finally {
     await clearRefreshTokenCookie();
     revalidatePath("/", "layout");

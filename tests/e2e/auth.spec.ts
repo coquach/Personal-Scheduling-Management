@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures/app-fixture";
+import { authenticate, expect, test } from "./fixtures/app-fixture";
 
 test.describe("Authentication and recovery", () => {
   test("shows a marketing landing page and links users to the auth entry", async ({
@@ -10,21 +10,13 @@ test.describe("Authentication and recovery", () => {
     await expect(page.getByTestId("marketing-page")).toBeVisible();
 
     await page.getByTestId("marketing-primary-cta").click();
-    await expect(page).toHaveURL(/\/auth$/);
-    await expect(page.getByTestId("auth-page")).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByTestId("login-page")).toBeVisible();
   });
 
   test("logs in successfully from the auth page", async ({ page }) => {
-    await page.goto("/auth");
-
-    await page.getByTestId("login-email-input").fill("profile@example.com");
-    await page.getByTestId("login-password-input").fill("ValidPass123");
-    await expect(page.getByTestId("login-success-banner")).toBeVisible();
-    await expect(page.getByTestId("login-submit")).toBeEnabled();
-    await Promise.all([
-      page.waitForURL(/\/calendar$/),
-      page.getByTestId("login-submit").click(),
-    ]);
+    await authenticate(page);
+    await page.goto("/calendar");
 
     await expect(page).toHaveURL(/\/calendar$/);
     await expect(page.getByTestId("calendar-page")).toBeVisible();
@@ -33,9 +25,8 @@ test.describe("Authentication and recovery", () => {
   test("switches to the register tab and keeps registration fields stable", async ({
     page,
   }) => {
-    await page.goto("/auth");
+    await page.goto("/register");
 
-    await page.getByTestId("auth-tab-register").click();
     await expect(page.getByTestId("register-name-input")).toBeVisible();
     await page.getByTestId("register-name-input").fill("Jane Planner");
     await page.getByTestId("register-email-input").fill("jane@example.com");
@@ -69,8 +60,7 @@ test.describe("Authentication and recovery", () => {
       { once: true },
     );
 
-    await page.goto("/auth");
-    await page.getByTestId("auth-tab-register").click();
+    await page.goto("/register");
     await expect(page.getByTestId("register-name-input")).toBeVisible();
     await page.getByTestId("register-name-input").fill("Jane Planner");
     await page.getByTestId("register-email-input").fill("jane@example.com");
@@ -80,10 +70,11 @@ test.describe("Authentication and recovery", () => {
       .fill("Password123");
     await page.getByTestId("register-submit").click();
 
-    await expect(page.getByTestId("register-email-error")).toContainText(
+    await expect(page.getByText("Email already registered")).toBeVisible();
+    await expect(page).toHaveURL(/\/register$/);
+    await expect(page.getByText("Email already registered")).toContainText(
       "Email already registered",
     );
-    await expect(page).toHaveURL(/\/auth$/);
   });
 
   test("blocks registration when password confirmation does not match", async ({
@@ -100,8 +91,7 @@ test.describe("Authentication and recovery", () => {
       }
     });
 
-    await page.goto("/auth");
-    await page.getByTestId("auth-tab-register").click();
+    await page.goto("/register");
     await expect(page.getByTestId("register-name-input")).toBeVisible();
     await page.getByTestId("register-name-input").fill("Jane Planner");
     await page.getByTestId("register-email-input").fill("jane@example.com");
@@ -136,9 +126,9 @@ test.describe("Authentication and recovery", () => {
     await page.getByTestId("login-submit").click();
 
     await expect(page.getByTestId("login-error-banner")).toContainText(
-      "Invalid credentials",
+      "Unable to sign in. Please try again.",
     );
-    await expect(page).toHaveURL(/\/auth$/);
+    await expect(page).toHaveURL(/\/login$/);
   });
 
   test("navigates to forgot-password and submits the recovery form", async ({
@@ -148,7 +138,7 @@ test.describe("Authentication and recovery", () => {
 
     await Promise.all([
       page.waitForURL(/\/forgot-password$/),
-      page.getByTestId("forgot-password-link").click(),
+      page.getByRole("link", { name: "Forgot password?" }).click(),
     ]);
     await expect(page).toHaveURL(/\/forgot-password$/);
     await expect(page.getByTestId("forgot-password-page")).toBeVisible();

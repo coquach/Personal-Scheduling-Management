@@ -24,6 +24,8 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "on-first-retry",
   },
   projects: [
     {
@@ -37,4 +39,5 @@ export default defineConfig({
     reuseExistingServer: shouldReuseExistingServer,
     timeout: 120_000,
   },
+  
 });
