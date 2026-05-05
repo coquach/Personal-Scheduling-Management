@@ -4,11 +4,13 @@ import type { ReactNode } from "react";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { NotificationBootstrap } from "@/components/notification/NotificationBootstrap";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
+      <NotificationBootstrap />
       <AppSidebar />
       <SidebarInset>
         <AppHeader />

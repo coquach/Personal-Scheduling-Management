@@ -14,6 +14,7 @@ import { getFirebaseWebConfig } from "@/lib/firebase-config";
 
 let firebaseApp: FirebaseApp | null = null;
 let messagingInstance: Messaging | null = null;
+const REGISTERED_FCM_TOKEN_STORAGE_KEY = "psms:registered-fcm-token";
 
 function buildServiceWorkerUrl() {
   const config = getFirebaseWebConfig();
@@ -144,3 +145,26 @@ export async function onForegroundMessage(
   return onMessage(messaging, callback);
 }
 
+export function getRegisteredFcmToken() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.localStorage.getItem(REGISTERED_FCM_TOKEN_STORAGE_KEY);
+}
+
+export function setRegisteredFcmToken(token: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(REGISTERED_FCM_TOKEN_STORAGE_KEY, token);
+}
+
+export function clearRegisteredFcmToken() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(REGISTERED_FCM_TOKEN_STORAGE_KEY);
+}

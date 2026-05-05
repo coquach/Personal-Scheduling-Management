@@ -7,7 +7,9 @@ import { useRouter } from "next/navigation";
 import { logoutAction } from "@/features/auth/server/actions";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { clear } from "@/lib/auth-store";
+import { clearRegisteredFcmToken, getRegisteredFcmToken } from "@/lib/firebase-messaging";
 import { cn } from "@/lib/utils";
+import { unregisterNotificationDevice } from "@/services/notification.service";
 
 type ButtonVariant = VariantProps<typeof buttonVariants>["variant"];
 type ButtonSize = VariantProps<typeof buttonVariants>["size"];
@@ -34,6 +36,18 @@ export function LogoutButton({
     <form
       action={() => {
         startTransition(async () => {
+          const registeredFcmToken = getRegisteredFcmToken();
+
+          if (registeredFcmToken) {
+            try {
+              await unregisterNotificationDevice(registeredFcmToken);
+            } catch {
+              // Ignore unregister errors to avoid blocking user sign-out.
+            } finally {
+              clearRegisteredFcmToken();
+            }
+          }
+
           clear();
           const result = await logoutAction();
           router.replace(result.redirectTo);
