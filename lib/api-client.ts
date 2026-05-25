@@ -1,6 +1,6 @@
 "use client";
 
-import axios, { AxiosHeaders, type Method } from "axios";
+import axios, { AxiosHeaders, type Method, type ResponseType } from "axios";
 
 import { clear, getAccessToken, setAccessToken } from "@/lib/auth-store";
 import { createBackendApiInstance, toBackendApiError } from "@/lib/api-core";
@@ -9,6 +9,8 @@ import type { ApiEnvelope } from "@/model/common.model";
 
 type BrowserApiOptions = {
   auth?: boolean;
+  responseType?: ResponseType;
+  returnFullResponse?: boolean;
 };
 
 type EnvelopeLike<T> = ApiEnvelope<T> | null | undefined | string;
@@ -177,7 +179,16 @@ export async function browserApiRequest<T>(
       method: (init?.method as Method | undefined) ?? "GET",
       headers: Object.fromEntries(headers.entries()),
       data: init?.body,
+      responseType: options.responseType,
     });
+
+    if (options.returnFullResponse) {
+      return response as unknown as T;
+    }
+
+    if (options.responseType && options.responseType !== "json") {
+      return response.data as unknown as T;
+    }
 
     return extractEnvelopeData(response.data) as T;
   } catch (error) {

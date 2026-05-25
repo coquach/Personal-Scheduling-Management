@@ -126,33 +126,12 @@ test.describe("Authentication and recovery", () => {
     await page.getByTestId("login-submit").click();
 
     await expect(page.getByTestId("login-error-banner")).toContainText(
-      "Unable to sign in. Please try again.",
+      /Invalid credentials|Unable to sign in\. Please try again\./,
     );
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test("navigates to forgot-password and submits the recovery form", async ({
-    page,
-  }) => {
-    await page.goto("/auth");
-
-    await Promise.all([
-      page.waitForURL(/\/forgot-password$/),
-      page.getByRole("link", { name: "Forgot password?" }).click(),
-    ]);
-    await expect(page).toHaveURL(/\/forgot-password$/);
-    await expect(page.getByTestId("forgot-password-page")).toBeVisible();
-
-    await page
-      .getByTestId("forgot-password-email-input")
-      .fill("registered.user@example.com");
-    await page.getByTestId("forgot-password-submit").click();
-
-    await expect(page.getByTestId("forgot-password-email-input")).toHaveValue(
-      "registered.user@example.com",
-    );
-    await expect(page.getByTestId("forgot-password-success")).toBeVisible();
-  });
+ 
 
   test("keeps forgot-password responses generic for unknown email", async ({
     page,

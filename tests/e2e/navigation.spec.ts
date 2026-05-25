@@ -104,7 +104,7 @@ test.describe("Workspace navigation", () => {
       (window as Window & { __PSMS_TEST_ACCESS_TOKEN__?: string }).__PSMS_TEST_ACCESS_TOKEN__ =
         undefined;
     });
-    await page.reload();
+    await page.goto("/calendar");
     await expect(page).toHaveURL(/\/login\?redirect=%2Fcalendar$/);
   });
 });

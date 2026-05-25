@@ -68,11 +68,11 @@
   --border: #dde3ea;
   --input: #ffffff;
   --ring: #1a73e8;
-  --chart-1: #1a73e8;
-  --chart-2: #12b5cb;
-  --chart-3: #34a853;
-  --chart-4: #fbbc04;
-  --chart-5: #ea4335;
+  --chart-1: #c4b5fd; /* Soft Lavender */
+  --chart-2: #a7f3d0; /* Mint Green */
+  --chart-3: #fecaca; /* Soft Coral */
+  --chart-4: #bae6fd; /* Ice Blue */
+  --chart-5: #fef08a; /* Sunny Yellow */
   --radius: 0.625rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #202124;
@@ -103,11 +103,11 @@
   --border: rgba(255, 255, 255, 0.1);
   --input: #171c24;
   --ring: #8ab4f8;
-  --chart-1: #8ab4f8;
-  --chart-2: #78d9ec;
-  --chart-3: #81c995;
-  --chart-4: #fdd663;
-  --chart-5: #f28b82;
+  --chart-1: #8b5cf6; /* Vivid Lavender */
+  --chart-2: #34d399; /* Vivid Mint */
+  --chart-3: #f87171; /* Vivid Coral */
+  --chart-4: #38bdf8; /* Vivid Sky */
+  --chart-5: #facc15; /* Vivid Yellow */
   --sidebar: #171c24;
   --sidebar-foreground: #f9fafb;
   --sidebar-primary: #8ab4f8;
