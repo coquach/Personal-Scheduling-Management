@@ -1,15 +1,22 @@
 "use client";
 
-import axios, { AxiosHeaders, type Method, type ResponseType } from "axios";
+import axios, { AxiosHeaders, type Method } from "axios";
 
 import { clear, getAccessToken, setAccessToken } from "@/lib/auth-store";
 import { createBackendApiInstance, toBackendApiError } from "@/lib/api-core";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import type { ApiEnvelope } from "@/model/common.model";
 
+export type FullBrowserApiResponse<T> = {
+  data: T;
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+};
+
 type BrowserApiOptions = {
   auth?: boolean;
-  responseType?: ResponseType;
+  responseType?: "arraybuffer" | "blob" | "document" | "json" | "text" | "stream";
   returnFullResponse?: boolean;
 };
 

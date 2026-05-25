@@ -1,5 +1,4 @@
-import { browserApiRequest } from "@/lib/api-client";
-import type { AxiosResponse } from "axios";
+import { browserApiRequest, type FullBrowserApiResponse } from "@/lib/api-client";
 import {
   getStatisticsInputSchema,
   statisticsSummaryResponseSchema,
@@ -46,7 +45,7 @@ function buildExportAppointmentsQuery(
 export async function exportAppointments(input: ExportAppointmentsInput): Promise<void> {
   const query = buildExportAppointmentsQuery(input);
   
-  const response = await browserApiRequest<AxiosResponse<Blob>>(
+  const response = await browserApiRequest<FullBrowserApiResponse<Blob>>(
     `/statistics/export${query}`,
     undefined,
     { responseType: "blob", returnFullResponse: true }

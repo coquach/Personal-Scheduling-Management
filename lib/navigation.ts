@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Tags,
   UserRound,
+  Users,
 } from "lucide-react";
 
 export const appNavigation = [
@@ -16,6 +17,7 @@ export const appNavigation = [
   { href: "/reminders", label: "Reminders", icon: Bell, testId: "nav-reminders" },
   { href: "/notifications", label: "Notifications", icon: FolderKanban, testId: "nav-notifications" },
   { href: "/statistics", label: "Statistics", icon: ChartColumn, testId: "nav-statistics" },
+  { href: "/teams", label: "Teams", icon: Users, testId: "nav-teams" },
   { href: "/export", label: "Export", icon: Download, testId: "nav-export" },
   { href: "/profile", label: "Profile", icon: UserRound, testId: "nav-profile" },
 ] as const;

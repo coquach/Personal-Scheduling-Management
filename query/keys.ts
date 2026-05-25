@@ -28,4 +28,14 @@ export const queryKeys = {
     preview: (filters: Record<string, string | undefined>) =>
       ["export", "preview", filters] as const,
   },
+  teams: {
+    all: ["teams"] as const,
+    list: (filters: Record<string, any>) => ["teams", "list", filters] as const,
+    detail: (teamId: string) => ["teams", "detail", teamId] as const,
+    members: (teamId: string) => ["teams", "members", teamId] as const,
+    invitations: (filters: Record<string, any>) => ["teams", "invitations", filters] as const,
+  },
+  teamAppointments: {
+    list: (teamId: string, filters: Record<string, any>) => ["teams", teamId, "appointments", filters] as const,
+  },
 };

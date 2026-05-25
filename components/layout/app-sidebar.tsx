@@ -31,7 +31,7 @@ const navigationGroups = [
   },
   {
     label: "Workspace",
-    items: ["Notifications", "Statistics", "Export", "Profile"],
+    items: ["Notifications", "Statistics", "Teams", "Export", "Profile"],
   },
 ];
 

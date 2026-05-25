@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import {
   CalendarClockIcon,
   PencilLineIcon,
@@ -15,27 +16,16 @@ import {
 import { PageSection } from "@/components/layout/page-section";
 import {
   useAppointmentsListQuery,
-  useCreateAppointmentMutation,
   useDeleteAppointmentMutation,
-  useUpdateAppointmentMutation,
   useUpdateAppointmentStatusMutation,
 } from "@/query/appointments-hooks";
 import {
   Alert,
   AlertDescription,
-  AlertTitle,
 } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -44,7 +34,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getApiErrorMessage } from "@/lib/api-core";
 
 function FilterInput({
@@ -85,22 +75,6 @@ function toDateInputValue(value: string) {
   return value.slice(0, 10);
 }
 
-function toDateTimeLocalValue(value: string) {
-  const date = new Date(value);
-  const timezoneOffset = date.getTimezoneOffset() * 60_000;
-
-  return new Date(date.getTime() - timezoneOffset)
-    .toISOString()
-    .slice(0, 16);
-}
-
-const defaultFormState = {
-  title: "",
-  description: "",
-  startTime: "",
-  endTime: "",
-};
-
 const APPOINTMENT_STATUS_ORDER: AppointmentStatus[] = [
   "SCHEDULED",
   "COMPLETED",
@@ -108,18 +82,19 @@ const APPOINTMENT_STATUS_ORDER: AppointmentStatus[] = [
   "CANCELLED",
 ];
 
+// 1. Deferred Interactive Loading (ADR 0007)
+const loadAppointmentModal = () => import("@/components/appointments/appointment-modal");
+const AppointmentModal = dynamic(loadAppointmentModal, { ssr: false });
+
 export default function AppointmentsPage() {
   const appointmentsQuery = useAppointmentsListQuery({ page: 1, limit: 10 });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAppointment, setEditingAppointment] =
-    useState<Appointment | null>(null);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [statusValue, setStatusValue] = useState("");
   const [dateFromValue, setDateFromValue] = useState("");
   const [dateToValue, setDateToValue] = useState("");
-  const [formState, setFormState] = useState(defaultFormState);
-  const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const filteredAppointments = useMemo(() => {
@@ -153,41 +128,13 @@ export default function AppointmentsPage() {
     statusValue,
   ]);
 
-  const createMutation = useCreateAppointmentMutation({
-    onSuccess: () => {
-      closeDialog();
-    },
-    onError: (error) => {
-      setFormError(
-        getApiErrorMessage(
-          error,
-          "Unable to create appointment. Please check the values and try again.",
-        ),
-      );
-    },
-  });
-
-  const updateMutation = useUpdateAppointmentMutation({
-    onSuccess: () => {
-      closeDialog();
-    },
-    onError: (error) => {
-      setFormError(
-        getApiErrorMessage(
-          error,
-          "Unable to update appointment. Please check the values and try again.",
-        ),
-      );
-    },
-  });
-
   const deleteMutation = useDeleteAppointmentMutation({
     onSuccess: () => {
       setActionError(null);
     },
     onError: (error) => {
       setActionError(
-        getApiErrorMessage(error, "Unable to delete appointment."),
+        getApiErrorMessage(error, "Unable to delete appointment.")
       );
     },
   });
@@ -198,35 +145,19 @@ export default function AppointmentsPage() {
     },
     onError: (error) => {
       setActionError(
-        getApiErrorMessage(error, "Unable to update appointment status."),
+        getApiErrorMessage(error, "Unable to update appointment status.")
       );
     },
   });
 
   function openCreateDialog() {
     setEditingAppointment(null);
-    setFormState(defaultFormState);
-    setFormError(null);
     setIsDialogOpen(true);
   }
 
   function openEditDialog(appointment: Appointment) {
     setEditingAppointment(appointment);
-    setFormState({
-      title: appointment.title,
-      description: appointment.description ?? "",
-      startTime: toDateTimeLocalValue(appointment.startTime),
-      endTime: toDateTimeLocalValue(appointment.endTime),
-    });
-    setFormError(null);
     setIsDialogOpen(true);
-  }
-
-  function closeDialog() {
-    setIsDialogOpen(false);
-    setEditingAppointment(null);
-    setFormState(defaultFormState);
-    setFormError(null);
   }
 
   function handleDelete(seriesId: string | null | undefined) {
@@ -234,7 +165,6 @@ export default function AppointmentsPage() {
       setActionError("This appointment cannot be deleted because seriesId is missing.");
       return;
     }
-
     deleteMutation.mutate(seriesId);
   }
 
@@ -251,52 +181,6 @@ export default function AppointmentsPage() {
     });
   }
 
-  function handleSaveAppointment() {
-    setFormError(null);
-
-    if (!formState.title.trim()) {
-      setFormError("Title is required.");
-      return;
-    }
-
-    if (!formState.startTime || !formState.endTime) {
-      setFormError("Start time and end time are required.");
-      return;
-    }
-
-    const payload = {
-      title: formState.title.trim(),
-      description: formState.description.trim() || undefined,
-      startTime: new Date(formState.startTime).toISOString(),
-      endTime: new Date(formState.endTime).toISOString(),
-    };
-
-    if (editingAppointment) {
-      if (!editingAppointment.seriesId) {
-        setFormError("This appointment cannot be edited because seriesId is missing.");
-        return;
-      }
-
-      updateMutation.mutate({
-        id: editingAppointment.seriesId,
-        payload,
-      });
-      return;
-    }
-
-    createMutation.mutate(payload);
-  }
-
-  const isSaving = createMutation.isPending || updateMutation.isPending;
-  const isConflictError = formError?.toLowerCase().includes("overlapping");
-  const isTimeError = Boolean(
-    formError &&
-      (formError.toLowerCase().includes("time") ||
-        formError.toLowerCase().includes("past") ||
-        formError.toLowerCase().includes("start") ||
-        formError.toLowerCase().includes("end")),
-  );
-
   return (
     <div data-testid="appointments-page" className="space-y-6">
       <PageSection
@@ -308,6 +192,8 @@ export default function AppointmentsPage() {
             <Button
               data-testid="appointment-create-trigger"
               onClick={openCreateDialog}
+              onMouseEnter={loadAppointmentModal} // 2. Hover-Intent Prefetching
+              onFocus={loadAppointmentModal}
             >
               <PlusIcon />
               <span>New appointment</span>
@@ -343,26 +229,24 @@ export default function AppointmentsPage() {
                 testId="filter-date-to"
               />
             </div>
-            {appointmentsQuery.isLoading ? (
-              <Alert>
-                <AlertDescription>Loading appointments...</AlertDescription>
-              </Alert>
-            ) : null}
+            
             {appointmentsQuery.isError ? (
               <Alert variant="destructive">
                 <AlertDescription>
                   {getApiErrorMessage(
                     appointmentsQuery.error,
-                    "Unable to load appointments.",
+                    "Unable to load appointments."
                   )}
                 </AlertDescription>
               </Alert>
             ) : null}
+
             {actionError ? (
               <Alert variant="destructive">
                 <AlertDescription>{actionError}</AlertDescription>
               </Alert>
             ) : null}
+
             <Table>
               <TableHeader>
                 <TableRow>
@@ -374,174 +258,108 @@ export default function AppointmentsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAppointments.map((row) => (
-                  <TableRow key={row.id} data-testid="appointment-row">
-                    <TableCell>{formatDateTime(row.startTime)}</TableCell>
-                    <TableCell>{formatDateTime(row.endTime)}</TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-foreground">{row.title}</p>
-                        {row.description ? (
-                          <p className="text-xs text-muted-foreground">
-                            {row.description}
-                          </p>
-                        ) : null}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className="rounded-md">{row.status}</Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          data-testid="appointment-edit-trigger"
-                          onClick={() => openEditDialog(row)}
+                {/* Skeleton UI for Loading State (ADR 0007) */}
+                {appointmentsQuery.isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                      <TableCell>
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-40" />
+                          <Skeleton className="h-3 w-64" />
+                        </div>
+                      </TableCell>
+                      <TableCell><Skeleton className="h-6 w-20 rounded-md" /></TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Skeleton className="size-8 rounded-md" />
+                          <Skeleton className="size-8 rounded-md" />
+                          <Skeleton className="size-8 rounded-md" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <>
+                    {filteredAppointments.map((row) => (
+                      <TableRow key={row.id} data-testid="appointment-row">
+                        <TableCell>{formatDateTime(row.startTime)}</TableCell>
+                        <TableCell>{formatDateTime(row.endTime)}</TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-foreground">{row.title}</p>
+                            {row.description ? (
+                              <p className="text-xs text-muted-foreground">
+                                {row.description}
+                              </p>
+                            ) : null}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="rounded-md">{row.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon-sm"
+                              data-testid="appointment-edit-trigger"
+                              onMouseEnter={loadAppointmentModal}
+                              onClick={() => openEditDialog(row)}
+                            >
+                              <PencilLineIcon />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon-sm"
+                              data-testid="appointment-status-trigger"
+                              disabled={updateStatusMutation.isPending}
+                              onClick={() => handleUpdateStatus(row)}
+                              title={`Set status after ${row.status}`}
+                            >
+                              <CalendarClockIcon />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon-sm"
+                              data-testid="appointment-delete-trigger"
+                              disabled={deleteMutation.isPending}
+                              onClick={() => handleDelete(row.seriesId)}
+                            >
+                              <Trash2Icon />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    
+                    {filteredAppointments.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          data-testid="appointment-empty-state"
+                          className="py-10 text-center text-sm text-muted-foreground"
                         >
-                          <PencilLineIcon />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          data-testid="appointment-status-trigger"
-                          disabled={updateStatusMutation.isPending}
-                          onClick={() => handleUpdateStatus(row)}
-                          title={`Set status after ${row.status}`}
-                        >
-                          <CalendarClockIcon />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          data-testid="appointment-delete-trigger"
-                          disabled={deleteMutation.isPending}
-                          onClick={() => handleDelete(row.seriesId)}
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {!appointmentsQuery.isLoading &&
-                filteredAppointments.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      data-testid="appointment-empty-state"
-                      className="py-10 text-center text-sm text-muted-foreground"
-                    >
-                      No appointments match the current filters.
-                    </TableCell>
-                  </TableRow>
-                ) : null}
+                          No appointments match the current filters.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       </PageSection>
-      <Dialog
-        open={isDialogOpen}
-        onOpenChange={(open) => {
-          if (open) {
-            setIsDialogOpen(true);
-            return;
-          }
 
-          closeDialog();
-        }}
-      >
-        <DialogContent data-testid="appointment-form-modal">
-          <DialogHeader>
-            <DialogTitle>
-              {editingAppointment ? "Edit appointment" : "Create appointment"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <Input
-              data-testid="appointment-title-input"
-              placeholder="Title"
-              value={formState.title}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-            />
-            <Textarea
-              data-testid="appointment-description-input"
-              placeholder="Description"
-              value={formState.description}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input
-                data-testid="appointment-start-input"
-                type="datetime-local"
-                value={formState.startTime}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    startTime: event.target.value,
-                  }))
-                }
-              />
-              <Input
-                data-testid="appointment-end-input"
-                type="datetime-local"
-                value={formState.endTime}
-                onChange={(event) =>
-                  setFormState((current) => ({
-                    ...current,
-                    endTime: event.target.value,
-                  }))
-                }
-              />
-            </div>
-            {isConflictError ? (
-              <Alert data-testid="appointment-conflict-alert">
-                <AlertTitle>Time conflict detected</AlertTitle>
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            ) : null}
-            {formError && !isConflictError ? (
-              <Alert
-                variant="destructive"
-                data-testid={
-                  isTimeError ? "appointment-time-error" : "appointment-error-banner"
-                }
-              >
-                <AlertDescription>{formError}</AlertDescription>
-              </Alert>
-            ) : null}
-            <Alert>
-              <AlertDescription>
-                Tag assignment will be enabled after the corresponding backend
-                endpoints are available.
-              </AlertDescription>
-            </Alert>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDialog}>
-              Cancel
-            </Button>
-            <Button
-              data-testid="appointment-save"
-              disabled={isSaving}
-              onClick={handleSaveAppointment}
-            >
-              {isSaving ? "Saving..." : "Save appointment"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isDialogOpen && (
+        <AppointmentModal
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          editingAppointment={editingAppointment}
+        />
+      )}
     </div>
   );
 }
