@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-import type { NotificationListResponse } from "@/model/notification.model";
-import { uuidSchema } from "@/model/validation/appointments";
+import { uuidSchema } from "@/model/appointments";
 
 const isoDateTimeSchema = z
   .string()
@@ -52,10 +51,33 @@ export const unregisterDevicePayloadSchema = z.object({
   fcmToken: z.string().trim().min(1),
 });
 
-export type NotificationListDto = NotificationListResponse;
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
-export type NotificationItemDto = z.infer<typeof notificationItemSchema>;
-export type RegisterDevicePayloadDto = z.infer<typeof registerDevicePayloadSchema>;
+export type RegisterDevicePayload = z.infer<typeof registerDevicePayloadSchema>;
+
+export type NotificationItem = {
+  id: string;
+  userId: string;
+  appointmentId: string | null;
+  reminderId: string | null;
+  type: NotificationType;
+  message: string;
+  triggeredAt: string | null;
+  // Derived field for UI convenience; backend does not send this directly.
+  status: "UNREAD" | "READ";
+  createdAt: string;
+  readAt: string | null;
+};
+
+export type NotificationListResponse = NotificationItem[];
+
+export type UserDevice = {
+  id: string;
+  fcmToken: string;
+  deviceName: string | null;
+  platform: string | null;
+  lastActiveAt: string;
+};
+
 export type MarkReadInput = z.infer<typeof markReadInputSchema>;
 export type UserDeviceDto = z.infer<typeof userDeviceSchema>;
 export type UnregisterDevicePayloadDto = z.infer<typeof unregisterDevicePayloadSchema>;

@@ -124,3 +124,17 @@ export function getApiErrorMessage(
 
   return fallback;
 }
+
+export function unwrapEnvelope<T>(payload: T | { data: T; success?: boolean } | null | undefined | string): T | undefined {
+  if (
+    payload &&
+    typeof payload === "object" &&
+    "data" in payload
+  ) {
+    return payload.data as T;
+  }
+
+  return payload as T | undefined;
+}
+
+

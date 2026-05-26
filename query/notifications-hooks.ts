@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { NotificationListResponse } from "@/model/notification.model";
+import type { NotificationListResponse } from "@/model/notification";
 import { queryKeys } from "@/query/keys";
 import {
   getNotifications,

@@ -21,7 +21,7 @@ import { useCreateTeam } from "@/query/team-hooks";
 import {
   createTeamRequestSchema,
   type CreateTeamRequest,
-} from "@/model/validation/team";
+} from "@/model/team";
 import { getApiErrorMessage } from "@/lib/api-core";
 
 interface CreateTeamModalProps {

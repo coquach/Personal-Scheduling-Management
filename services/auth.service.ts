@@ -1,31 +1,18 @@
 import "server-only";
 
-import { backendApi, toBackendApiError } from "@/lib/api-core";
+import { backendApi, toBackendApiError, unwrapEnvelope } from "@/lib/api-core";
 import { AUTH_API_PATHS } from "@/lib/constants/auth";
-import { type LoginPayload } from "@/model/validation/auth";
+import { type LoginPayload } from "@/model/auth";
 import type {
-  ApiEnvelope,
   AuthUser,
   LoginResponse,
   LogoutPayload,
   ProfileResponse,
   RefreshResponse,
-} from "@/model/auth.model";
+} from "@/model/auth";
+import type { ApiEnvelope } from "@/model/common";
 
-export type { AuthUser, LoginResponse, RefreshResponse } from "@/model/auth.model";
-
-function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>) {
-  if (
-    payload &&
-    typeof payload === "object" &&
-    "data" in payload &&
-    "success" in payload
-  ) {
-    return payload.data as T;
-  }
-
-  return payload as T;
-}
+export type { AuthUser, LoginResponse, RefreshResponse } from "@/model/auth";
 
 export async function login(payload: LoginPayload) {
   try {
@@ -33,7 +20,7 @@ export async function login(payload: LoginPayload) {
       AUTH_API_PATHS.login,
       payload,
     );
-    return unwrapApiEnvelope(response.data);
+    return unwrapEnvelope(response.data) as LoginResponse;
   } catch (error) {
     throw toBackendApiError(error, "Unable to sign in. Please try again.");
   }
@@ -45,7 +32,7 @@ export async function refreshSession(refreshToken: string) {
       AUTH_API_PATHS.refresh,
       { refreshToken },
     );
-    return unwrapApiEnvelope(response.data);
+    return unwrapEnvelope(response.data) as RefreshResponse;
   } catch (error) {
     throw toBackendApiError(error, "Your session has expired. Please sign in again.");
   }
@@ -69,7 +56,7 @@ export async function getCurrentUser(accessToken: string) {
       },
     });
 
-    const profile = unwrapApiEnvelope(response.data);
+    const profile = unwrapEnvelope(response.data) as ProfileResponse;
 
     return {
       id: profile.id,

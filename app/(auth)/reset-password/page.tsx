@@ -16,7 +16,7 @@ import {
   resetPasswordFormSchema,
   verifyEmailRequestSchema,
   type ResetPasswordFormDto,
-} from "@/model/validation/auth";
+} from "@/model/auth";
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();

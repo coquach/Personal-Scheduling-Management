@@ -44,7 +44,7 @@ export const appointmentTagSchema = z.object({
   color: z.string().min(1),
 });
 
-export const appointmentBackendDtoSchema = z.object({
+export const appointmentSchema = z.object({
   id: uuidSchema,
   userId: uuidSchema,
   seriesId: uuidSchema,
@@ -66,11 +66,28 @@ export const appointmentBackendDtoSchema = z.object({
   }
 });
 
+export type Appointment = z.infer<typeof appointmentSchema>;
+export type AppointmentStatus = z.infer<typeof appointmentStatusSchema>;
+export type RecurrenceType = z.infer<typeof recurrenceTypeSchema>;
+export type AppointmentTag = z.infer<typeof appointmentTagSchema>;
+
 export const appointmentListResponseSchema = z.object({
-  items: z.array(appointmentBackendDtoSchema),
+  items: z.array(appointmentSchema),
   page: z.number().int().min(1),
   limit: z.number().int().min(1),
   total: z.number().int().min(0),
+});
+
+export type AppointmentListResponse = z.infer<typeof appointmentListResponseSchema>;
+
+export const deleteAppointmentScopeSchema = z.enum(["single", "series"]);
+
+export type DeleteAppointmentScopeInput = z.infer<typeof deleteAppointmentScopeSchema>;
+
+export const deleteAppointmentResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+  deletedCount: z.number().int().min(0).optional(),
 });
 
 export const getAppointmentsInputSchema = z.object({
@@ -78,11 +95,13 @@ export const getAppointmentsInputSchema = z.object({
   limit: z.number().int().min(1).max(100).optional(),
 });
 
+export type GetAppointmentsInput = z.infer<typeof getAppointmentsInputSchema>;
+
 export const createAppointmentInputSchema = z.object({
   title: z.string().trim().min(1).max(255),
   description: z.string().max(5000).optional(),
-  startTime: dateTimeStringSchema,
-  endTime: dateTimeStringSchema,
+  startAt: dateTimeStringSchema,
+  endAt: dateTimeStringSchema,
   recurrenceType: recurrenceTypeSchema.optional(),
   weeklyDay: z.array(weekdaySchema).optional(),
   monthlyDay: z.number().int().min(1).max(31).nullable().optional(),
@@ -91,14 +110,16 @@ export const createAppointmentInputSchema = z.object({
   seriesTimezone: z.string().min(1).max(64).optional(),
   tagIds: z.array(uuidSchema).optional(),
 }).superRefine((value, ctx) => {
-  if (!isEndAfterStart(value.startTime, value.endTime)) {
+  if (!isEndAfterStart(value.startAt, value.endAt)) {
     ctx.addIssue({
       code: "custom",
-      path: ["endTime"],
-      message: "endTime must be greater than startTime.",
+      path: ["endAt"],
+      message: "endAt must be greater than startAt.",
     });
   }
 });
+
+export type CreateAppointmentInput = z.infer<typeof createAppointmentInputSchema>;
 
 export const createSeriesRequestSchema = z.object({
   title: z.string().trim().min(1).max(255),
@@ -125,8 +146,8 @@ export const createSeriesRequestSchema = z.object({
 export const updateAppointmentInputSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
   description: z.string().max(5000).optional(),
-  startTime: dateTimeStringSchema.optional(),
-  endTime: dateTimeStringSchema.optional(),
+  startAt: dateTimeStringSchema.optional(),
+  endAt: dateTimeStringSchema.optional(),
   recurrenceType: recurrenceTypeSchema.optional(),
   weeklyDay: z.array(weekdaySchema).optional(),
   monthlyDay: z.number().int().min(1).max(31).nullable().optional(),
@@ -135,14 +156,16 @@ export const updateAppointmentInputSchema = z.object({
   seriesTimezone: z.string().min(1).max(64).optional(),
   tagIds: z.array(uuidSchema).optional(),
 }).superRefine((value, ctx) => {
-  if (value.startTime && value.endTime && !isEndAfterStart(value.startTime, value.endTime)) {
+  if (value.startAt && value.endAt && !isEndAfterStart(value.startAt, value.endAt)) {
     ctx.addIssue({
       code: "custom",
-      path: ["endTime"],
-      message: "endTime must be greater than startTime.",
+      path: ["endAt"],
+      message: "endAt must be greater than startAt.",
     });
   }
 });
+
+export type UpdateAppointmentInput = z.infer<typeof updateAppointmentInputSchema>;
 
 export const updateSeriesRequestSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
@@ -166,14 +189,8 @@ export const updateSeriesRequestSchema = z.object({
   }
 });
 
-export const deleteAppointmentScopeSchema = z.enum(["single", "series"]);
-
 export const idResponseSchema = z.object({
   id: uuidSchema,
-});
-
-export const deleteAppointmentResponseSchema = z.object({
-  message: z.string().min(1),
 });
 
 export const updateAppointmentStatusInputSchema = z.object({
@@ -184,15 +201,6 @@ export const updateAppointmentStatusResponseSchema = z
   .union([z.object({}).loose(), z.null(), z.undefined()])
   .optional();
 
-export type AppointmentStatus = z.infer<typeof appointmentStatusSchema>;
-export type RecurrenceType = z.infer<typeof recurrenceTypeSchema>;
-export type AppointmentTag = z.infer<typeof appointmentTagSchema>;
-export type AppointmentBackendDto = z.infer<typeof appointmentBackendDtoSchema>;
-export type AppointmentListBackendResponse = z.infer<
-  typeof appointmentListResponseSchema
->;
-export type CreateAppointmentInput = z.infer<typeof createAppointmentInputSchema>;
 export type CreateSeriesRequest = z.infer<typeof createSeriesRequestSchema>;
-export type UpdateAppointmentInput = z.infer<typeof updateAppointmentInputSchema>;
 export type UpdateSeriesRequest = z.infer<typeof updateSeriesRequestSchema>;
 export type DeleteAppointmentScope = z.infer<typeof deleteAppointmentScopeSchema>;

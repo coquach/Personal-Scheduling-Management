@@ -28,7 +28,7 @@ import {
   type TeamMemberRoleResponse,
   type TeamMyInvitationItem,
   type TeamResponse,
-} from "@/model/validation/team";
+} from "@/model/team";
 import { z } from "zod";
 
 export async function createTeam(input: CreateTeamRequest): Promise<TeamResponse> {
@@ -42,26 +42,24 @@ export async function createTeam(input: CreateTeamRequest): Promise<TeamResponse
 
 export async function getMyTeams(query: GetTeamsQuery): Promise<TeamListResponse> {
   const parsedQuery = getTeamsQuerySchema.parse(query);
-  const searchParams = new URLSearchParams();
-
-  if (parsedQuery.page) searchParams.set("page", String(parsedQuery.page));
-  if (parsedQuery.limit) searchParams.set("limit", String(parsedQuery.limit));
-  if (parsedQuery.searchText) searchParams.set("searchText", parsedQuery.searchText);
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const rawResponse = await browserApiRequest<unknown>(`/teams${suffix}`);
+  const rawResponse = await browserApiRequest<unknown>("/teams", undefined, {
+    params: {
+      page: parsedQuery.page,
+      limit: parsedQuery.limit,
+      searchText: parsedQuery.searchText,
+    }
+  });
   
   return teamListResponseSchema.parse(rawResponse);
 }
 
 export async function getMyInvitations(query: GetMyInvitationsQuery): Promise<TeamMyInvitationItem[]> {
   const parsedQuery = getMyInvitationsQuerySchema.parse(query);
-  const searchParams = new URLSearchParams();
-
-  if (parsedQuery.status) searchParams.set("status", parsedQuery.status);
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const rawResponse = await browserApiRequest<unknown>(`/teams/invitations/me${suffix}`);
+  const rawResponse = await browserApiRequest<unknown>("/teams/invitations/me", undefined, {
+    params: {
+      status: parsedQuery.status,
+    }
+  });
   
   return z.array(teamMyInvitationItemSchema).parse(rawResponse);
 }

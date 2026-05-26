@@ -14,7 +14,7 @@ import { useForgotPasswordMutation } from "@/query/auth-hooks";
 import {
   forgotPasswordRequestSchema,
   type ForgotPasswordRequestDto,
-} from "@/model/validation/auth";
+} from "@/model/auth";
 
 export default function ForgotPasswordPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);

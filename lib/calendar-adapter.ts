@@ -4,7 +4,7 @@ import type { CalendarEvent } from "@schedule-x/calendar";
 
 import { CALENDAR_STATUS_IDS } from "@/lib/constants/calendar";
 import type { Appointment } from "@/services/appointments.service";
-import type { AppointmentStatus } from "@/model/validation/appointments";
+import type { AppointmentStatus } from "@/model/appointments";
 
 function statusToCalendarId(status: AppointmentStatus) {
   switch (status) {
@@ -33,8 +33,8 @@ export function mapAppointmentToCalendarEvent(
     id: appointment.id,
     title: appointment.title,
     description: appointment.description ?? undefined,
-    start: toZonedDateTime(appointment.startTime),
-    end: toZonedDateTime(appointment.endTime),
+    start: toZonedDateTime(appointment.startAt),
+    end: toZonedDateTime(appointment.endAt),
     calendarId: statusToCalendarId(appointment.status),
   };
 }

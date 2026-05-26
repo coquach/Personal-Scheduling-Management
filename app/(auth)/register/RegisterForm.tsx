@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -9,12 +8,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getApiErrorMessage } from "@/lib/api-core";
-import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import { useRegisterMutation } from "@/query/auth-hooks";
 import {
   registerFormSchema,
   type RegisterFormDto,
-} from "@/model/validation/auth";
+} from "@/model/auth";
 
 export function RegisterForm() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);

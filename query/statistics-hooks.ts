@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryKeys } from "./keys";
 import { exportAppointments, getStatistics } from "@/services/statistics.service";
-import type { ExportAppointmentsInput, GetStatisticsInput } from "@/model/validation/statistics";
+import type { ExportAppointmentsInput, GetStatisticsInput } from "@/model/statistics";
 
 export function useGetStatistics(input: GetStatisticsInput) {
   return useQuery({

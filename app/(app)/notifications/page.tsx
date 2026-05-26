@@ -13,7 +13,7 @@ import {
   useMarkNotificationReadMutation,
   useNotificationsQuery,
 } from "@/query/notifications-hooks";
-import type { NotificationItem } from "@/model/notification.model";
+import type { NotificationItem } from "@/model/notification";
 
 function formatDateTime(value: string) {
   const date = new Date(value);

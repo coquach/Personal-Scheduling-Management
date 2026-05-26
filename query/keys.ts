@@ -30,12 +30,12 @@ export const queryKeys = {
   },
   teams: {
     all: ["teams"] as const,
-    list: (filters: Record<string, any>) => ["teams", "list", filters] as const,
+    list: (filters: Record<string, unknown>) => ["teams", "list", filters] as const,
     detail: (teamId: string) => ["teams", "detail", teamId] as const,
     members: (teamId: string) => ["teams", "members", teamId] as const,
-    invitations: (filters: Record<string, any>) => ["teams", "invitations", filters] as const,
+    invitations: (filters: Record<string, unknown>) => ["teams", "invitations", filters] as const,
   },
   teamAppointments: {
-    list: (teamId: string, filters: Record<string, any>) => ["teams", teamId, "appointments", filters] as const,
+    list: (teamId: string, filters: Record<string, unknown>) => ["teams", teamId, "appointments", filters] as const,
   },
 };

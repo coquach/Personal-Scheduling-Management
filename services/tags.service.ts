@@ -1,41 +1,44 @@
 import { browserApiRequest } from "@/lib/api-client";
+import {
+  createTagInputSchema,
+  deleteTagResponseSchema,
+  tagListResponseSchema,
+  tagSchema,
+  updateTagInputSchema,
+  type CreateTagInput,
+  type Tag,
+  type UpdateTagInput,
+} from "@/model/tags";
 
-export type Tag = {
-  id: string;
-  name: string;
-  color: string | null;
-};
-
-export type CreateTagInput = {
-  name: string;
-  color?: string;
-};
-
-export type UpdateTagInput = {
-  name?: string;
-  color?: string;
-};
-
-export async function getTags() {
-  return browserApiRequest<Tag[]>("/tags");
+export async function getTags(): Promise<Tag[]> {
+  const raw = await browserApiRequest<unknown>("/tags");
+  return tagListResponseSchema.parse(raw);
 }
 
-export async function createTag(input: CreateTagInput) {
-  return browserApiRequest<Tag>("/tags", {
+export async function createTag(input: CreateTagInput): Promise<Tag> {
+  const parsedInput = createTagInputSchema.parse(input);
+  const raw = await browserApiRequest<unknown>("/tags", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify(parsedInput),
   });
+  return tagSchema.parse(raw);
 }
 
-export async function updateTag(tagId: string, input: UpdateTagInput) {
-  return browserApiRequest<Tag>(`/tags/${tagId}`, {
+export async function updateTag(
+  tagId: string,
+  input: UpdateTagInput,
+): Promise<Tag> {
+  const parsedInput = updateTagInputSchema.parse(input);
+  const raw = await browserApiRequest<unknown>(`/tags/${tagId}`, {
     method: "PATCH",
-    body: JSON.stringify(input),
+    body: JSON.stringify(parsedInput),
   });
+  return tagSchema.parse(raw);
 }
 
 export async function deleteTag(tagId: string) {
-  return browserApiRequest<{ message: string }>(`/tags/${tagId}`, {
+  const raw = await browserApiRequest<unknown>(`/tags/${tagId}`, {
     method: "DELETE",
   });
+  return deleteTagResponseSchema.parse(raw);
 }

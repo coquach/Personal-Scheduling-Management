@@ -16,9 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { getApiErrorMessage } from "@/lib/api-core";
-import {
-  type Tag,
-} from "@/services/tags.service";
+import { type Tag } from "@/model/tags";
 import {
   useCreateTagMutation,
   useDeleteTagMutation,

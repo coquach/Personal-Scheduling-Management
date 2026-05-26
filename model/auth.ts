@@ -100,3 +100,39 @@ export type ResendVerificationEmailRequestDto = z.infer<
 export type VerifyEmailRequestDto = z.infer<typeof verifyEmailRequestSchema>;
 export type ResetPasswordRequestDto = z.infer<typeof resetPasswordRequestSchema>;
 export type ResetPasswordFormDto = z.infer<typeof resetPasswordFormSchema>;
+
+export type AuthUser = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  roles: string[];
+};
+
+export type ProfileResponse = {
+  id: string;
+  email: string;
+  displayName: string | null;
+  roles?: string[];
+};
+
+export type AuthTokenBundle = {
+  accessToken: string;
+  tokenType: "Bearer";
+  expiresIn: number;
+};
+
+export type LoginResponse = AuthTokenBundle & {
+  refreshToken: string;
+  refreshTokenExpiresIn?: number;
+  user: AuthUser;
+};
+
+export type RefreshResponse = AuthTokenBundle & {
+  refreshToken?: string;
+  refreshTokenExpiresIn?: number;
+  user: AuthUser;
+};
+
+export type LogoutPayload = {
+  refreshToken: string;
+};

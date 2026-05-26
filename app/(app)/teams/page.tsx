@@ -79,7 +79,7 @@ export default function TeamsPage() {
                   <UsersIcon className="h-12 w-12 text-muted-foreground/50 mb-4" />
                   <p className="text-lg font-medium text-foreground">No teams found</p>
                   <p className="text-sm text-muted-foreground mt-1 mb-4">
-                    You haven't joined or created any teams yet.
+                    You haven&apos;t joined or created any teams yet.
                   </p>
                   <Button 
                     variant="outline" 

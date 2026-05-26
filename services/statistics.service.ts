@@ -6,49 +6,42 @@ import {
   type GetStatisticsInput,
   type StatisticsSummaryResponse,
   type ExportAppointmentsInput,
-} from "@/model/validation/statistics";
+} from "@/model/statistics";
 
 export async function getStatistics(
   input: GetStatisticsInput,
 ): Promise<StatisticsSummaryResponse> {
   const parsedInput = getStatisticsInputSchema.parse(input);
-  const searchParams = new URLSearchParams();
-
-  searchParams.set("startDate", parsedInput.startDate);
-  searchParams.set("endDate", parsedInput.endDate);
   
-  if (parsedInput.groupBy) searchParams.set("groupBy", parsedInput.groupBy);
-  if (parsedInput.timezone) searchParams.set("timezone", parsedInput.timezone);
-
-  const rawResponse = await browserApiRequest<unknown>(
-    `/statistics/me?${searchParams.toString()}`
-  );
+  const rawResponse = await browserApiRequest<unknown>("/statistics/me", undefined, {
+    params: {
+      startDate: parsedInput.startDate,
+      endDate: parsedInput.endDate,
+      groupBy: parsedInput.groupBy,
+      timezone: parsedInput.timezone,
+    }
+  });
 
   return statisticsSummaryResponseSchema.parse(rawResponse);
 }
 
-function buildExportAppointmentsQuery(
-  input: ExportAppointmentsInput,
-): string {
-  const parsedInput = exportAppointmentsInputSchema.parse(input);
-  const searchParams = new URLSearchParams();
-
-  if (parsedInput.startDate) searchParams.set("startDate", parsedInput.startDate);
-  if (parsedInput.endDate) searchParams.set("endDate", parsedInput.endDate);
-  if (parsedInput.tagId) searchParams.set("tagId", parsedInput.tagId);
-  if (parsedInput.status) searchParams.set("status", parsedInput.status);
-  if (parsedInput.query) searchParams.set("query", parsedInput.query);
-
-  return searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-}
-
 export async function exportAppointments(input: ExportAppointmentsInput): Promise<void> {
-  const query = buildExportAppointmentsQuery(input);
+  const parsedInput = exportAppointmentsInputSchema.parse(input);
   
   const response = await browserApiRequest<FullBrowserApiResponse<Blob>>(
-    `/statistics/export${query}`,
+    "/statistics/export",
     undefined,
-    { responseType: "blob", returnFullResponse: true }
+    { 
+      responseType: "blob", 
+      returnFullResponse: true,
+      params: {
+        startDate: parsedInput.startDate,
+        endDate: parsedInput.endDate,
+        tagId: parsedInput.tagId,
+        status: parsedInput.status,
+        query: parsedInput.query,
+      }
+    }
   );
 
   // Create a blob URL and trigger download

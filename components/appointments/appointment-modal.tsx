@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 import {
   Dialog,
   DialogContent,
@@ -13,25 +17,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { Textarea } from "@/components/ui/textarea";
 import { useTagsQuery } from "@/query/tags-hooks";
 
+import { getApiErrorMessage } from "@/lib/api-core";
+import {
+  createAppointmentInputSchema,
+  type CreateAppointmentInput,
+} from "@/model/appointments";
 import {
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
 } from "@/query/appointments-hooks";
-import {
-  createAppointmentInputSchema,
-  type CreateAppointmentInput,
-} from "@/model/validation/appointments";
 import { type Appointment } from "@/services/appointments.service";
-import { getApiErrorMessage } from "@/lib/api-core";
 
 function toDateTimeLocalValue(value: string) {
   const date = new Date(value);
@@ -104,8 +104,8 @@ export default function AppointmentModal({
     defaultValues: {
       title: "",
       description: "",
-      startTime: "",
-      endTime: "",
+      startAt: "",
+      endAt: "",
       recurrenceType: "ONETIME",
       tagIds: [],
     },
@@ -122,17 +122,17 @@ export default function AppointmentModal({
         reset({
           title: editingAppointment.title,
           description: editingAppointment.description ?? "",
-          startTime: toDateTimeLocalValue(editingAppointment.startTime),
-          endTime: toDateTimeLocalValue(editingAppointment.endTime),
+          startAt: toDateTimeLocalValue(editingAppointment.startAt),
+          endAt: toDateTimeLocalValue(editingAppointment.endAt),
           recurrenceType: "ONETIME", // Keep it simple for edit mode unless the API returns it
-          tagIds: editingAppointment.tags?.map(t => t.id) || [],
+          tagIds: editingAppointment.tags?.map((t: { id: string }) => t.id) || [],
         });
       } else {
         reset({
           title: "",
           description: "",
-          startTime: "",
-          endTime: "",
+          startAt: "",
+          endAt: "",
           recurrenceType: "ONETIME",
           tagIds: [],
         });
@@ -145,8 +145,8 @@ export default function AppointmentModal({
 
     const payload = {
       ...data,
-      startTime: new Date(data.startTime).toISOString(),
-      endTime: new Date(data.endTime).toISOString(),
+      startAt: new Date(data.startAt).toISOString(),
+      endAt: new Date(data.endAt).toISOString(),
     };
 
     if (editingAppointment) {
@@ -193,36 +193,36 @@ export default function AppointmentModal({
                 <Label>Start time</Label>
                 <Controller
                   control={control}
-                  name="startTime"
+                  name="startAt"
                   render={({ field }) => (
                     <DateTimePicker
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select start time"
-                      isInvalid={!!errors.startTime}
+                      isInvalid={!!errors.startAt}
                     />
                   )}
                 />
-                {errors.startTime && (
-                  <p className="text-sm text-destructive">{errors.startTime.message}</p>
+                {errors.startAt && (
+                  <p className="text-sm text-destructive">{errors.startAt.message}</p>
                 )}
               </div>
               <div className="space-y-1">
                 <Label>End time</Label>
                 <Controller
                   control={control}
-                  name="endTime"
+                  name="endAt"
                   render={({ field }) => (
                     <DateTimePicker
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Select end time"
-                      isInvalid={!!errors.endTime}
+                      isInvalid={!!errors.endAt}
                     />
                   )}
                 />
-                {errors.endTime && (
-                  <p className="text-sm text-destructive">{errors.endTime.message}</p>
+                {errors.endAt && (
+                  <p className="text-sm text-destructive">{errors.endAt.message}</p>
                 )}
               </div>
             </div>
@@ -262,7 +262,7 @@ export default function AppointmentModal({
                   <Label>Recurrence</Label>
                   <Select
                     value={selectedRecurrence}
-                    onValueChange={(val: any) => setValue("recurrenceType", val)}
+                    onValueChange={(val: any) => setValue("recurrenceType", val)} // eslint-disable-line @typescript-eslint/no-explicit-any
                   >
                     <SelectTrigger data-testid="appointment-recurrence-trigger">
                       <SelectValue placeholder="Select recurrence" />

@@ -3,7 +3,7 @@ import { describe, expect, it } from "@jest/globals";
 import {
   registerFormSchema,
   resetPasswordFormSchema,
-} from "@/model/validation/auth";
+} from "@/model/auth";
 
 describe("auth validation", () => {
   it("rejects mismatched password confirmation for registration", () => {

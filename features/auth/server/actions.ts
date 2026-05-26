@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { clearRefreshTokenCookie, getRefreshTokenCookie, setRefreshTokenCookie } from "@/lib/session";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
-import { loginPayloadSchema } from "@/model/validation/auth";
+import { loginPayloadSchema } from "@/model/auth";
 import { sanitizeRedirectTarget } from "@/features/auth/server/redirect";
 import {
   requireRole as requireRoleFromSession,
@@ -55,7 +55,9 @@ export async function loginAction(
 
   try {
     const session = await login(parsedPayload.data);
-    const user = session.user ?? (await getCurrentUser(session.accessToken));
+    if (!session.user) {
+      await getCurrentUser(session.accessToken);
+    }
 
     await setRefreshTokenCookie(
       session.refreshToken,

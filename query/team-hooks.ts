@@ -1,5 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "./keys";
+import { createInvalidatingMutation, type MutationCallbacks } from "./utils";
 import {
   acceptInvitation,
   changeMemberRole,
@@ -15,10 +16,11 @@ import {
 import type {
   ChangeMemberRoleRequest,
   CreateTeamInvitationRequest,
-  CreateTeamRequest,
   GetMyInvitationsQuery,
   GetTeamsQuery,
-} from "@/model/validation/team";
+} from "@/model/team";
+
+export type { MutationCallbacks };
 
 export function useGetTeams(query: GetTeamsQuery) {
   return useQuery({
@@ -50,72 +52,39 @@ export function useGetMyInvitations(query: GetMyInvitationsQuery) {
   });
 }
 
-export function useCreateTeam() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: CreateTeamRequest) => createTeam(input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
-    },
-  });
-}
+export const useCreateTeam = createInvalidatingMutation(
+  createTeam,
+  [queryKeys.teams.all]
+);
 
 export function useInviteMember(teamId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (input: CreateTeamInvitationRequest) => inviteMember(teamId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.members(teamId) });
-    },
-  });
+  return createInvalidatingMutation(
+    (input: CreateTeamInvitationRequest) => inviteMember(teamId, input),
+    [queryKeys.teams.members(teamId)]
+  )();
 }
 
-export function useAcceptInvitation() {
-  const queryClient = useQueryClient();
+export const useAcceptInvitation = createInvalidatingMutation(
+  ({ teamId, invitationId }: { teamId: string; invitationId: string }) =>
+    acceptInvitation(teamId, invitationId),
+  [queryKeys.teams.all]
+);
 
-  return useMutation({
-    mutationFn: ({ teamId, invitationId }: { teamId: string; invitationId: string }) =>
-      acceptInvitation(teamId, invitationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
-    },
-  });
-}
-
-export function useDeclineInvitation() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ teamId, invitationId }: { teamId: string; invitationId: string }) =>
-      declineInvitation(teamId, invitationId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
-    },
-  });
-}
+export const useDeclineInvitation = createInvalidatingMutation(
+  ({ teamId, invitationId }: { teamId: string; invitationId: string }) =>
+    declineInvitation(teamId, invitationId),
+  [queryKeys.teams.all]
+);
 
 export function useChangeMemberRole(teamId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ userId, input }: { userId: string; input: ChangeMemberRoleRequest }) =>
+  return createInvalidatingMutation(
+    ({ userId, input }: { userId: string; input: ChangeMemberRoleRequest }) =>
       changeMemberRole(teamId, userId, input),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.members(teamId) });
-    },
-  });
+    [queryKeys.teams.members(teamId)]
+  )();
 }
 
-export function useLeaveTeam() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (teamId: string) => leaveTeam(teamId),
-    onSuccess: (_, teamId) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(teamId) });
-    },
-  });
-}
+export const useLeaveTeam = createInvalidatingMutation(
+  (teamId: string) => leaveTeam(teamId),
+  (data, teamId) => [queryKeys.teams.all, queryKeys.teams.detail(teamId)]
+);

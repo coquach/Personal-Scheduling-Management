@@ -15,13 +15,13 @@ import { getApiErrorMessage } from "@/lib/api-core";
 import { useCalendarAppointments } from "@/query/calendar-hooks";
 import type { Appointment } from "@/services/appointments.service";
 
-function formatTimeRange(startTime: string, endTime: string) {
+function formatTimeRange(startAt: string, endAt: string) {
   const formatter = new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  return `${formatter.format(new Date(startTime))} - ${formatter.format(new Date(endTime))}`;
+  return `${formatter.format(new Date(startAt))} - ${formatter.format(new Date(endAt))}`;
 }
 
 export default function CalendarPage() {
@@ -44,7 +44,7 @@ export default function CalendarPage() {
     }
   };
 
-  const handleDateClick = (dateString: string) => {
+  const handleDateClick = () => {
     // Open create modal with pre-filled date. 
     // We can just open the modal. The modal doesn't currently take an initialDate param,
     // but at least we can trigger creation.
@@ -56,7 +56,7 @@ export default function CalendarPage() {
   const todayAppointments = useMemo(() => {
     const items = appointmentsQuery.appointments;
     const currentDayItems = items.filter(
-      (appointment) => appointment.startTime.slice(0, 10) === todayDate,
+      (appointment) => appointment.startAt.slice(0, 10) === todayDate,
     );
 
     return currentDayItems.length > 0 ? currentDayItems : items.slice(0, 4);
@@ -140,8 +140,8 @@ export default function CalendarPage() {
                       </p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {formatTimeRange(
-                          appointment.startTime,
-                          appointment.endTime,
+                          appointment.startAt,
+                          appointment.endAt,
                         )}
                       </p>
                     </div>

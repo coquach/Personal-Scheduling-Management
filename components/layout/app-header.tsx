@@ -2,17 +2,12 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { BellIcon, ChevronDownIcon, SearchIcon } from "lucide-react";
+import { BellIcon, ChevronDownIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { Button } from "@/components/ui/button";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@/components/ui/breadcrumb";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { queryKeys } from "@/query/keys";
 import { useUnreadNotificationCount } from "@/query/notifications-hooks";
@@ -80,7 +75,7 @@ export function AppHeader() {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("") || "AC";
 
-  const { setSidebarOpen } = useAppShell();
+  useAppShell();
 
   return (
     <header className="fixed left-1/2 top-4 z-30 flex h-14 w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 items-center justify-between rounded-full border border-white/20 bg-white/40 px-4 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-black/20">

@@ -43,8 +43,8 @@ describe("appointments.service", () => {
       userId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       seriesId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       title: "Team Standup",
-      startTime: "2026-05-05T09:00:00.000Z",
-      endTime: "2026-05-05T09:30:00.000Z",
+      startAt: "2026-05-05T09:00:00.000Z",
+      endAt: "2026-05-05T10:00:00.000Z",
       status: "SCHEDULED",
     });
   });
@@ -61,8 +61,8 @@ describe("appointments.service", () => {
     const { createAppointment } = await import("@/services/appointments.service");
     await createAppointment({
       title: "Roadmap Review",
-      startTime: "2026-05-08T02:00:00.000Z",
-      endTime: "2026-05-08T03:00:00.000Z",
+      startAt: "2026-05-08T02:00:00.000Z",
+      endAt: "2026-05-08T03:00:00.000Z",
     });
 
     expect(browserApiRequest).toHaveBeenCalledTimes(1);
@@ -111,8 +111,8 @@ describe("appointments.service", () => {
     const { updateAppointment } = await import("@/services/appointments.service");
     await updateAppointment("cccccccc-cccc-4ccc-8ccc-cccccccccccc", {
       title: "Updated",
-      startTime: "2026-05-08T03:00:00.000Z",
-      endTime: "2026-05-08T04:00:00.000Z",
+      startAt: "2026-05-08T03:00:00.000Z",
+      endAt: "2026-05-08T04:00:00.000Z",
     });
 
     expect(browserApiRequest).toHaveBeenCalledWith(

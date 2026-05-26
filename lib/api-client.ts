@@ -1,11 +1,11 @@
 "use client";
 
-import axios, { AxiosHeaders, type Method } from "axios";
+import axios, { type Method, type AxiosRequestConfig } from "axios";
 
 import { clear, getAccessToken, setAccessToken } from "@/lib/auth-store";
-import { createBackendApiInstance, toBackendApiError } from "@/lib/api-core";
+import { createBackendApiInstance, toBackendApiError, unwrapEnvelope } from "@/lib/api-core";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
-import type { ApiEnvelope } from "@/model/common.model";
+import type { ApiEnvelope } from "@/model/common";
 
 export type FullBrowserApiResponse<T> = {
   data: T;
@@ -18,6 +18,7 @@ type BrowserApiOptions = {
   auth?: boolean;
   responseType?: "arraybuffer" | "blob" | "document" | "json" | "text" | "stream";
   returnFullResponse?: boolean;
+  params?: Record<string, string | number | boolean | null | undefined>;
 };
 
 type EnvelopeLike<T> = ApiEnvelope<T> | null | undefined | string;
@@ -41,13 +42,7 @@ function getTestAccessTokenOverride() {
   return token?.trim() ? token : null;
 }
 
-function extractEnvelopeData<T>(payload: EnvelopeLike<T>) {
-  if (!payload || typeof payload !== "object" || !("data" in payload)) {
-    return undefined;
-  }
 
-  return payload.data as T;
-}
 
 function redirectToLogin() {
   if (typeof window === "undefined") {
@@ -87,12 +82,8 @@ async function refreshAccessToken() {
 }
 
 browserApi.interceptors.request.use(async (config) => {
-  const headers = AxiosHeaders.from(config.headers);
-  const skipAuth = headers.get("x-psms-skip-auth") === "1";
   const requestConfig = config as typeof config & BrowserApiRequestConfig;
-
-  requestConfig._skipAuth = skipAuth;
-  headers.delete("x-psms-skip-auth");
+  const skipAuth = requestConfig._skipAuth === true;
 
   if (!skipAuth) {
     let accessToken = getAccessToken();
@@ -110,13 +101,12 @@ browserApi.interceptors.request.use(async (config) => {
     }
 
     if (accessToken) {
-      headers.set("Authorization", `Bearer ${accessToken}`);
+      config.headers.set("Authorization", `Bearer ${accessToken}`);
     } else {
-      headers.delete("Authorization");
+      config.headers.delete("Authorization");
     }
   }
 
-  config.headers = headers;
   return config;
 });
 
@@ -150,10 +140,6 @@ browserApi.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      const headers = AxiosHeaders.from(originalRequest.headers);
-      headers.set("Authorization", `Bearer ${accessToken}`);
-      originalRequest.headers = headers;
-
       return browserApi.request(originalRequest);
     } catch (refreshError) {
       clear();
@@ -169,15 +155,10 @@ export async function browserApiRequest<T>(
   options: BrowserApiOptions = {},
 ): Promise<T> {
   const headers = new Headers(init?.headers);
-  const isFormData =
-    typeof FormData !== "undefined" && init?.body instanceof FormData;
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
 
   if (!isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
-  }
-
-  if (options.auth === false) {
-    headers.set("x-psms-skip-auth", "1");
   }
 
   try {
@@ -186,8 +167,10 @@ export async function browserApiRequest<T>(
       method: (init?.method as Method | undefined) ?? "GET",
       headers: Object.fromEntries(headers.entries()),
       data: init?.body,
+      params: options.params,
       responseType: options.responseType,
-    });
+      _skipAuth: options.auth === false,
+    } as AxiosRequestConfig & BrowserApiRequestConfig);
 
     if (options.returnFullResponse) {
       return response as unknown as T;
@@ -197,7 +180,7 @@ export async function browserApiRequest<T>(
       return response.data as unknown as T;
     }
 
-    return extractEnvelopeData(response.data) as T;
+    return unwrapEnvelope(response.data) as T;
   } catch (error) {
     throw toBackendApiError(error, "API request failed.");
   }

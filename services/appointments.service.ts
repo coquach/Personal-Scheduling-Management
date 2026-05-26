@@ -12,19 +12,14 @@ import {
   updateAppointmentStatusInputSchema,
   updateAppointmentStatusResponseSchema,
   updateSeriesRequestSchema,
-  type AppointmentBackendDto,
   type CreateSeriesRequest,
   type UpdateSeriesRequest,
-} from "@/model/validation/appointments";
-import type {
-  Appointment,
-  AppointmentListResponse,
-  AppointmentStatus,
-  CreateAppointmentInput,
-  DeleteAppointmentScopeInput,
-  GetAppointmentsInput,
-  UpdateAppointmentInput,
-} from "@/model/appointments.model";
+  type AppointmentStatus,
+  type CreateAppointmentInput,
+  type DeleteAppointmentScopeInput,
+  type GetAppointmentsInput,
+  type UpdateAppointmentInput,
+} from "@/model/appointments";
 
 export type {
   Appointment,
@@ -34,23 +29,9 @@ export type {
   DeleteAppointmentScopeInput,
   GetAppointmentsInput,
   UpdateAppointmentInput,
-} from "@/model/appointments.model";
+} from "@/model/appointments";
 
-function mapAppointmentFromBackend(dto: AppointmentBackendDto): Appointment {
-  return {
-    id: dto.id,
-    userId: dto.userId,
-    seriesId: dto.seriesId,
-    title: dto.title,
-    description: dto.description,
-    startTime: dto.startAt,
-    endTime: dto.endAt,
-    isRecurringInstance: dto.isRecurringInstance,
-    status: dto.status,
-    jobId: dto.jobId,
-    tags: dto.tags ?? [],
-  };
-}
+
 
 function getBrowserTimezone() {
   if (typeof Intl === "undefined") {
@@ -62,28 +43,16 @@ function getBrowserTimezone() {
 
 export async function getAppointments(input: GetAppointmentsInput) {
   const parsedInput = getAppointmentsInputSchema.parse(input);
-  const searchParams = new URLSearchParams();
-
-  if (parsedInput.page) {
-    searchParams.set("page", String(parsedInput.page));
-  }
-
-  if (parsedInput.limit) {
-    searchParams.set("limit", String(parsedInput.limit));
-  }
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const rawResponse = await browserApiRequest<unknown>(
-    `/appointments${suffix}`,
-  );
+  
+  const rawResponse = await browserApiRequest<unknown>("/appointments", undefined, {
+    params: {
+      page: parsedInput.page,
+      limit: parsedInput.limit,
+    },
+  });
   const response = appointmentListResponseSchema.parse(rawResponse);
 
-  return {
-    items: (response.items ?? []).map(mapAppointmentFromBackend),
-    page: response.page,
-    limit: response.limit,
-    total: response.total,
-  } satisfies AppointmentListResponse;
+  return response;
 }
 
 export async function createAppointment(input: CreateAppointmentInput) {
@@ -92,8 +61,8 @@ export async function createAppointment(input: CreateAppointmentInput) {
   const payload: CreateSeriesRequest = {
     title: parsedInput.title,
     description: parsedInput.description,
-    startAt: parsedInput.startTime,
-    endAt: parsedInput.endTime,
+    startAt: parsedInput.startAt,
+    endAt: parsedInput.endAt,
     recurrenceType: parsedInput.recurrenceType ?? "ONETIME",
     weeklyDay: parsedInput.weeklyDay ?? [],
     monthlyDay: parsedInput.monthlyDay ?? null,
@@ -122,8 +91,8 @@ export async function updateAppointment(
   const payload: UpdateSeriesRequest = {
     ...(parsedInput.title !== undefined ? { title: parsedInput.title } : {}),
     ...(parsedInput.description !== undefined ? { description: parsedInput.description } : {}),
-    ...(parsedInput.startTime !== undefined ? { startAt: parsedInput.startTime } : {}),
-    ...(parsedInput.endTime !== undefined ? { endAt: parsedInput.endTime } : {}),
+    ...(parsedInput.startAt !== undefined ? { startAt: parsedInput.startAt } : {}),
+    ...(parsedInput.endAt !== undefined ? { endAt: parsedInput.endAt } : {}),
     ...(parsedInput.recurrenceType !== undefined
       ? { recurrenceType: parsedInput.recurrenceType }
       : {}),

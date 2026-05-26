@@ -19,7 +19,7 @@ import {
   resendVerificationEmailRequestSchema,
   verifyEmailRequestSchema,
   type ResendVerificationEmailRequestDto,
-} from "@/model/validation/auth";
+} from "@/model/auth";
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();

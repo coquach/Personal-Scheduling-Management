@@ -1,8 +1,9 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { queryKeys } from "@/query/keys";
+import { createInvalidatingMutation, type MutationCallbacks } from "@/query/utils";
 import {
   createTag,
   deleteTag,
@@ -10,10 +11,7 @@ import {
   updateTag,
 } from "@/services/tags.service";
 
-type MutationCallbacks = {
-  onSuccess?: () => void | Promise<void>;
-  onError?: (error: unknown) => void;
-};
+export type { MutationCallbacks };
 
 export function useTagsQuery() {
   return useQuery({
@@ -22,59 +20,18 @@ export function useTagsQuery() {
   });
 }
 
-export function useCreateTagMutation(callbacks?: MutationCallbacks) {
-  const queryClient = useQueryClient();
+export const useCreateTagMutation = createInvalidatingMutation(
+  createTag,
+  [queryKeys.tags.all]
+);
 
-  return useMutation({
-    mutationFn: createTag,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.tags.all,
-      });
-      await callbacks?.onSuccess?.();
-    },
-    onError: (error) => {
-      callbacks?.onError?.(error);
-    },
-  });
-}
+export const useUpdateTagMutation = createInvalidatingMutation(
+  ({ tagId, payload }: { tagId: string; payload: { name?: string; color?: string } }) =>
+    updateTag(tagId, payload),
+  [queryKeys.tags.all]
+);
 
-export function useUpdateTagMutation(callbacks?: MutationCallbacks) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      tagId,
-      payload,
-    }: {
-      tagId: string;
-      payload: { name?: string; color?: string };
-    }) => updateTag(tagId, payload),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.tags.all,
-      });
-      await callbacks?.onSuccess?.();
-    },
-    onError: (error) => {
-      callbacks?.onError?.(error);
-    },
-  });
-}
-
-export function useDeleteTagMutation(callbacks?: MutationCallbacks) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: deleteTag,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.tags.all,
-      });
-      await callbacks?.onSuccess?.();
-    },
-    onError: (error) => {
-      callbacks?.onError?.(error);
-    },
-  });
-}
+export const useDeleteTagMutation = createInvalidatingMutation(
+  deleteTag,
+  [queryKeys.tags.all]
+);

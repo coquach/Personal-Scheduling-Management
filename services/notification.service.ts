@@ -5,7 +5,7 @@ import type {
   NotificationListResponse,
   RegisterDevicePayload,
   UserDevice,
-} from "@/model/notification.model";
+} from "@/model/notification";
 import {
   markAllReadResponseSchema,
   markReadInputSchema,
@@ -14,7 +14,7 @@ import {
   registerDevicePayloadSchema,
   unregisterDevicePayloadSchema,
   userDeviceSchema,
-} from "@/model/validation/notification";
+} from "@/model/notification";
 
 function mapNotificationStatus(item: Omit<NotificationItem, "status">): NotificationItem {
   return {

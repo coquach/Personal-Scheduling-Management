@@ -16,7 +16,7 @@ import {
   type TeamAppointmentListResponse,
   type TeamAppointmentResponse,
   type UpdateTeamAppointmentRequest,
-} from "@/model/validation/team-appointments";
+} from "@/model/team-appointments";
 
 export async function createTeamAppointment(
   teamId: string,
@@ -35,15 +35,14 @@ export async function getTeamAppointments(
   query: GetTeamAppointmentsQuery,
 ): Promise<TeamAppointmentListResponse> {
   const parsedQuery = getTeamAppointmentsQuerySchema.parse(query);
-  const searchParams = new URLSearchParams();
-
-  if (parsedQuery.page) searchParams.set("page", String(parsedQuery.page));
-  if (parsedQuery.limit) searchParams.set("limit", String(parsedQuery.limit));
-  if (parsedQuery.from) searchParams.set("from", parsedQuery.from);
-  if (parsedQuery.to) searchParams.set("to", parsedQuery.to);
-
-  const suffix = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
-  const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}/appointments${suffix}`);
+  const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}/appointments`, undefined, {
+    params: {
+      page: parsedQuery.page,
+      limit: parsedQuery.limit,
+      from: parsedQuery.from,
+      to: parsedQuery.to,
+    }
+  });
   
   return teamAppointmentListResponseSchema.parse(rawResponse);
 }

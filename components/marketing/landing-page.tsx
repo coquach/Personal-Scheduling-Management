@@ -30,33 +30,6 @@ const featureCards = [
   },
 ];
 
-const benefits = [
-  'Unified calendar, appointment, reminder and export flows.',
-  'Bright productivity visual language with blue-led accents.',
-  'Clear entry path from marketing to auth and then into the workspace.',
-];
-
-const schedulePreview = [
-  {
-    time: '09:00',
-    title: 'Team standup',
-    color: '#8b5cf6',
-    state: 'Shared',
-  } /* Violet */,
-  {
-    time: '11:30',
-    title: 'Doctor appointment',
-    color: '#fca5a5',
-    state: 'Personal',
-  } /* Soft Coral */,
-  {
-    time: '15:00',
-    title: 'Weekly review',
-    color: '#6ee7b7',
-    state: 'Ready',
-  } /* Mint */,
-];
-
 const baseButtonLinkClass =
   'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg border text-sm font-medium whitespace-nowrap transition-all duration-200 outline-none';
 

@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import { LoginForm } from "./LoginForm";
 
@@ -15,7 +14,7 @@ export default function LoginPage() {
       </div>
       <LoginForm />
       <div className="text-center text-sm" data-testid="auth-tab-register">
-        <span className="text-muted-foreground">Don't have an account? </span>
+        <span className="text-muted-foreground">Don&apos;t have an account? </span>
         <Link href={AUTH_ROUTE_PATHS.register} className="font-medium text-primary hover:underline">
           Create account
         </Link>

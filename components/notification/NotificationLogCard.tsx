@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { NotificationItem } from "@/model/notification.model";
+import type { NotificationItem } from "@/model/notification";
 
 type NotificationLogCardProps = {
   isLoading: boolean;

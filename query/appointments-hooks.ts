@@ -1,8 +1,9 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 
 import { queryKeys } from "@/query/keys";
+import { createInvalidatingMutation, type MutationCallbacks } from "@/query/utils";
 import {
   createAppointment,
   deleteAppointment,
@@ -12,10 +13,7 @@ import {
   type AppointmentStatus,
 } from "@/services/appointments.service";
 
-type MutationCallbacks = {
-  onSuccess?: () => void | Promise<void>;
-  onError?: (error: unknown) => void;
-};
+export type { MutationCallbacks };
 
 export function useAppointmentsListQuery(input?: { page?: number; limit?: number }) {
   const page = input?.page ?? 1;
@@ -30,82 +28,24 @@ export function useAppointmentsListQuery(input?: { page?: number; limit?: number
   });
 }
 
-export function useCreateAppointmentMutation(callbacks?: MutationCallbacks) {
-  const queryClient = useQueryClient();
+export const useCreateAppointmentMutation = createInvalidatingMutation(
+  createAppointment,
+  [queryKeys.appointments.all]
+);
 
-  return useMutation({
-    mutationFn: createAppointment,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.appointments.all,
-      });
-      await callbacks?.onSuccess?.();
-    },
-    onError: (error) => {
-      callbacks?.onError?.(error);
-    },
-  });
-}
+export const useUpdateAppointmentMutation = createInvalidatingMutation(
+  ({ id, payload }: { id: string; payload: Parameters<typeof updateAppointment>[1] }) =>
+    updateAppointment(id, payload),
+  [queryKeys.appointments.all]
+);
 
-export function useUpdateAppointmentMutation(callbacks?: MutationCallbacks) {
-  const queryClient = useQueryClient();
+export const useDeleteAppointmentMutation = createInvalidatingMutation(
+  (seriesId: string) => deleteAppointment(seriesId),
+  [queryKeys.appointments.all]
+);
 
-  return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: string;
-      payload: Parameters<typeof updateAppointment>[1];
-    }) => updateAppointment(id, payload),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.appointments.all,
-      });
-      await callbacks?.onSuccess?.();
-    },
-    onError: (error) => {
-      callbacks?.onError?.(error);
-    },
-  });
-}
-
-export function useDeleteAppointmentMutation(callbacks?: MutationCallbacks) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (seriesId: string) => deleteAppointment(seriesId),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.appointments.all,
-      });
-      await callbacks?.onSuccess?.();
-    },
-    onError: (error) => {
-      callbacks?.onError?.(error);
-    },
-  });
-}
-
-export function useUpdateAppointmentStatusMutation(callbacks?: MutationCallbacks) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      appointmentId,
-      status,
-    }: {
-      appointmentId: string;
-      status: AppointmentStatus;
-    }) => updateAppointmentStatus(appointmentId, status),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.appointments.all,
-      });
-      await callbacks?.onSuccess?.();
-    },
-    onError: (error) => {
-      callbacks?.onError?.(error);
-    },
-  });
-}
+export const useUpdateAppointmentStatusMutation = createInvalidatingMutation(
+  ({ appointmentId, status }: { appointmentId: string; status: AppointmentStatus }) =>
+    updateAppointmentStatus(appointmentId, status),
+  [queryKeys.appointments.all]
+);

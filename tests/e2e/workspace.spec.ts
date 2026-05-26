@@ -14,7 +14,6 @@ test.describe("Midterm workspace coverage", () => {
 
   test("creates a new appointment and refreshes the list", async ({
     page,
-    psmsApi,
   }) => {
     await page.goto("/appointments");
     await page.getByTestId("appointment-create-trigger").click();
@@ -64,7 +63,7 @@ test.describe("Midterm workspace coverage", () => {
     psmsApi.mockFailure(
       { method: "POST", path: "/series" },
       400,
-      "startTime must be before endTime",
+      "startAt must be before endAt",
       { once: true },
     );
 
@@ -76,7 +75,7 @@ test.describe("Midterm workspace coverage", () => {
     await page.getByTestId("appointment-save").click();
 
     await expect(page.getByTestId("appointment-time-error")).toContainText(
-      "endTime must be greater than startTime",
+      "endAt must be greater than startAt",
     );
     await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
   });
@@ -88,7 +87,7 @@ test.describe("Midterm workspace coverage", () => {
     psmsApi.mockFailure(
       { method: "POST", path: "/series" },
       400,
-      "startTime must not be in the past",
+      "startAt must not be in the past",
       { once: true },
     );
 
@@ -100,7 +99,7 @@ test.describe("Midterm workspace coverage", () => {
     await page.getByTestId("appointment-save").click();
 
     await expect(page.getByTestId("appointment-time-error")).toContainText(
-      "startTime must not be in the past",
+      "startAt must not be in the past",
     );
     await expect(page.getByTestId("appointment-form-modal")).toBeVisible();
   });

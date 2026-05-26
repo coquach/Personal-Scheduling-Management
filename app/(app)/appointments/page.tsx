@@ -101,7 +101,7 @@ export default function AppointmentsPage() {
     const items = appointmentsQuery.data?.items ?? [];
 
     return items.filter((item) => {
-      const appointmentDate = toDateInputValue(item.startTime);
+      const appointmentDate = toDateInputValue(item.startAt);
       const matchesSearch =
         !searchValue ||
         item.title.toLowerCase().includes(searchValue.toLowerCase()) ||
@@ -284,8 +284,8 @@ export default function AppointmentsPage() {
                   <>
                     {filteredAppointments.map((row) => (
                       <TableRow key={row.id} data-testid="appointment-row">
-                        <TableCell>{formatDateTime(row.startTime)}</TableCell>
-                        <TableCell>{formatDateTime(row.endTime)}</TableCell>
+                        <TableCell>{formatDateTime(row.startAt)}</TableCell>
+                        <TableCell>{formatDateTime(row.endAt)}</TableCell>
                         <TableCell>
                           <div>
                             <p className="font-medium text-foreground">{row.title}</p>

@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import { RegisterForm } from "./RegisterForm";
 

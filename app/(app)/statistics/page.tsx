@@ -24,7 +24,7 @@ import {
   exportAppointmentsInputSchema,
   type ExportAppointmentsInput,
   type GetStatisticsInput
-} from "@/model/validation/statistics";
+} from "@/model/statistics";
 import { useExportAppointments, useGetStatistics } from "@/query/statistics-hooks";
 
 function getThisWeekDates() {
@@ -46,7 +46,7 @@ function getThisWeekDates() {
 }
 
 export default function StatisticsPage() {
-  const [period, setPeriod] = useState<GetStatisticsInput>(() => getThisWeekDates());
+  const [period] = useState<GetStatisticsInput>(() => getThisWeekDates());
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
