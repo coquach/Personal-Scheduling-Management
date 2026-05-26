@@ -6,29 +6,20 @@ import { RegisterForm } from "./RegisterForm";
 
 export default function RegisterPage() {
   return (
-    <div className="space-y-6" data-testid="register-page">
-      <div className="space-y-3">
-        <p className="inline-flex items-center rounded-full border border-border/80 bg-accent/55 px-3 py-1 text-[11px] font-semibold tracking-[0.07em] text-accent-foreground uppercase">
-          New account
+    <div className="space-y-8" data-testid="register-page">
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Create account</h1>
+        <p className="text-sm text-muted-foreground">
+          Sign up to start using your scheduling workspace
         </p>
-        <h1 className="text-[2.25rem] leading-[1.02] font-bold tracking-[-0.045em] text-foreground">
-          Create your scheduling account
-        </h1>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Register with your email to start using calendar, reminders, and workspace
-          features.
-        </p>
-      </div>
-      <div className="flex items-center justify-end border-t border-border/70 pt-3">
-        <Button
-          variant="ghost"
-          className="rounded-full px-3 text-sm"
-          render={<Link href={AUTH_ROUTE_PATHS.login} />}
-        >
-          Already have an account?
-        </Button>
       </div>
       <RegisterForm />
+      <div className="text-center text-sm">
+        <span className="text-muted-foreground">Already have an account? </span>
+        <Link href={AUTH_ROUTE_PATHS.login} className="font-medium text-primary hover:underline">
+          Sign in
+        </Link>
+      </div>
     </div>
   );
 }

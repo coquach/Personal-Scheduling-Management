@@ -59,3 +59,17 @@ PSMS is a modern personal scheduling management application built with **Next.js
   - Complex business logic or service methods must have unit tests in `tests/unit/`.
   - Component interactions should be verified with integration tests in `tests/integration/`.
 - **Error Handling:** Use `toBackendApiError` to wrap API errors for consistent error messaging across the app.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Maps the five canonical triage roles to identical strings in our tracker. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repository layout (`CONTEXT.md` and `docs/adr/` at the root). See `docs/agents/domain.md`.

@@ -76,7 +76,7 @@ export function RegisterForm() {
           placeholder="Jane Planner"
           data-testid="register-name-input"
           autoComplete="name"
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
           {...form.register("displayName", {
             onChange: () => setErrorMessage(null),
           })}
@@ -98,7 +98,7 @@ export function RegisterForm() {
           placeholder="you@example.com"
           data-testid="register-email-input"
           autoComplete="email"
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
           {...form.register("email", {
             onChange: () => setErrorMessage(null),
           })}
@@ -120,7 +120,7 @@ export function RegisterForm() {
           placeholder="Create a secure password"
           data-testid="register-password-input"
           autoComplete="new-password"
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
           {...form.register("password", {
             onChange: () => setErrorMessage(null),
           })}
@@ -142,7 +142,7 @@ export function RegisterForm() {
           placeholder="Re-enter password"
           data-testid="register-confirm-password-input"
           autoComplete="new-password"
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
           {...form.register("confirmPassword", {
             onChange: () => setErrorMessage(null),
           })}
@@ -156,7 +156,7 @@ export function RegisterForm() {
 
       <Button
         type="submit"
-        className="h-11 w-full rounded-xl text-sm font-semibold shadow-[0_10px_20px_rgba(26,115,232,0.24)]"
+        className="h-11 w-full rounded-xl text-sm font-semibold shadow-[0_8px_16px_rgba(139,92,246,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(139,92,246,0.35)]"
         disabled={registerMutation.isPending || !form.formState.isValid}
         data-testid="register-submit"
       >
@@ -175,13 +175,6 @@ export function RegisterForm() {
         </Alert>
       ) : null}
 
-      <Button
-        variant="ghost"
-        className="rounded-full"
-        render={<Link href={AUTH_ROUTE_PATHS.login} />}
-      >
-        Back to login
-      </Button>
     </form>
   );
 }

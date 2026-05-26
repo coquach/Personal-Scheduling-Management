@@ -1,41 +1,25 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useActionState } from "react";
 
-import {
-  loginAction,
-} from "@/features/auth/server/actions";
-import { initialLoginActionState } from "@/features/auth/server/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
-import { setAccessToken } from "@/lib/auth-store";
+import {
+  loginAction,
+} from "@/features/auth/server/actions";
+import { initialLoginActionState } from "@/features/auth/server/types";
+
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") ?? AUTH_ROUTE_PATHS.calendar;
-  const hasNavigatedRef = useRef(false);
   const [state, formAction, pending] = useActionState(
     loginAction,
     initialLoginActionState,
   );
-
-  useEffect(() => {
-    if (state.status !== "success" || !state.accessToken) {
-      return;
-    }
-
-    if (hasNavigatedRef.current) {
-      return;
-    }
-    hasNavigatedRef.current = true;
-
-    setAccessToken(state.accessToken);
-    router.replace(state.redirectTo || redirectTo);
-  }, [redirectTo, router, state.accessToken, state.redirectTo, state.status]);
 
   return (
     <form
@@ -57,7 +41,7 @@ export function LoginForm() {
           autoComplete="email"
           data-testid="login-email-input"
           aria-invalid={Boolean(state.fieldErrors.email?.length)}
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
         />
         {state.fieldErrors.email?.map((message) => (
           <p key={message} className="text-sm text-destructive">
@@ -86,7 +70,7 @@ export function LoginForm() {
           autoComplete="current-password"
           data-testid="login-password-input"
           aria-invalid={Boolean(state.fieldErrors.password?.length)}
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
         />
         {state.fieldErrors.password?.map((message) => (
           <p key={message} className="text-sm text-destructive">
@@ -109,7 +93,7 @@ export function LoginForm() {
 
       <Button
         type="submit"
-        className="h-11 w-full rounded-xl text-sm font-semibold shadow-[0_10px_20px_rgba(26,115,232,0.24)]"
+        className="h-11 w-full rounded-xl text-sm font-semibold shadow-[0_8px_16px_rgba(139,92,246,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(139,92,246,0.35)]"
         disabled={pending}
         data-testid="login-submit"
       >

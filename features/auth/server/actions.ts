@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { clearRefreshTokenCookie, getRefreshTokenCookie, setRefreshTokenCookie } from "@/lib/session";
 import { AUTH_ROUTE_PATHS } from "@/lib/constants/auth";
 import { loginPayloadSchema } from "@/model/validation/auth";
@@ -62,16 +63,12 @@ export async function loginAction(
     );
 
     revalidatePath("/", "layout");
-
-    return {
-      status: "success",
-      message: null,
-      fieldErrors: {},
-      accessToken: session.accessToken,
-      user,
-      redirectTo,
-    };
+    
+    redirect(redirectTo);
   } catch (error) {
+    if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+      throw error;
+    }
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Unable to sign in.",

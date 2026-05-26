@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
+import type { CalendarEvent } from "@schedule-x/calendar";
 import { PlusIcon } from "lucide-react";
 
 import { ScheduleXCalendar } from "@/components/calendar/ScheduleXCalendar";
+import AppointmentModal from "@/components/appointments/appointment-modal";
 import { PageSection } from "@/components/layout/page-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getApiErrorMessage } from "@/lib/api-core";
 import { useCalendarAppointments } from "@/query/calendar-hooks";
+import type { Appointment } from "@/services/appointments.service";
 
 function formatTimeRange(startTime: string, endTime: string) {
   const formatter = new Intl.DateTimeFormat("en-GB", {
@@ -23,6 +26,31 @@ function formatTimeRange(startTime: string, endTime: string) {
 
 export default function CalendarPage() {
   const appointmentsQuery = useCalendarAppointments();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+
+  const handleCreateNew = () => {
+    setEditingAppointment(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    // Find the original appointment data by ID
+    const appointment = appointmentsQuery.appointments.find((app) => app.seriesId === event.id || app.id === event.id);
+    if (appointment) {
+      setEditingAppointment(appointment);
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleDateClick = (dateString: string) => {
+    // Open create modal with pre-filled date. 
+    // We can just open the modal. The modal doesn't currently take an initialDate param,
+    // but at least we can trigger creation.
+    setEditingAppointment(null);
+    setIsModalOpen(true);
+  };
 
   const todayDate = new Date().toISOString().slice(0, 10);
   const todayAppointments = useMemo(() => {
@@ -37,11 +65,9 @@ export default function CalendarPage() {
   return (
     <div data-testid="calendar-page" className="space-y-6">
       <PageSection
-        title="Calendar"
-        description="Schedule-X calendar synced with your appointment APIs."
         actions={
-          <Button disabled>
-            <PlusIcon />
+          <Button onClick={handleCreateNew}>
+            <PlusIcon className="mr-2 size-4" />
             <span>Create event</span>
           </Button>
         }
@@ -50,24 +76,31 @@ export default function CalendarPage() {
           <Card>
             
             <CardContent>
-              {appointmentsQuery.isLoading ? (
-                <Alert>
-                  <AlertDescription>Loading calendar events...</AlertDescription>
-                </Alert>
-              ) : null}
-              {appointmentsQuery.isError ? (
-                <Alert variant="destructive">
-                  <AlertDescription>
-                    {getApiErrorMessage(
-                      appointmentsQuery.error,
-                      "Unable to load the calendar right now.",
-                    )}
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              {!appointmentsQuery.isLoading && !appointmentsQuery.isError ? (
-                <ScheduleXCalendar events={appointmentsQuery.calendarEvents} />
-              ) : null}
+              {appointmentsQuery.isLoading && (
+                <div className="mb-4">
+                  <Alert>
+                    <AlertDescription>Loading calendar events...</AlertDescription>
+                  </Alert>
+                </div>
+              )}
+              {appointmentsQuery.isError && (
+                <div className="mb-4">
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      {getApiErrorMessage(
+                        appointmentsQuery.error,
+                        "Unable to load the calendar right now."
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+              
+              <ScheduleXCalendar 
+                events={appointmentsQuery.calendarEvents} 
+                onEventClick={handleEventClick}
+                onDateClick={handleDateClick}
+              />
             </CardContent>
           </Card>
 
@@ -136,6 +169,12 @@ export default function CalendarPage() {
           </Card>
         </div>
       </PageSection>
+
+      <AppointmentModal 
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        editingAppointment={editingAppointment}
+      />
     </div>
   );
 }

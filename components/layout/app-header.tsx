@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { BellIcon, ChevronDownIcon, SearchIcon, Settings2Icon } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { BellIcon, ChevronDownIcon, SearchIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -23,10 +22,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { SidebarTrigger } from "@/components/ui/sidebar";
 import { queryKeys } from "@/query/keys";
 import { useUnreadNotificationCount } from "@/query/notifications-hooks";
 import { getProfile } from "@/services/profile.service";
+import { BrandLogo } from "@/components/ui/brand-logo";
+import { useAppShell } from "./app-shell";
 
 const pageMeta: Record<string, { title: string; description: string }> = {
   "/calendar": {
@@ -80,86 +80,87 @@ export function AppHeader() {
     .map((part) => part[0]?.toUpperCase() ?? "")
     .join("") || "AC";
 
+  const { setSidebarOpen } = useAppShell();
+
   return (
-    <header className="sticky top-0 z-20 border-b border-border/80 bg-background/88 backdrop-blur-xl">
-      <div className="flex flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <SidebarTrigger />
-            <div className="min-w-0">
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem>
-                    <Link href="/calendar" className="text-muted-foreground transition-colors hover:text-foreground">
-                      Workspace
-                    </Link>
-                  </BreadcrumbItem>
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>{meta.title}</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-              <p className="mt-1 text-xs text-muted-foreground">{meta.description}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon-sm" className="hidden sm:inline-flex">
-              <Settings2Icon />
-              <span className="sr-only">Preferences</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="relative"
-              data-testid="notification-bell"
-              onClick={() => router.push("/notifications")}
+    <header className="fixed left-1/2 top-4 z-30 flex h-14 w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 items-center justify-between rounded-full border border-white/20 bg-white/40 px-4 shadow-sm backdrop-blur-2xl dark:border-white/10 dark:bg-black/20">
+      
+      {/* Left: Brand */}
+      <div className="flex w-[120px] items-center justify-start">
+        <BrandLogo size="sm" />
+      </div>
+
+      {/* Center: Title */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <p className="text-sm font-semibold tracking-tight">{meta.title}</p>
+      </div>
+
+      {/* Right: Actions */}
+      <div className="flex w-[120px] items-center justify-end gap-1.5 sm:gap-2">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="relative"
+          data-testid="notification-bell"
+          onClick={() => router.push("/notifications")}
+        >
+          <BellIcon className="size-4" />
+          {notificationsQuery.unreadCount > 0 && (
+            <span
+              className="absolute -right-1 -top-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
+              data-testid="notification-bell-badge"
             >
-              <BellIcon />
-              <span
-                className="absolute -top-1 -right-1 grid min-w-5 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
-                data-testid="notification-bell-badge"
-              >
-                {notificationsQuery.unreadCount}
-              </span>
-              <span className="sr-only">Notifications</span>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                data-testid="profile-menu-trigger"
-                render={
-                  <Button variant="ghost" className="h-10 rounded-xl px-2 sm:px-3" />
-                }
-              >
-                <Avatar size="sm">
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                <span className="hidden text-sm font-medium sm:inline">
-                  {displayName}
-                </span>
-                <ChevronDownIcon className="hidden sm:inline size-4 text-muted-foreground" />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem render={<Link href="/profile" />}>Profile</DropdownMenuItem>
-                <DropdownMenuItem render={<Link href="/statistics" />}>Statistics</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <LogoutButton
-                  data-testid="sign-out-action"
-                  label="Sign out"
-                  variant="destructive"
-                  className="px-1.5 py-1"
-                />
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-        <label className="relative block">
-          <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search appointments, notes or tags"
-            data-testid="global-search-input"
-          />
-        </label>
+              {notificationsQuery.unreadCount}
+            </span>
+          )}
+          <span className="sr-only">Notifications</span>
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            data-testid="profile-menu-trigger"
+            render={<Button variant="ghost" className="h-10 rounded-xl px-2 sm:px-3" />}
+          >
+            <Avatar size="sm">
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <span className="hidden text-sm font-medium sm:inline">
+              {displayName}
+            </span>
+            <ChevronDownIcon className="hidden size-4 text-muted-foreground sm:inline" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="end" 
+            className="mt-2 w-56 rounded-2xl border border-white/20 bg-white/60 p-2 shadow-2xl backdrop-blur-3xl dark:border-white/10 dark:bg-black/40"
+          >
+            <div className="mb-2 px-2 py-1.5">
+              <p className="text-sm font-semibold">{displayName}</p>
+              <p className="text-xs text-muted-foreground">Workspace Owner</p>
+            </div>
+            <DropdownMenuSeparator className="bg-border/50" />
+            <DropdownMenuItem 
+              className="mt-1 cursor-pointer rounded-xl px-3 py-2 text-sm transition-colors hover:bg-white/50 focus:bg-white/50 dark:hover:bg-white/10 dark:focus:bg-white/10" 
+              render={<Link href="/profile" />}
+            >
+              Profile Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="cursor-pointer rounded-xl px-3 py-2 text-sm transition-colors hover:bg-white/50 focus:bg-white/50 dark:hover:bg-white/10 dark:focus:bg-white/10"
+              render={<Link href="/statistics" />}
+            >
+              View Statistics
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-border/50" />
+            <div className="mt-1 px-1">
+              <LogoutButton
+                data-testid="sign-out-action"
+                label="Sign out"
+                variant="destructive"
+                className="w-full justify-start rounded-xl px-2 py-2 text-sm font-medium"
+              />
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

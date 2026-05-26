@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useUnreadNotificationCount } from "@/query/notifications-hooks";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BrandLogo } from "@/components/ui/brand-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -43,19 +44,7 @@ export function AppSidebar() {
   return (
     <Sidebar className="text-sidebar-foreground" data-testid="app-sidebar">
       <SidebarHeader className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="grid size-10 place-items-center rounded-[16px] bg-primary text-sm font-semibold text-primary-foreground">
-            P
-          </div>
-          {!collapsed ? (
-            <div className="space-y-0.5">
-              <p className="text-sm font-semibold tracking-[-0.02em] text-sidebar-foreground">
-                PSMS
-              </p>
-              <p className="text-xs text-muted-foreground">Planning workspace</p>
-            </div>
-          ) : null}
-        </div>
+        <BrandLogo size="md" hideText={collapsed} className="px-2" />
         <Button className="w-full justify-start" size={collapsed ? "icon" : "default"}>
           <PlusIcon />
           {!collapsed ? <span>New appointment</span> : null}

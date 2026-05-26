@@ -64,19 +64,13 @@ export default function ResetPasswordPage() {
   });
 
   return (
-    <div data-testid="reset-password-page" className="space-y-6">
-      <div className="space-y-3">
-        <p className="inline-flex items-center rounded-full border border-border/80 bg-accent/55 px-3 py-1 text-[11px] font-semibold tracking-[0.07em] text-accent-foreground uppercase">
-          Security update
-        </p>
-        <h1 className="text-[2.25rem] leading-[1.02] font-bold tracking-[-0.045em] text-foreground">
+    <div data-testid="reset-password-page" className="space-y-8">
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Reset password
         </h1>
-        <p className="text-sm leading-6 text-muted-foreground">
-          Opened from email link. Token status:{" "}
-          <span className="font-medium text-foreground">
-            {token ? "ready" : "missing-token"}
-          </span>
+        <p className="text-sm text-muted-foreground">
+          Enter a new secure password for your account
         </p>
       </div>
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
@@ -85,7 +79,7 @@ export default function ResetPasswordPage() {
           placeholder="New password"
           data-testid="reset-password-new-input"
           autoComplete="new-password"
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
           {...form.register("password", {
             onChange: () => setErrorMessage(null),
           })}
@@ -100,7 +94,7 @@ export default function ResetPasswordPage() {
           placeholder="Confirm password"
           data-testid="reset-password-confirm-input"
           autoComplete="new-password"
-          className="h-11 rounded-xl border-border/80 bg-background/75"
+          className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input"
           {...form.register("confirmPassword", {
             onChange: () => setErrorMessage(null),
           })}
@@ -111,7 +105,7 @@ export default function ResetPasswordPage() {
           </p>
         ) : null}
         <Button
-          className="h-11 w-full rounded-xl text-sm font-semibold shadow-[0_10px_20px_rgba(26,115,232,0.24)]"
+          className="h-11 w-full rounded-xl text-sm font-semibold shadow-[0_8px_16px_rgba(139,92,246,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_24px_rgba(139,92,246,0.35)]"
           type="submit"
           data-testid="reset-password-submit"
           disabled={resetPasswordMutation.isPending}
@@ -129,13 +123,11 @@ export default function ResetPasswordPage() {
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         ) : null}
-        <Button
-          variant="ghost"
-          className="rounded-full"
-          render={<Link href={AUTH_ROUTE_PATHS.login} />}
-        >
-          Back to login
-        </Button>
+        <div className="text-center text-sm pt-2">
+          <Link href={AUTH_ROUTE_PATHS.login} className="font-medium text-primary hover:underline">
+            Back to sign in
+          </Link>
+        </div>
       </form>
     </div>
   );

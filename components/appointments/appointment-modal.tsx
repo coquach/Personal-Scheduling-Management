@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 
@@ -17,6 +17,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { useTagsQuery } from "@/query/tags-hooks";
 
 import {
   useCreateAppointmentMutation,
@@ -48,6 +52,16 @@ export default function AppointmentModal({
 }: AppointmentModalProps) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
+
+  // Derive state during render: Reset local states when modal transitions to open
+  if (open && !prevOpen) {
+    setPrevOpen(true);
+    setApiError(null);
+    setIsMoreOptionsOpen(false);
+  } else if (!open && prevOpen) {
+    setPrevOpen(false);
+  }
 
   const createMutation = useCreateAppointmentMutation({
     onSuccess: () => {
@@ -81,6 +95,9 @@ export default function AppointmentModal({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
+    control,
     formState: { errors },
   } = useForm<CreateAppointmentInput>({
     resolver: zodResolver(createAppointmentInputSchema),
@@ -89,19 +106,26 @@ export default function AppointmentModal({
       description: "",
       startTime: "",
       endTime: "",
+      recurrenceType: "ONETIME",
+      tagIds: [],
     },
   });
 
+  const selectedTagIds = watch("tagIds") || [];
+  const selectedRecurrence = watch("recurrenceType");
+
+  const tagsQuery = useTagsQuery();
+
   useEffect(() => {
     if (open) {
-      setApiError(null);
-      setIsMoreOptionsOpen(false);
       if (editingAppointment) {
         reset({
           title: editingAppointment.title,
           description: editingAppointment.description ?? "",
           startTime: toDateTimeLocalValue(editingAppointment.startTime),
           endTime: toDateTimeLocalValue(editingAppointment.endTime),
+          recurrenceType: "ONETIME", // Keep it simple for edit mode unless the API returns it
+          tagIds: editingAppointment.tags?.map(t => t.id) || [],
         });
       } else {
         reset({
@@ -109,6 +133,8 @@ export default function AppointmentModal({
           description: "",
           startTime: "",
           endTime: "",
+          recurrenceType: "ONETIME",
+          tagIds: [],
         });
       }
     }
@@ -143,7 +169,7 @@ export default function AppointmentModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent data-testid="appointment-form-modal">
+      <DialogContent data-testid="appointment-form-modal" className="sm:max-w-[600px]">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>
@@ -165,10 +191,17 @@ export default function AppointmentModal({
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label>Start time</Label>
-                <Input
-                  {...register("startTime")}
-                  data-testid="appointment-start-input"
-                  type="datetime-local"
+                <Controller
+                  control={control}
+                  name="startTime"
+                  render={({ field }) => (
+                    <DateTimePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select start time"
+                      isInvalid={!!errors.startTime}
+                    />
+                  )}
                 />
                 {errors.startTime && (
                   <p className="text-sm text-destructive">{errors.startTime.message}</p>
@@ -176,10 +209,17 @@ export default function AppointmentModal({
               </div>
               <div className="space-y-1">
                 <Label>End time</Label>
-                <Input
-                  {...register("endTime")}
-                  data-testid="appointment-end-input"
-                  type="datetime-local"
+                <Controller
+                  control={control}
+                  name="endTime"
+                  render={({ field }) => (
+                    <DateTimePicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Select end time"
+                      isInvalid={!!errors.endTime}
+                    />
+                  )}
                 />
                 {errors.endTime && (
                   <p className="text-sm text-destructive">{errors.endTime.message}</p>
@@ -218,12 +258,59 @@ export default function AppointmentModal({
                   )}
                 </div>
 
-                <Alert>
-                  <AlertDescription>
-                    Tag and Recurrence assignment will be enabled after the corresponding
-                    backend endpoints are available.
-                  </AlertDescription>
-                </Alert>
+                <div className="space-y-1">
+                  <Label>Recurrence</Label>
+                  <Select
+                    value={selectedRecurrence}
+                    onValueChange={(val: any) => setValue("recurrenceType", val)}
+                  >
+                    <SelectTrigger data-testid="appointment-recurrence-trigger">
+                      <SelectValue placeholder="Select recurrence" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ONETIME">None (One-time)</SelectItem>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                      <SelectItem value="YEARLY">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Tags</Label>
+                  {tagsQuery.isLoading && <p className="text-xs text-muted-foreground">Loading tags...</p>}
+                  {!tagsQuery.isLoading && tagsQuery.data && tagsQuery.data.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {tagsQuery.data.map((tag) => {
+                        const isSelected = selectedTagIds.includes(tag.id);
+                        const tagColor = tag.color || "var(--primary)";
+                        return (
+                          <Badge
+                            key={tag.id}
+                            variant={isSelected ? "default" : "outline"}
+                            className="cursor-pointer transition-colors"
+                            onClick={() => {
+                              const newTags = isSelected
+                                ? selectedTagIds.filter((id) => id !== tag.id)
+                                : [...selectedTagIds, tag.id];
+                              setValue("tagIds", newTags);
+                            }}
+                            style={{
+                              backgroundColor: isSelected ? tagColor : "transparent",
+                              borderColor: tagColor,
+                              color: isSelected ? "#fff" : tagColor,
+                            }}
+                          >
+                            {tag.name}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    !tagsQuery.isLoading && <p className="text-xs text-muted-foreground">No tags available.</p>
+                  )}
+                </div>
               </div>
             )}
 

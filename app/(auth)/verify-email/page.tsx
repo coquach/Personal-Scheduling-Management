@@ -99,14 +99,14 @@ export default function VerifyEmailPage() {
   });
 
   return (
-    <div data-testid="verify-email-page" className="space-y-6">
-      <div className="space-y-3">
-        <p className="inline-flex items-center rounded-full border border-border/80 bg-accent/55 px-3 py-1 text-[11px] font-semibold tracking-[0.07em] text-accent-foreground uppercase">
-          Email verification
-        </p>
-        <h1 className="text-[2.25rem] leading-[1.02] font-bold tracking-[-0.045em] text-foreground">
+    <div data-testid="verify-email-page" className="space-y-8 text-center">
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Verify email
         </h1>
+        <p className="text-sm text-muted-foreground">
+          Checking your verification token...
+        </p>
       </div>
 
       {status === "loading" ? (
@@ -133,7 +133,7 @@ export default function VerifyEmailPage() {
             type="email"
             placeholder="Enter your email to resend verification"
             autoComplete="email"
-            className="h-11 rounded-xl border-border/80 bg-background/75"
+            className="h-11 rounded-xl border-white/20 bg-input/50 backdrop-blur-md transition-colors hover:bg-input focus:bg-input text-left"
             {...resendForm.register("email", {
               onChange: () => setResendMessage(null),
             })}
@@ -146,7 +146,7 @@ export default function VerifyEmailPage() {
           <Button
             data-testid="verify-email-resend-submit"
             variant="outline"
-            className="h-11 rounded-xl"
+            className="h-11 w-full rounded-xl bg-white/40 hover:bg-white/60 dark:bg-black/40 dark:hover:bg-black/60"
             type="submit"
             disabled={resendVerificationEmailMutation.isPending || !resendForm.formState.isValid}
           >
@@ -161,12 +161,11 @@ export default function VerifyEmailPage() {
           ) : null}
         </form>
       ) : null}
-      <Button
-        className="rounded-full"
-        render={<Link href={AUTH_ROUTE_PATHS.login} />}
-      >
-        Back to login
-      </Button>
+      <div className="pt-4">
+        <Link href={AUTH_ROUTE_PATHS.login} className="font-medium text-primary hover:underline text-sm">
+          Return to sign in
+        </Link>
+      </div>
     </div>
   );
 }
