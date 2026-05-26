@@ -43,12 +43,14 @@ interface AppointmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingAppointment: Appointment | null;
+  initialDate?: string | null;
 }
 
 export default function AppointmentModal({
   open,
   onOpenChange,
   editingAppointment,
+  initialDate,
 }: AppointmentModalProps) {
   const [apiError, setApiError] = useState<string | null>(null);
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
@@ -127,6 +129,17 @@ export default function AppointmentModal({
           recurrenceType: "ONETIME", // Keep it simple for edit mode unless the API returns it
           tagIds: editingAppointment.tags?.map((t: { id: string }) => t.id) || [],
         });
+      } else if (initialDate) {
+        // Schedule-X might return "YYYY-MM-DD" or "YYYY-MM-DD HH:mm". Extract just the date part.
+        const baseDate = initialDate.slice(0, 10);
+        reset({
+          title: "",
+          description: "",
+          startAt: `${baseDate}T09:00`,
+          endAt: `${baseDate}T10:00`,
+          recurrenceType: "ONETIME",
+          tagIds: [],
+        });
       } else {
         reset({
           title: "",
@@ -138,7 +151,7 @@ export default function AppointmentModal({
         });
       }
     }
-  }, [open, editingAppointment, reset]);
+  }, [open, editingAppointment, initialDate, reset]);
 
   const onSubmit = (data: CreateAppointmentInput) => {
     setApiError(null);

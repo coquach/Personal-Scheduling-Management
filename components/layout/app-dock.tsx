@@ -3,14 +3,25 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { CalendarDaysIcon, ClockIcon, UsersIcon, ChartColumnIcon } from "lucide-react";
+import { 
+  CalendarDaysIcon, 
+  ClockIcon, 
+  UsersIcon, 
+  ChartColumnIcon,
+  TagIcon,
+  AlarmClock,
+  FileDownIcon
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const dockItems = [
   { href: "/calendar", icon: CalendarDaysIcon, label: "Calendar" },
   { href: "/appointments", icon: ClockIcon, label: "Appointments" },
   { href: "/teams", icon: UsersIcon, label: "Teams" },
+  { href: "/tags", icon: TagIcon, label: "Tags" },
+  { href: "/reminders", icon: AlarmClock, label: "Reminders" },
   { href: "/statistics", icon: ChartColumnIcon, label: "Statistics" },
+  { href: "/export", icon: FileDownIcon, label: "Export" },
 ];
 
 export function AppDock() {

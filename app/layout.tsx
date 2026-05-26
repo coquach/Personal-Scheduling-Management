@@ -3,6 +3,7 @@ import { Montserrat } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { QueryProvider } from "@/query/query-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -23,12 +24,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={montserrat.variable}>
+    <html lang="en" className={montserrat.variable} suppressHydrationWarning>
       <body className="min-h-screen font-sans antialiased">
-        <QueryProvider>
-          {children}
-          <Toaster richColors position="bottom-right" closeButton />
-        </QueryProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <QueryProvider>
+            {children}
+            <Toaster richColors position="bottom-right" closeButton />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

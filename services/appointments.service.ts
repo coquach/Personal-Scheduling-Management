@@ -48,6 +48,8 @@ export async function getAppointments(input: GetAppointmentsInput) {
     params: {
       page: parsedInput.page,
       limit: parsedInput.limit,
+      ...(parsedInput.fromDate && { fromDate: parsedInput.fromDate }),
+      ...(parsedInput.toDate && { toDate: parsedInput.toDate }),
     },
   });
   const response = appointmentListResponseSchema.parse(rawResponse);

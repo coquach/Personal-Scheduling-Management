@@ -37,14 +37,19 @@ describe("appointments.service", () => {
     const { getAppointments } = await import("@/services/appointments.service");
     const result = await getAppointments({ page: 1, limit: 10 });
 
-    expect(browserApiRequest).toHaveBeenCalledWith("/appointments?page=1&limit=10");
+    expect(browserApiRequest).toHaveBeenCalledWith("/appointments", undefined, {
+      params: {
+        page: 1,
+        limit: 10,
+      }
+    });
     expect(result.items[0]).toMatchObject({
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       userId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
       seriesId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       title: "Team Standup",
       startAt: "2026-05-05T09:00:00.000Z",
-      endAt: "2026-05-05T10:00:00.000Z",
+      endAt: "2026-05-05T09:30:00.000Z",
       status: "SCHEDULED",
     });
   });
@@ -96,7 +101,12 @@ describe("appointments.service", () => {
     const { getAppointments } = await import("@/services/appointments.service");
     await getAppointments({});
 
-    expect(browserApiRequest).toHaveBeenCalledWith("/appointments");
+    expect(browserApiRequest).toHaveBeenCalledWith("/appointments", undefined, {
+      params: {
+        page: undefined,
+        limit: undefined,
+      }
+    });
   });
 
   it("updates appointment via PATCH /series/:id with transformed fields", async () => {
@@ -132,7 +142,7 @@ describe("appointments.service", () => {
   it("deletes appointment series with explicit scope", async () => {
     const browserApiRequest = jest
       .fn<(...args: unknown[]) => Promise<unknown>>()
-      .mockResolvedValueOnce({ message: "Appointment series deleted successfully." });
+      .mockResolvedValueOnce({ success: true, message: "Appointment series deleted successfully." });
 
     jest.doMock("@/lib/api-client", () => ({
       browserApiRequest,

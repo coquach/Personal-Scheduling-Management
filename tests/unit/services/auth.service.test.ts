@@ -31,6 +31,7 @@ describe("auth.service", () => {
     jest.doMock("@/lib/api-core", () => ({
       backendApi: { post, get: jest.fn() },
       toBackendApiError: jest.fn((error) => error),
+      unwrapEnvelope: (payload: any) => payload.data ?? payload,
     }));
 
     const { login } = await import("@/services/auth.service");
@@ -61,6 +62,7 @@ describe("auth.service", () => {
     jest.doMock("@/lib/api-core", () => ({
       backendApi: { post: jest.fn(), get },
       toBackendApiError: jest.fn((error) => error),
+      unwrapEnvelope: (payload: any) => payload.data ?? payload,
     }));
 
     const { getCurrentUser } = await import("@/services/auth.service");

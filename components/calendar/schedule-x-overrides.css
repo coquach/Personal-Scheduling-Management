@@ -1,19 +1,26 @@
 .sx-react-calendar-wrapper {
   /* Premium Bento Theme Overrides for Schedule-X */
-  
+
   /* Layout & Container */
   --sx-color-background: transparent !important;
   --sx-color-surface: rgba(255, 255, 255, 0.6) !important;
   --sx-color-surface-container: rgba(255, 255, 255, 0.4) !important;
   --sx-color-surface-container-low: rgba(255, 255, 255, 0.2) !important;
-  --sx-color-surface-container-high: var(--popover) !important; /* Solid background for dropdowns */
+  --sx-color-surface-container-high: var(
+    --popover
+  ) !important; /* Solid background for dropdowns */
 
   /* Typography */
   --sx-color-on-surface: var(--foreground) !important;
   --sx-color-on-surface-variant: var(--muted-foreground) !important;
-  --sx-color-outline: rgba(0, 0, 0, 0.15) !important; /* Dark outlines for light mode */
+  --sx-color-outline: rgba(
+    0,
+    0,
+    0,
+    0.15
+  ) !important; /* Dark outlines for light mode */
   --sx-color-outline-variant: rgba(0, 0, 0, 0.08) !important;
-  
+
   /* Primary accents */
   --sx-color-primary: var(--primary) !important;
   --sx-color-on-primary: var(--primary-foreground) !important;
@@ -34,12 +41,11 @@
 
 /* Global Component Overrides */
 .sx-react-calendar-wrapper .sx__calendar {
-  border: 1px solid var(--sx-color-outline);
-  border-radius: 2rem !important; /* Bento extreme rounded */
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(24px);
-  overflow: hidden;
-  background: var(--sx-color-surface);
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  background: transparent !important;
 }
 
 .sx-react-calendar-wrapper .sx__calendar-header {
@@ -48,22 +54,58 @@
   background: transparent;
 }
 
+/* Button Overrides (Shadcn styling) */
+.sx-react-calendar-wrapper .sx__button,
+.sx-react-calendar-wrapper .sx__today-button,
+.sx-react-calendar-wrapper .sx__chevron-wrapper,
+.sx-react-calendar-wrapper .sx__view-selection-btn {
+  border-radius: calc(var(--radius) * 1.5) !important;
+  transition: all 0.2s ease !important;
+}
+
+.sx-react-calendar-wrapper .sx__button:hover,
+.sx-react-calendar-wrapper .sx__today-button:hover,
+.sx-react-calendar-wrapper .sx__chevron-wrapper:hover,
+.sx-react-calendar-wrapper .sx__view-selection-btn:hover {
+  background-color: var(--accent) !important;
+  color: var(--accent-foreground) !important;
+}
+
+/* Remove ripples by killing animations/backgrounds, NOT display: none because the class is on the button itself */
+.sx-react-calendar-wrapper .sx__view-selection .sx__ripple {
+  background-color: var(--popover) !important;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(24px);
+}
+
 .sx-react-calendar-wrapper .sx__view-container {
   background: transparent;
 }
 
-/* Grid Lines */
+/* Grid Lines (Subtle/Faint) */
 .sx-react-calendar-wrapper .sx__time-grid-line,
 .sx-react-calendar-wrapper .sx__month-grid-cell,
 .sx-react-calendar-wrapper .sx__week-grid-cell {
-  border-color: var(--sx-color-outline-variant) !important;
+  border-color: rgba(139, 92, 246, 0.1) !important; /* Extremely faint violet */
+}
+.dark .sx-react-calendar-wrapper .sx__time-grid-line,
+.dark .sx-react-calendar-wrapper .sx__month-grid-cell,
+.dark .sx-react-calendar-wrapper .sx__week-grid-cell {
+  border-color: rgba(
+    255,
+    255,
+    255,
+    0.05
+  ) !important; /* Extremely faint white */
 }
 
 /* Fix popups (date picker, etc) that might use inline styles or specific classes */
 .sx-react-calendar-wrapper .sx__date-picker-popup,
 .sx-react-calendar-wrapper .sx__popover,
 .sx-react-calendar-wrapper .sx__date-picker__popup,
-.sx-react-calendar-wrapper .sx__date-input-wrapper {
+.sx-react-calendar-wrapper .sx__date-input {
   background-color: var(--popover) !important;
   border-radius: 12px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);

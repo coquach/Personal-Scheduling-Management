@@ -93,6 +93,8 @@ export const deleteAppointmentResponseSchema = z.object({
 export const getAppointmentsInputSchema = z.object({
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),
+  fromDate: dateTimeStringSchema.optional(),
+  toDate: dateTimeStringSchema.optional(),
 });
 
 export type GetAppointmentsInput = z.infer<typeof getAppointmentsInputSchema>;

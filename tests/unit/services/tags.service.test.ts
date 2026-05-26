@@ -10,7 +10,7 @@ describe("tags.service", () => {
     const browserApiRequest = jest
       .fn<(...args: unknown[]) => Promise<unknown>>()
       .mockResolvedValueOnce([
-      { id: "tag-1", name: "Work", color: "#1a73e8" },
+      { id: "11111111-1111-4111-8111-111111111111", name: "Work", color: "#1a73e8" },
     ]);
 
     jest.doMock("@/lib/api-client", () => ({
@@ -27,8 +27,8 @@ describe("tags.service", () => {
   it("creates, updates and deletes tag with expected methods", async () => {
     const browserApiRequest = jest
       .fn<(...args: unknown[]) => Promise<unknown>>()
-      .mockResolvedValueOnce({ id: "tag-2", name: "Health", color: "#34a853" })
-      .mockResolvedValueOnce({ id: "tag-2", name: "Health+", color: "#34a853" })
+      .mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", name: "Health", color: "#34a853" })
+      .mockResolvedValueOnce({ id: "22222222-2222-4222-8222-222222222222", name: "Health+", color: "#34a853" })
       .mockResolvedValueOnce({ message: "Deleted" });
 
     jest.doMock("@/lib/api-client", () => ({
@@ -40,18 +40,18 @@ describe("tags.service", () => {
     );
 
     await createTag({ name: "Health", color: "#34a853" });
-    await updateTag("tag-2", { name: "Health+" });
-    await deleteTag("tag-2");
+    await updateTag("22222222-2222-4222-8222-222222222222", { name: "Health+" });
+    await deleteTag("22222222-2222-4222-8222-222222222222");
 
     expect(browserApiRequest).toHaveBeenNthCalledWith(1, "/tags", {
       method: "POST",
       body: JSON.stringify({ name: "Health", color: "#34a853" }),
     });
-    expect(browserApiRequest).toHaveBeenNthCalledWith(2, "/tags/tag-2", {
+    expect(browserApiRequest).toHaveBeenNthCalledWith(2, "/tags/22222222-2222-4222-8222-222222222222", {
       method: "PATCH",
       body: JSON.stringify({ name: "Health+" }),
     });
-    expect(browserApiRequest).toHaveBeenNthCalledWith(3, "/tags/tag-2", {
+    expect(browserApiRequest).toHaveBeenNthCalledWith(3, "/tags/22222222-2222-4222-8222-222222222222", {
       method: "DELETE",
     });
   });

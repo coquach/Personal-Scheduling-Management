@@ -15,16 +15,18 @@ import {
 
 export type { MutationCallbacks };
 
-export function useAppointmentsListQuery(input?: { page?: number; limit?: number }) {
+export function useAppointmentsListQuery(input?: { page?: number; limit?: number; fromDate?: string; toDate?: string }) {
   const page = input?.page ?? 1;
   const limit = input?.limit ?? 10;
+  const fromDate = input?.fromDate;
+  const toDate = input?.toDate;
 
   return useQuery({
-    queryKey: queryKeys.appointments.list({
+    queryKey: [...queryKeys.appointments.list({
       page: String(page),
       limit: String(limit),
-    }),
-    queryFn: () => getAppointments({ page, limit }),
+    }), fromDate, toDate],
+    queryFn: () => getAppointments({ page, limit, fromDate, toDate }),
   });
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { BellIcon, ChevronDownIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -22,46 +22,12 @@ import { useUnreadNotificationCount } from "@/query/notifications-hooks";
 import { getProfile } from "@/services/profile.service";
 import { BrandLogo } from "@/components/ui/brand-logo";
 import { useAppShell } from "./app-shell";
+import { ThemeToggle } from "@/components/theme-toggle";
 
-const pageMeta: Record<string, { title: string; description: string }> = {
-  "/calendar": {
-    title: "Calendar",
-    description: "Overview, quick create and schedule focus.",
-  },
-  "/appointments": {
-    title: "Appointments",
-    description: "Manage all events, statuses and reminders.",
-  },
-  "/tags": {
-    title: "Tags",
-    description: "Color labels for your planning system.",
-  },
-  "/reminders": {
-    title: "Reminders",
-    description: "Default notifications and snooze settings.",
-  },
-  "/notifications": {
-    title: "Notifications",
-    description: "Reminder feed and action history.",
-  },
-  "/statistics": {
-    title: "Statistics",
-    description: "Completion insights and time distribution.",
-  },
-  "/export": {
-    title: "Export",
-    description: "Generate date-range exports from your schedule.",
-  },
-  "/profile": {
-    title: "Profile",
-    description: "Account preferences, password and timezone.",
-  },
-};
+
 
 export function AppHeader() {
   const router = useRouter();
-  const pathname = usePathname();
-  const meta = pageMeta[pathname] ?? pageMeta["/calendar"];
   const profileQuery = useQuery({
     queryKey: queryKeys.profile.detail,
     queryFn: getProfile,
@@ -85,13 +51,11 @@ export function AppHeader() {
         <BrandLogo size="sm" />
       </div>
 
-      {/* Center: Title */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <p className="text-sm font-semibold tracking-tight">{meta.title}</p>
-      </div>
+
 
       {/* Right: Actions */}
-      <div className="flex w-[120px] items-center justify-end gap-1.5 sm:gap-2">
+      <div className="flex items-center justify-end gap-1.5 sm:gap-2">
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="icon-sm"

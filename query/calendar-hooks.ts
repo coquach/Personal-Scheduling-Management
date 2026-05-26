@@ -13,6 +13,8 @@ import {
 type CalendarAppointmentsInput = {
   page?: number;
   limit?: number;
+  fromDate?: string;
+  toDate?: string;
 };
 
 export function useCalendarAppointments(input: CalendarAppointmentsInput = {}) {
@@ -23,9 +25,11 @@ export function useCalendarAppointments(input: CalendarAppointmentsInput = {}) {
     queryKey: queryKeys.appointments.calendar({
       page: String(page),
       limit: String(limit),
+      fromDate: input.fromDate,
+      toDate: input.toDate,
       mode: "live",
     }),
-    queryFn: () => getAppointments({ page, limit }),
+    queryFn: () => getAppointments({ page, limit, fromDate: input.fromDate, toDate: input.toDate }),
   });
 
   const appointments = useMemo(
