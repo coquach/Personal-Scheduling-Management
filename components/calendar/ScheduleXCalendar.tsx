@@ -16,7 +16,7 @@ import {
   useCalendarApp,
 } from '@schedule-x/react';
 import { useTheme } from 'next-themes';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 
 import { CALENDAR_STATUS_IDS } from '@/lib/constants/calendar';
 
@@ -42,6 +42,13 @@ function InnerCalendar({
 }: ScheduleXCalendarProps & { isDark: boolean }) {
   const eventsService = useMemo(() => createEventsServicePlugin(), []);
   const dragAndDrop = useMemo(() => createDragAndDropPlugin(), []);
+  const plugins = useMemo(
+    () => [eventsService, dragAndDrop],
+    [eventsService, dragAndDrop],
+  );
+
+  const isDragging = useRef(false);
+
   const calendar = useCalendarApp(
     {
       isDark,
@@ -54,7 +61,6 @@ function InnerCalendar({
       ],
       defaultView: 'week',
       events,
-      plugins: [eventsService, dragAndDrop],
       callbacks: {
         onEventClick(calendarEvent) {
           onEventClick?.(calendarEvent);
@@ -69,7 +75,10 @@ function InnerCalendar({
           });
         },
         onEventUpdate(updatedEvent) {
+          isDragging.current = true;
           onEventUpdate?.(updatedEvent);
+          // Clear flag after mutation resolves (give it a tick for React Query to settle)
+          setTimeout(() => { isDragging.current = false; }, 1500);
         },
       },
       calendars: {
@@ -127,11 +136,12 @@ function InnerCalendar({
         },
       },
     },
-    [eventsService, isDark],
+    plugins,
   );
 
   useEffect(() => {
     if (!calendar) return;
+    if (isDragging.current) return; // Don't reset events while a drag mutation is in flight
     eventsService.set(events);
   }, [calendar, events, eventsService]);
 

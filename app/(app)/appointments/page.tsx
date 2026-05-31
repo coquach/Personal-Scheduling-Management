@@ -6,11 +6,13 @@ import {
   PencilLineIcon,
   PlusIcon,
   Search,
-  Trash2Icon
+  Trash2Icon,
+  FileDownIcon
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 
+import { PageSection } from "@/components/layout/page-section";
 import {
   Alert,
   AlertDescription,
@@ -26,14 +28,7 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+
 import {
   Pagination,
   PaginationContent,
@@ -62,12 +57,15 @@ import {
   useDeleteTeamAppointment,
   useUpdateTeamAppointment 
 } from "@/query/team-appointments-hooks";
+import { useExportAppointments } from "@/query/statistics-hooks";
 import { type TeamAppointmentListItem } from "@/model/team-appointments";
 import { useGetTeams } from "@/query/team-hooks";
 import {
   type Appointment,
   type AppointmentStatus,
 } from "@/services/appointments.service";
+import { cn } from "@/lib/utils";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 function formatDateTime(value: string) {
   const date = new Date(value);
@@ -113,16 +111,40 @@ export default function AppointmentsPage() {
   const [dateToValue, setDateToValue] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const exportMutation = useExportAppointments();
+
+  const handleExport = () => {
+    const payload: {
+      query?: string;
+      status?: AppointmentStatus;
+      startDate?: string;
+      endDate?: string;
+      timezone?: string;
+    } = {
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+    if (searchValue) payload.query = searchValue;
+    if (statusValue && statusValue !== "all") payload.status = statusValue as AppointmentStatus;
+    if (dateFromValue) payload.startDate = new Date(dateFromValue).toISOString();
+    if (dateToValue) payload.endDate = new Date(dateToValue).toISOString();
+    
+    exportMutation.mutate(payload, {
+      onError: (err) => {
+        setActionError(getApiErrorMessage(err, "Failed to export appointments."));
+      }
+    });
+  };
+
   // Team Appointments State
   const [activeTab, setActiveTab] = useState("personal");
-  const [selectedTeamId, setSelectedTeamId] = useState<string>("all");
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("All");
   const [teamPage, setTeamPage] = useState(1);
   
   const teamsQuery = useGetTeams({ page: 1, limit: 100 });
   const teams = teamsQuery.data?.items ?? [];
 
   const teamAppointmentsQuery = useGetTeamAppointments(
-    selectedTeamId !== "all" ? selectedTeamId : "",
+    selectedTeamId !== "All" ? selectedTeamId : "",
     { page: teamPage, limit: 10 }
   );
 
@@ -243,30 +265,36 @@ export default function AppointmentsPage() {
   const teamHasPrevPage = teamPage > 1;
 
   return (
-    <div data-testid="appointments-page" className="space-y-8 animate-in fade-in duration-500 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Appointments</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Manage your schedule, upcoming events, and personal tasks.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline">Export</Button>
-          <Button
-            data-testid="appointment-create-trigger"
-            onClick={openCreateDialog}
-            onMouseEnter={loadAppointmentModal}
-            onFocus={loadAppointmentModal}
-            className="shadow-sm hover:-translate-y-0.5 transition-transform"
-          >
-            <PlusIcon className="w-4 h-4 mr-2" />
-            <span>New appointment</span>
-          </Button>
-        </div>
-      </div>
-
-      <div className="space-y-4">
+    <div data-testid="appointments-page">
+      <PageSection
+        title="Appointments"
+        description="Manage your schedule, upcoming events, and personal tasks."
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleExport}
+              disabled={exportMutation.isPending}
+              title="Export to CSV"
+              className="shadow-sm"
+            >
+              <FileDownIcon className="w-4 h-4" />
+            </Button>
+            <Button
+              data-testid="appointment-create-trigger"
+              onClick={openCreateDialog}
+              onMouseEnter={loadAppointmentModal}
+              onFocus={loadAppointmentModal}
+              className="shadow-sm hover:-translate-y-0.5 transition-transform"
+            >
+              <PlusIcon className="w-4 h-4 mr-2" />
+              <span>New appointment</span>
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
         {/* Filters Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 bg-muted/30 border border-border/50 rounded-xl">
           <div className="relative">
@@ -276,23 +304,31 @@ export default function AppointmentsPage() {
               placeholder="Search appointments..."
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-primary transition-shadow"
+              className="w-full pl-9 pr-3 py-2 h-10 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-primary transition-shadow"
             />
           </div>
           <div className="relative">
-            <input
-              type="text"
-              placeholder="Filter by status..."
-              value={statusValue}
-              onChange={(e) => setStatusValue(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-primary transition-shadow"
-            />
+            <Select
+              value={statusValue || "ALL"}
+              onValueChange={(val) => setStatusValue(val === "ALL" ? "" : (val || ""))}
+            >
+              <SelectTrigger className="w-full bg-background border-input rounded-md h-10 text-sm">
+                <SelectValue placeholder="Filter by status..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Status</SelectItem>
+                <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="CANCELED">Canceled</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <DateTimePicker
               placeholder="From Date"
               value={dateFromValue}
               onChange={setDateFromValue}
+              className="h-10"
             />
           </div>
           <div>
@@ -300,41 +336,27 @@ export default function AppointmentsPage() {
               placeholder="To Date"
               value={dateToValue}
               onChange={setDateToValue}
+              className="h-10"
             />
           </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-4">
-            <TabsTrigger value="personal">My Appointments</TabsTrigger>
-            <TabsTrigger value="team">Team Appointments</TabsTrigger>
+            <TabsTrigger value="personal" className={cn("font-medium", activeTab === "personal" ? "text-primary font-bold" : "text-muted-foreground")}>Personal</TabsTrigger>
+            <TabsTrigger value="team" className={cn("font-medium", activeTab === "team" ? "text-primary font-bold" : "text-muted-foreground")}>Team</TabsTrigger>
           </TabsList>
 
           <TabsContent value="personal" className="mt-0 space-y-4">
-            {appointmentsQuery.isError ? (
-              <Alert variant="destructive">
-                <AlertDescription>
-                  {getApiErrorMessage(
-                    appointmentsQuery.error,
-                    "Unable to load appointments."
-                  )}
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
-            {actionError ? (
-              <Alert variant="destructive">
-                <AlertDescription>{actionError}</AlertDescription>
-              </Alert>
-            ) : null}
+            
 
             {/* Linear Data-dense List */}
             <div className="border border-border/40 rounded-xl bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
               <div className="grid grid-cols-12 gap-4 p-3 px-4 border-b border-border/40 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                 <div className="col-span-8 md:col-span-5">Details</div>
-                <div className="hidden md:block col-span-3">Time Range</div>
-                <div className="hidden md:block col-span-2">Status</div>
-                <div className="col-span-4 md:col-span-2 text-right">Actions</div>
+                <div className="hidden md:block col-span-3 text-center">Time Range</div>
+                <div className="hidden md:block col-span-2 text-center">Status</div>
+                <div className="col-span-4 md:col-span-2 text-center">Actions</div>
               </div>
               
               <div className="divide-y divide-border/40">
@@ -374,7 +396,7 @@ export default function AppointmentsPage() {
                             </Badge>
                           </div>
                         </div>
-                        <div className="w-full md:w-auto md:flex flex-col md:col-span-4 text-xs text-muted-foreground font-mono mt-1 md:mt-0">
+                        <div className="w-full md:w-auto md:flex flex-col items-center text-center md:col-span-3 text-xs text-muted-foreground font-mono mt-1 md:mt-0">
                           <span className="flex items-center gap-1.5 md:hidden text-muted-foreground/80 mb-1">
                             <CalendarClockIcon className="w-3.5 h-3.5" />
                             {formatDateTime(row.startAt as string)} - {formatDateTime(row.endAt as string)}
@@ -384,7 +406,7 @@ export default function AppointmentsPage() {
                             <span className="opacity-70">to {formatDateTime(row.endAt as string)}</span>
                           </div>
                         </div>
-                        <div className="hidden md:flex col-span-2 items-center">
+                        <div className="hidden md:flex col-span-2 justify-center items-center">
                           <Badge 
                             variant="outline" 
                             className="text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
@@ -392,37 +414,35 @@ export default function AppointmentsPage() {
                             {row.status}
                           </Badge>
                         </div>
-                        <div className="absolute top-2 right-2 md:relative md:top-auto md:right-auto md:col-span-2 flex justify-end items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-2 right-2 md:relative md:top-auto md:right-auto md:col-span-2 flex justify-center items-center gap-1">
                           
                           <DropdownMenu>
-                            <DropdownMenuTrigger >
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" 
-                                disabled={updateStatusMutation.isPending}
-                              >
-                                <CalendarClockIcon size={14} />
-                              </Button>
+                            <DropdownMenuTrigger
+                              className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-foreground text-muted-foreground focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                              disabled={updateStatusMutation.isPending}
+                            >
+                              <CalendarClockIcon size={14} />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuLabel className="text-xs">Update Status</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {APPOINTMENT_STATUS_ORDER.map((status) => (
-                                <DropdownMenuItem
-                                  key={status}
-                                  disabled={row.status === status}
-                                  onClick={() => {
-                                    updateStatusMutation.mutate({
-                                      appointmentId: row.id,
-                                      status: status,
-                                    });
-                                  }}
-                                  className="text-xs"
-                                >
-                                  {status}
-                                </DropdownMenuItem>
-                              ))}
+                              <DropdownMenuGroup>
+                                <DropdownMenuLabel className="text-xs">Update Status</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {APPOINTMENT_STATUS_ORDER.map((status) => (
+                                  <DropdownMenuItem
+                                    key={status}
+                                    disabled={row.status === status}
+                                    onClick={() => {
+                                      updateStatusMutation.mutate({
+                                        appointmentId: row.id,
+                                        status: status,
+                                      });
+                                    }}
+                                    className="text-xs"
+                                  >
+                                    {status}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuGroup>
                             </DropdownMenuContent>
                           </DropdownMenu>
 
@@ -540,9 +560,9 @@ export default function AppointmentsPage() {
               <div className="border border-border/40 rounded-xl bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
                 <div className="grid grid-cols-12 gap-4 p-3 px-4 border-b border-border/40 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
                   <div className="col-span-8 md:col-span-6">Details</div>
-                  <div className="hidden md:block col-span-3">Time Range</div>
+                  <div className="hidden md:block col-span-3 text-center">Time Range</div>
                   <div className="hidden md:block col-span-2 text-center">Status</div>
-                  <div className="hidden md:flex col-span-1 justify-end">Actions</div>
+                  <div className="hidden md:flex col-span-1 justify-center">Actions</div>
                 </div>
                 
                 <div className="divide-y divide-border/40">
@@ -578,7 +598,7 @@ export default function AppointmentsPage() {
                               </Badge>
                             </div>
                           </div>
-                          <div className="w-full md:w-auto md:flex flex-col md:col-span-3 text-xs text-muted-foreground font-mono mt-1 md:mt-0">
+                          <div className="w-full md:w-auto md:flex flex-col items-center text-center md:col-span-3 text-xs text-muted-foreground font-mono mt-1 md:mt-0">
                             <span className="flex items-center gap-1.5 md:hidden text-muted-foreground/80 mb-1">
                               <CalendarClockIcon className="w-3.5 h-3.5" />
                               {formatDateTime(row.startAt as string)} - {formatDateTime(row.endAt as string)}
@@ -596,36 +616,34 @@ export default function AppointmentsPage() {
                               {row.status}
                             </Badge>
                           </div>
-                          <div className="flex md:col-span-1 justify-end items-center gap-1 mt-2 md:mt-0 w-full md:w-auto border-t md:border-0 border-border/40 pt-2 md:pt-0">
+                          <div className="flex md:col-span-1 justify-center items-center gap-1 mt-2 md:mt-0 w-full md:w-auto border-t md:border-0 border-border/40 pt-2 md:pt-0">
                             <DropdownMenu>
-                              <DropdownMenuTrigger>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors ml-auto md:ml-0"
-                                >
-                                  <div className="w-4 h-4 rounded-full border-[1.5px] border-current flex items-center justify-center opacity-70">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-current" />
-                                  </div>
-                                </Button>
+                              <DropdownMenuTrigger
+                                className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-primary/10 hover:text-primary ml-auto md:ml-0 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
+                              >
+                                <div className="w-4 h-4 rounded-full border-[1.5px] border-current flex items-center justify-center opacity-70">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                </div>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-[160px]">
-                                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                  Update Status
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {APPOINTMENT_STATUS_ORDER.map((status) => (
-                                  <DropdownMenuItem
-                                    key={status}
-                                    className="text-sm cursor-pointer"
-                                    onClick={() => updateTeamStatusMutation.mutate({ appointmentId: row.id, input: { status } })}
-                                    disabled={row.status === status || updateTeamStatusMutation.isPending}
-                                  >
-                                    <span className={row.status === status ? "font-bold" : ""}>
-                                      {status.charAt(0) + status.slice(1).toLowerCase()}
-                                    </span>
-                                  </DropdownMenuItem>
-                                ))}
+                                <DropdownMenuGroup>
+                                  <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                    Update Status
+                                  </DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {APPOINTMENT_STATUS_ORDER.map((status) => (
+                                    <DropdownMenuItem
+                                      key={status}
+                                      className="text-sm cursor-pointer"
+                                      onClick={() => updateTeamStatusMutation.mutate({ appointmentId: row.id, input: { status } })}
+                                      disabled={row.status === status || updateTeamStatusMutation.isPending}
+                                    >
+                                      <span className={row.status === status ? "font-bold" : ""}>
+                                        {status.charAt(0) + status.slice(1).toLowerCase()}
+                                      </span>
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuGroup>
                               </DropdownMenuContent>
                             </DropdownMenu>
                             
@@ -760,6 +778,7 @@ export default function AppointmentsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </PageSection>
     </div>
   );
 }

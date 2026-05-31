@@ -37,6 +37,7 @@ export function useCalendarAppointments(input: CalendarAppointmentsInput = {}) {
         fromDate: input.fromDate,
         toDate: input.toDate,
       }),
+    enabled: !!input.fromDate && !!input.toDate,
   });
 
   const teamsQuery = useGetTeams({ page: 1, limit: 100 });
@@ -56,7 +57,7 @@ export function useCalendarAppointments(input: CalendarAppointmentsInput = {}) {
           from: input.fromDate,
           to: input.toDate,
         }),
-      enabled: !!team.id,
+      enabled: !!team.id && !!input.fromDate && !!input.toDate,
     })),
   });
 

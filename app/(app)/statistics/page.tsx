@@ -1,281 +1,442 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, DownloadIcon } from "lucide-react";
+import { CalendarIcon, CheckCircle2Icon, FileDownIcon, TrendingUpIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import { Bar, BarChart, CartesianGrid, XAxis, PieChart, Pie, Cell, Label as PieLabel } from "recharts";
 
 import { PageSection } from "@/components/layout/page-section";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import { DateTimePicker } from "@/components/ui/datetime-picker";
 
 import { getApiErrorMessage } from "@/lib/api-core";
 import {
   exportAppointmentsInputSchema,
   type ExportAppointmentsInput,
-  type GetStatisticsInput
 } from "@/model/statistics";
 import { useExportAppointments, useGetStatistics } from "@/query/statistics-hooks";
+import { useTagsQuery } from "@/query/tags-hooks";
+import { useAppointmentsListQuery } from "@/query/appointments-hooks";
 
-function getThisWeekDates() {
-  const today = new Date();
-  const day = today.getDay();
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+function getDefaultDates() {
+  const now = new Date();
+  const oneWeekAgo = new Date(now);
+  oneWeekAgo.setDate(now.getDate() - 7);
+  oneWeekAgo.setHours(0, 0, 0, 0);
   
-  const monday = new Date(today.setDate(diff));
-  monday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
   
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-  
-  return {
-    startDate: monday.toISOString(),
-    endDate: sunday.toISOString(),
+  return { 
+    startDate: oneWeekAgo.toISOString().slice(0, 16), 
+    endDate: endOfToday.toISOString().slice(0, 16) 
   };
 }
 
 export default function StatisticsPage() {
-  const [period] = useState<GetStatisticsInput>(() => getThisWeekDates());
-  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [dateFromValue, setDateFromValue] = useState<string | undefined>(getDefaultDates().startDate);
+  const [dateToValue, setDateToValue] = useState<string | undefined>(getDefaultDates().endDate);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const { data: stats, isLoading, isError, error } = useGetStatistics(period);
+  const dateRangeValidation = useMemo(() => {
+    if (!dateFromValue || !dateToValue) return { isValid: true, error: null };
+    const from = new Date(dateFromValue).getTime();
+    const to = new Date(dateToValue).getTime();
+    if (to < from) return { isValid: false, error: "End date cannot be before start date." };
+    const diffDays = (to - from) / (1000 * 3600 * 24);
+    if (diffDays > 30) return { isValid: false, error: "Date range cannot exceed 30 days." };
+    return { isValid: true, error: null };
+  }, [dateFromValue, dateToValue]);
+
+  const validDateFrom = dateRangeValidation.isValid ? dateFromValue : getDefaultDates().startDate;
+  const validDateTo = dateRangeValidation.isValid ? dateToValue : getDefaultDates().endDate;
+
+  const groupBy = useMemo(() => {
+    if (!validDateFrom || !validDateTo) return "day" as const;
+    const from = new Date(validDateFrom).getTime();
+    const to = new Date(validDateTo).getTime();
+    const diffDays = (to - from) / (1000 * 3600 * 24);
+    if (diffDays > 14) return "week" as const;
+    return "day" as const;
+  }, [validDateFrom, validDateTo]);
+
+  const { data: stats, isLoading, isError, error } = useGetStatistics({
+    startDate: validDateFrom ? new Date(validDateFrom).toISOString() : new Date().toISOString(),
+    endDate: validDateTo ? new Date(validDateTo).toISOString() : new Date().toISOString(),
+    groupBy: groupBy
+  });
+  
+  const { data: tagsData } = useTagsQuery();
+  const tags = tagsData || [];
+  
+  const { data: appointmentsData } = useAppointmentsListQuery({
+    page: 1,
+    limit: 1000,
+    fromDate: validDateFrom ? new Date(validDateFrom).toISOString() : new Date().toISOString(),
+    toDate: validDateTo ? new Date(validDateTo).toISOString() : new Date().toISOString(),
+  });
+
+  const tagDistribution = useMemo(() => {
+    if (!appointmentsData?.items) return [];
+    
+    const countByTag: Record<string, { name: string; color: string; value: number }> = {};
+    let totalTags = 0;
+    
+    appointmentsData.items.forEach(apt => {
+      apt.tags.forEach(tag => {
+        if (!countByTag[tag.id]) {
+          countByTag[tag.id] = { name: tag.name, color: tag.color || "hsl(var(--muted-foreground))", value: 0 };
+        }
+        countByTag[tag.id].value += 1;
+        totalTags += 1;
+      });
+    });
+    
+    if (totalTags === 0) return [];
+    
+    return Object.values(countByTag).sort((a, b) => b.value - a.value);
+  }, [appointmentsData]);
+  
+  const totalTagsCount = useMemo(() => {
+    return tagDistribution.reduce((acc, curr) => acc + curr.value, 0);
+  }, [tagDistribution]);
+  
   const exportMutation = useExportAppointments();
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<ExportAppointmentsInput>({
+  const { register, handleSubmit, control } = useForm<ExportAppointmentsInput>({
     resolver: zodResolver(exportAppointmentsInputSchema),
     defaultValues: {
-      startDate: period.startDate,
-      endDate: period.endDate,
+      startDate: new Date().toISOString().split("T")[0],
+      endDate: new Date().toISOString().split("T")[0],
+      query: "",
     },
   });
 
-  const handleOpenExport = () => {
-    reset({
-      startDate: period.startDate,
-      endDate: period.endDate,
-    });
-    setExportError(null);
-    setIsExportDialogOpen(true);
-  };
-
   const onExportSubmit = (data: ExportAppointmentsInput) => {
     setExportError(null);
-    exportMutation.mutate(data, {
-      onSuccess: () => {
-        setIsExportDialogOpen(false);
-      },
+    const payload = { ...data };
+    if (payload.startDate) payload.startDate = new Date(payload.startDate).toISOString();
+    if (payload.endDate) payload.endDate = new Date(payload.endDate).toISOString();
+    
+    // Clean up 'all' values
+    if (payload.tagId === "all") delete payload.tagId;
+    if (payload.status === "all" as unknown) delete payload.status;
+    
+    exportMutation.mutate(payload, {
       onError: (err) => {
         setExportError(getApiErrorMessage(err, "Failed to export appointments."));
       },
     });
   };
 
-  const formattedPeriodLabel = useMemo(() => {
-    if (!period.startDate || !period.endDate) return "All time";
-    const start = new Date(period.startDate).toLocaleDateString();
-    const end = new Date(period.endDate).toLocaleDateString();
-    return `${start} - ${end}`;
-  }, [period]);
+  const chartConfig = {
+    completed: {
+      label: "Completed",
+      color: "hsl(var(--primary))",
+    },
+    total: {
+      label: "Total",
+      color: "hsl(var(--muted-foreground))",
+    },
+  };
 
   return (
     <div data-testid="statistics-page" className="space-y-6">
       <PageSection
         title="Statistics"
-        description="Weekly productivity metrics, tag distribution and completion trends."
+        description="Productivity metrics, trends, and history export."
         actions={
-          <>
-            <Button variant="outline" data-testid="statistics-period-filter">
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              This week
-            </Button>
-            <Button onClick={handleOpenExport} data-testid="statistics-export-trigger">
-              <DownloadIcon className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-          </>
+          <div className="flex flex-col sm:flex-row items-center gap-2">
+            <DateTimePicker
+              placeholder="From Date"
+              value={dateFromValue}
+              onChange={(val) => setDateFromValue(val)}
+              className="w-[260px]"
+              align="end"
+            />
+            <span className="text-muted-foreground text-sm font-medium">to</span>
+            <DateTimePicker
+              placeholder="To Date"
+              value={dateToValue}
+              onChange={(val) => setDateToValue(val)}
+              className="w-[260px]"
+              align="end"
+            />
+          </div>
         }
       >
-        <p
-          className="text-sm font-medium text-muted-foreground"
-          data-testid="statistics-period-label"
-        >
-          {formattedPeriodLabel}
-        </p>
+        {!dateRangeValidation.isValid && (
+          <Alert variant="destructive" className="rounded-2xl shadow-sm border-destructive/20 bg-destructive/5">
+            <AlertDescription className="font-medium">
+              {dateRangeValidation.error}
+            </AlertDescription>
+          </Alert>
+        )}
 
-        {isLoading && (
-          <Alert>
+        {dateRangeValidation.isValid && isLoading && (
+          <Alert className="animate-pulse rounded-2xl shadow-sm">
             <AlertDescription>Loading statistics...</AlertDescription>
           </Alert>
         )}
 
-        {isError && (
-          <Alert variant="destructive">
-            <AlertDescription>
+        {dateRangeValidation.isValid && isError && (
+          <Alert variant="destructive" className="rounded-2xl shadow-sm border-destructive/20 bg-destructive/5">
+            <AlertDescription className="font-medium">
               {getApiErrorMessage(error, "Failed to load statistics data.")}
             </AlertDescription>
           </Alert>
         )}
 
-        {!isLoading && !isError && stats && (
-          <>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <Card data-testid="statistics-total-card">
-                <CardHeader>
-                  <CardTitle>Total appointments</CardTitle>
+        {dateRangeValidation.isValid && !isLoading && !isError && stats && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Metric Cards */}
+            <div className="grid gap-4 lg:grid-cols-4">
+              <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <CalendarIcon className="size-4" /> Total Scheduled
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-semibold tracking-[-0.04em] text-foreground">
+                  <p className="text-4xl font-bold tracking-[-0.04em] text-foreground">
                     {stats.totalAppointments}
                   </p>
                 </CardContent>
               </Card>
-              <Card data-testid="statistics-completed-card">
-                <CardHeader>
-                  <CardTitle>Completed</CardTitle>
+              <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 size-24 rounded-full blur-3xl opacity-10 bg-primary pointer-events-none" />
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <CheckCircle2Icon className="size-4" /> Completed
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-semibold tracking-[-0.04em] text-foreground">
+                  <p className="text-4xl font-bold tracking-[-0.04em] text-foreground">
                     {stats.completedAppointments}
                   </p>
                 </CardContent>
               </Card>
-              <Card data-testid="statistics-completion-rate-card">
-                <CardHeader>
-                  <CardTitle>Completion rate</CardTitle>
+              <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <TrendingUpIcon className="size-4" /> Completion Rate
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-4xl font-semibold tracking-[-0.04em] text-foreground">
+                  <p className="text-4xl font-bold tracking-[-0.04em] text-primary">
                     {stats.completionRate}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 size-24 rounded-full blur-3xl opacity-20 bg-primary pointer-events-none" />
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <TrendingUpIcon className="size-4" /> Peak Productivity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-4xl font-bold tracking-[-0.04em] text-foreground drop-shadow-sm">
+                    {stats.mostProductiveSlot ? `${stats.mostProductiveSlot}:00` : "--:--"}
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-              <Card>
+            <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+              {/* Chart Card */}
+              <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl flex flex-col">
                 <CardHeader>
                   <CardTitle>Completion Trend</CardTitle>
+                  <CardDescription>
+                    {groupBy === "day" ? "Daily completed vs scheduled tasks" : "Weekly completed vs scheduled tasks"}
+                  </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="flex-1 pb-4">
                   {stats.trend.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No trend data available.</p>
+                    <div className="flex h-[250px] items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20">
+                      <p className="text-sm text-muted-foreground">No trend data available.</p>
+                    </div>
                   ) : (
-                    stats.trend.map((item) => (
-                      <div key={item.bucket} className="space-y-2">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="font-medium text-foreground">{item.bucket}</span>
-                          <span className="text-muted-foreground">
-                            {item.completed} / {item.total}
-                          </span>
+                    <ChartContainer config={chartConfig} className="min-h-[250px] w-full">
+                      <BarChart data={stats.trend} accessibilityLayer margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis 
+                          dataKey="bucket" 
+                          tickLine={false} 
+                          axisLine={false} 
+                          tickMargin={10} 
+                          tickFormatter={(value: string) => value.slice(0, 10)} 
+                          className="text-xs font-medium"
+                        />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} barSize={32} opacity={0.3} />
+                        <Bar dataKey="completed" fill="var(--color-completed)" radius={[4, 4, 0, 0]} barSize={32} />
+                      </BarChart>
+                    </ChartContainer>
+                  )}
+                </CardContent>
+              </Card>
+              
+              <div className="space-y-6">
+                {/* Donut Chart */}
+                <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl">
+                  <CardHeader>
+                    <CardTitle>Tag Distribution</CardTitle>
+                    <CardDescription>Time allocation across categories</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-center pb-4">
+                    {tagDistribution.length === 0 ? (
+                      <div className="flex h-[200px] items-center justify-center w-full rounded-2xl border border-dashed border-border bg-muted/20">
+                        <p className="text-sm text-muted-foreground">No tags assigned.</p>
+                      </div>
+                    ) : (
+                      <ChartContainer config={{}} className="h-[250px] w-full">
+                        <PieChart>
+                          <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
+                          <Pie
+                            data={tagDistribution}
+                            dataKey="value"
+                            nameKey="name"
+                            innerRadius={60}
+                            outerRadius={80}
+                            strokeWidth={5}
+                          >
+                            {tagDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                            <PieLabel
+                              content={({ viewBox }) => {
+                                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                                  return (
+                                    <text
+                                      x={viewBox.cx}
+                                      y={viewBox.cy}
+                                      textAnchor="middle"
+                                      dominantBaseline="middle"
+                                    >
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={viewBox.cy}
+                                        className="fill-foreground text-3xl font-bold"
+                                      >
+                                        {totalTagsCount}
+                                      </tspan>
+                                      <tspan
+                                        x={viewBox.cx}
+                                        y={(viewBox.cy || 0) + 24}
+                                        className="fill-muted-foreground text-xs"
+                                      >
+                                        Tags Total
+                                      </tspan>
+                                    </text>
+                                  )
+                                }
+                              }}
+                            />
+                          </Pie>
+                        </PieChart>
+                      </ChartContainer>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Export Card */}
+                <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <FileDownIcon className="size-5" /> Export Data
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleSubmit(onExportSubmit)} className="space-y-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Start Date</Label>
+                          <Input {...register("startDate")} type="date" className="h-9 rounded-xl shadow-sm bg-background/50" />
                         </div>
-                        <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ 
-                              width: `${(item.completed / Math.max(1, item.total)) * 100}%` 
-                            }}
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">End Date</Label>
+                          <Input {...register("endDate")} type="date" className="h-9 rounded-xl shadow-sm bg-background/50" />
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Status</Label>
+                          <Controller
+                            control={control}
+                            name="status"
+                            render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value || "all"}>
+                                <SelectTrigger className="h-9 rounded-xl shadow-sm bg-background/50">
+                                  <SelectValue placeholder="All Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All Status</SelectItem>
+                                  <SelectItem value="SCHEDULED">Scheduled</SelectItem>
+                                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                                  <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                  <SelectItem value="MISSED">Missed</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tag Filter</Label>
+                          <Controller
+                            control={control}
+                            name="tagId"
+                            render={({ field }) => (
+                              <Select onValueChange={field.onChange} value={field.value || "all"}>
+                                <SelectTrigger className="h-9 rounded-xl shadow-sm bg-background/50">
+                                  <SelectValue placeholder="All Tags" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All Tags</SelectItem>
+                                  {tags.map((tag) => (
+                                    <SelectItem key={tag.id} value={tag.id}>
+                                      <div className="flex items-center gap-2">
+                                        <div className="size-2.5 rounded-full" style={{ backgroundColor: tag.color || "hsl(var(--muted-foreground))" }} />
+                                        {tag.name}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
                           />
                         </div>
                       </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Most productive time slot</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {!stats.mostProductiveSlot ? (
-                    <p className="text-sm text-muted-foreground">No completed appointments yet.</p>
-                  ) : (
-                    <div className="rounded-[16px] border border-border bg-background p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="font-medium text-foreground">{stats.mostProductiveSlot}</span>
-                        <span className="text-sm text-muted-foreground">Highest completion rate</span>
+
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Search filter (Optional)</Label>
+                        <Input {...register("query")} placeholder="Keyword or tag..." className="h-9 rounded-xl shadow-sm bg-background/50" />
                       </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                      {exportError && (
+                        <p className="text-sm font-medium text-destructive">{exportError}</p>
+                      )}
+                      <Button type="submit" disabled={exportMutation.isPending} className="w-full rounded-xl shadow-sm transition-transform active:scale-95 mt-2">
+                        {exportMutation.isPending ? "Exporting..." : "Download CSV"}
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            
-            {stats.totalAppointments === 0 && (
-              <Card data-testid="statistics-empty-state">
-                <CardHeader>
-                  <CardTitle>No activity</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm leading-6 text-muted-foreground">
-                  When a period has limited data, this card guides the user back to scheduling and
-                  completion habits.
-                </CardContent>
-              </Card>
-            )}
-          </>
+          </div>
         )}
       </PageSection>
-
-      <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
-        <DialogContent>
-          <form onSubmit={handleSubmit(onExportSubmit)}>
-            <DialogHeader>
-              <DialogTitle>Export Data (CSV)</DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label>Start Date</Label>
-                  <Input {...register("startDate")} type="date" />
-                  {errors.startDate && <p className="text-sm text-destructive">{errors.startDate.message}</p>}
-                </div>
-                <div className="space-y-1">
-                  <Label>End Date</Label>
-                  <Input {...register("endDate")} type="date" />
-                  {errors.endDate && <p className="text-sm text-destructive">{errors.endDate.message}</p>}
-                </div>
-              </div>
-              
-              <div className="space-y-1">
-                <Label>Search Query (Optional)</Label>
-                <Input {...register("query")} placeholder="Filter by title or description" />
-                {errors.query && <p className="text-sm text-destructive">{errors.query.message}</p>}
-              </div>
-
-              {exportError && (
-                <Alert variant="destructive">
-                  <AlertDescription>{exportError}</AlertDescription>
-                </Alert>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsExportDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={exportMutation.isPending}>
-                {exportMutation.isPending ? "Exporting..." : "Download CSV"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

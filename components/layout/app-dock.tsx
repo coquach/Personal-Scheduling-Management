@@ -21,7 +21,6 @@ const dockItems = [
   { href: "/tags", icon: TagIcon, label: "Tags" },
   { href: "/reminders", icon: AlarmClock, label: "Reminders" },
   { href: "/statistics", icon: ChartColumnIcon, label: "Statistics" },
-  { href: "/export", icon: FileDownIcon, label: "Export" },
 ];
 
 export function AppDock() {

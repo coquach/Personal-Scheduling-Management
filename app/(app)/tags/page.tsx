@@ -1,20 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { PencilLineIcon, Trash2Icon } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { PageSection } from "@/components/layout/page-section";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { getApiErrorMessage } from "@/lib/api-core";
 import { type Tag } from "@/model/tags";
 import {
@@ -24,24 +12,50 @@ import {
   useUpdateTagMutation,
 } from "@/query/tags-hooks";
 
+import { TagForm, PRESET_COLORS } from "@/components/tags/tag-form";
+import { TagLibrary } from "@/components/tags/tag-library";
+
 export default function TagsPage() {
   const tagsQuery = useTagsQuery();
 
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#1d4ed8");
+  const [color, setColor] = useState(PRESET_COLORS[5]);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const [renameColor, setRenameColor] = useState("#1d4ed8");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTagId, setDeleteTagId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
+  // Clear messages after a delay
+  useEffect(() => {
+    if (feedbackMessage || errorMessage) {
+      const timer = setTimeout(() => {
+        setFeedbackMessage(null);
+        setErrorMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedbackMessage, errorMessage]);
+
+  // Click outside delete confirmation
+  useEffect(() => {
+    function handleClickOutside() {
+      if (confirmDeleteId) setConfirmDeleteId(null);
+    }
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [confirmDeleteId]);
+
+  const resetForm = () => {
+    setName("");
+    setColor(PRESET_COLORS[5]);
+    setEditingTag(null);
+    setErrorMessage(null);
+  };
+
   const createMutation = useCreateTagMutation({
     onSuccess: () => {
-      setName("");
-      setColor("#1d4ed8");
-      setErrorMessage(null);
+      resetForm();
       setFeedbackMessage("Tag created successfully.");
     },
     onError: (error) => {
@@ -52,10 +66,7 @@ export default function TagsPage() {
 
   const updateMutation = useUpdateTagMutation({
     onSuccess: () => {
-      setEditingTag(null);
-      setRenameValue("");
-      setRenameColor("#1d4ed8");
-      setErrorMessage(null);
+      resetForm();
       setFeedbackMessage("Tag updated successfully.");
     },
     onError: (error) => {
@@ -66,10 +77,12 @@ export default function TagsPage() {
 
   const deleteMutation = useDeleteTagMutation({
     onSuccess: () => {
-      setDeleteDialogOpen(false);
-      setDeleteTagId(null);
+      setConfirmDeleteId(null);
       setErrorMessage(null);
       setFeedbackMessage("Tag deleted successfully.");
+      if (editingTag && !tagsQuery.data?.find((t) => t.id === editingTag.id)) {
+        resetForm();
+      }
     },
     onError: (error) => {
       setFeedbackMessage(null);
@@ -77,7 +90,7 @@ export default function TagsPage() {
     },
   });
 
-  function handleCreateTag() {
+  function handleSave() {
     setErrorMessage(null);
     setFeedbackMessage(null);
 
@@ -87,258 +100,76 @@ export default function TagsPage() {
       return;
     }
 
-    createMutation.mutate({
-      name: trimmedName,
-      color: color.trim() || undefined,
-    });
-  }
-
-  function openEditDialog(tag: Tag) {
-    setErrorMessage(null);
-    setFeedbackMessage(null);
-    setEditingTag(tag);
-    setRenameValue(tag.name);
-    setRenameColor(tag.color ?? "#1d4ed8");
-  }
-
-  function handleUpdateTag() {
-    if (!editingTag) {
-      return;
-    }
-
-    setErrorMessage(null);
-    setFeedbackMessage(null);
-
-    const trimmedName = renameValue.trim();
-    if (!trimmedName) {
-      setErrorMessage("Tag name is required.");
-      return;
-    }
-
-    updateMutation.mutate({
-      tagId: editingTag.id,
-      payload: {
+    if (editingTag) {
+      updateMutation.mutate({
+        tagId: editingTag.id,
+        payload: {
+          name: trimmedName,
+          color: color.trim() || undefined,
+        },
+      });
+    } else {
+      createMutation.mutate({
         name: trimmedName,
-        color: renameColor.trim() || undefined,
-      },
-    });
-  }
-
-  function openDeleteDialog(tagId: string) {
-    setDeleteTagId(tagId);
-    setDeleteDialogOpen(true);
-  }
-
-  function handleDeleteTag() {
-    if (!deleteTagId) {
-      return;
+        color: color.trim() || undefined,
+      });
     }
-
-    deleteMutation.mutate(deleteTagId);
   }
 
-  function closeEditDialog() {
-    setEditingTag(null);
+  function handleEdit(tag: Tag) {
+    setEditingTag(tag);
+    setName(tag.name);
+    setColor(tag.color ?? PRESET_COLORS[5]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function closeDeleteDialog() {
-    setDeleteDialogOpen(false);
-    setDeleteTagId(null);
+  function handleDelete(e: React.MouseEvent, tagId: string) {
+    e.stopPropagation();
+    if (confirmDeleteId === tagId) {
+      deleteMutation.mutate(tagId);
+    } else {
+      setConfirmDeleteId(tagId);
+    }
   }
+
+  const isLoading = createMutation.isPending || updateMutation.isPending;
 
   return (
     <div data-testid="tags-page" className="space-y-6">
       <PageSection
         title="Tags"
-        description="Organize appointment types using tag APIs from the backend."
+        description="Organize appointment types and events using beautiful tags."
       >
         <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Create tag</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                placeholder="Tag name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                data-testid="tag-name-input"
-              />
-              <Input
-                type="text"
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
-                data-testid="tag-color-input"
-              />
-              <Button
-                onClick={handleCreateTag}
-                data-testid="tag-save"
-                disabled={createMutation.isPending}
-              >
-                {createMutation.isPending ? "Saving..." : "Save tag"}
-              </Button>
-              <div
-                className="rounded-[16px] border border-border bg-muted/50 p-4"
-                data-testid="tag-preview"
-              >
-                <p className="text-xs font-semibold tracking-[0.12em] text-muted-foreground uppercase">
-                  Preview
-                </p>
-                <div className="mt-3 inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium">
-                  <span className="size-2.5 rounded-full" style={{ backgroundColor: color }} />
-                  {name || "Work"}
-                </div>
-              </div>
-              {errorMessage ? (
-                <Alert variant="destructive" data-testid="tag-name-error">
-                  <AlertDescription>{errorMessage}</AlertDescription>
-                </Alert>
-              ) : null}
-              {feedbackMessage ? (
-                <Alert>
-                  <AlertDescription>{feedbackMessage}</AlertDescription>
-                </Alert>
-              ) : null}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Tag library</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {tagsQuery.isLoading ? (
-                <Alert>
-                  <AlertDescription>Loading tags...</AlertDescription>
-                </Alert>
-              ) : null}
-              {tagsQuery.isError ? (
-                <Alert variant="destructive">
-                  <AlertDescription>
-                    {getApiErrorMessage(tagsQuery.error, "Unable to load tags.")}
-                  </AlertDescription>
-                </Alert>
-              ) : null}
-              <div className="grid gap-3">
-                {(tagsQuery.data ?? []).map((tag) => (
-                  <div
-                    key={tag.id}
-                    className="flex flex-col gap-3 rounded-[16px] border border-border bg-background p-4 md:flex-row md:items-center md:justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="size-3 rounded-full"
-                        style={{ backgroundColor: tag.color ?? "#94a3b8" }}
-                      />
-                      <div>
-                        <p className="font-medium text-foreground">{tag.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {tag.color ?? "No color"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        data-testid="tag-rename-trigger"
-                        onClick={() => openEditDialog(tag)}
-                      >
-                        <PencilLineIcon />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon-sm"
-                        data-testid="tag-delete-trigger"
-                        onClick={() => openDeleteDialog(tag.id)}
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {!tagsQuery.isLoading && !tagsQuery.isError && (tagsQuery.data ?? []).length === 0 ? (
-                  <div className="rounded-[16px] border border-border bg-background p-4 text-sm text-muted-foreground">
-                    No tags yet. Create your first tag to organize appointments.
-                  </div>
-                ) : null}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </PageSection>
-      <Dialog
-        open={Boolean(editingTag)}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeEditDialog();
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Rename tag</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Input
-              value={renameValue}
-              onChange={(event) => setRenameValue(event.target.value)}
-              data-testid="tag-rename-input"
-              placeholder="Tag name"
-            />
-            <Input
-              type="text"
-              value={renameColor}
-              onChange={(event) => setRenameColor(event.target.value)}
-              placeholder="#1d4ed8"
+          <div className="space-y-6">
+            <TagForm
+              name={name}
+              setName={setName}
+              color={color}
+              setColor={setColor}
+              editingTag={editingTag}
+              onSave={handleSave}
+              onReset={resetForm}
+              isLoading={isLoading}
+              errorMessage={errorMessage}
+              feedbackMessage={feedbackMessage}
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeEditDialog}>
-              Cancel
-            </Button>
-            <Button
-              variant="outline"
-              data-testid="tag-rename-save"
-              onClick={handleUpdateTag}
-              disabled={updateMutation.isPending}
-            >
-              {updateMutation.isPending ? "Saving..." : "Save rename"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={deleteDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            closeDeleteDialog();
-          } else {
-            setDeleteDialogOpen(true);
-          }
-        }}
-      >
-        <DialogContent data-testid="tag-delete-dialog">
-          <DialogHeader>
-            <DialogTitle>Delete tag</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            Removing this tag will detach it from existing appointments but keep the events.
-          </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeDeleteDialog}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              data-testid="tag-delete-confirm"
-              onClick={handleDeleteTag}
-              disabled={deleteMutation.isPending}
-            >
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <div className="space-y-4">
+            <TagLibrary
+              tags={tagsQuery.data ?? []}
+              isLoading={tagsQuery.isLoading}
+              isError={tagsQuery.isError}
+              error={tagsQuery.error}
+              confirmDeleteId={confirmDeleteId}
+              onEdit={handleEdit}
+              onDeleteRequest={handleDelete}
+              isDeleting={deleteMutation.isPending}
+            />
+          </div>
+        </div>
+      </PageSection>
     </div>
   );
 }
+

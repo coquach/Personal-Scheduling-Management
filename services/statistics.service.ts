@@ -40,6 +40,7 @@ export async function exportAppointments(input: ExportAppointmentsInput): Promis
         tagId: parsedInput.tagId,
         status: parsedInput.status,
         query: parsedInput.query,
+        timezone: parsedInput.timezone,
       }
     }
   );

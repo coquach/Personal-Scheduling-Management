@@ -290,7 +290,7 @@ export function PersonalAppointmentForm({
         >
           Cancel
         </Button>
-        <Button type="submit" data-testid="appointment-save" disabled={isSaving}>
+        <Button type="submit" data-testid="appointment-save" isLoading={isSaving}>
           {isSaving ? "Saving..." : "Save appointment"}
         </Button>
       </div>

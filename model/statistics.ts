@@ -33,6 +33,7 @@ export const exportAppointmentsInputSchema = z.object({
   tagId: z.string().uuid().optional(),
   status: z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "MISSED"]).optional(),
   query: z.string().max(255).optional(),
+  timezone: z.string().optional(),
 });
 
 export type ExportAppointmentsInput = z.infer<typeof exportAppointmentsInputSchema>;

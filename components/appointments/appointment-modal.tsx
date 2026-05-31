@@ -40,7 +40,7 @@ export default function AppointmentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent data-testid="appointment-form-modal" className="sm:max-w-[600px] overflow-hidden max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-center">
             {isEditing ? "Edit Appointment" : "Create Appointment"}
           </DialogTitle>
         </DialogHeader>

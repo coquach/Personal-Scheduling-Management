@@ -18,9 +18,11 @@ interface DateTimePickerProps {
   onChange?: (value: string) => void
   placeholder?: string
   isInvalid?: boolean
+  className?: string
+  align?: "start" | "center" | "end"
 }
 
-export function DateTimePicker({ value, onChange, placeholder, isInvalid }: DateTimePickerProps) {
+export function DateTimePicker({ value, onChange, placeholder, isInvalid, className, align = "start" }: DateTimePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
   )
@@ -76,7 +78,8 @@ export function DateTimePicker({ value, onChange, placeholder, isInvalid }: Date
             className={cn(
               "w-full justify-start text-left font-normal bg-transparent border-input overflow-hidden",
               !date && "text-muted-foreground",
-              isInvalid && "border-destructive ring-1 ring-destructive"
+              isInvalid && "border-destructive ring-1 ring-destructive",
+              className
             )}
           />
         }
@@ -86,7 +89,7 @@ export function DateTimePicker({ value, onChange, placeholder, isInvalid }: Date
           {date ? format(date, "PP p") : <span>{placeholder || "Pick a date"}</span>}
         </span>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0" align={align}>
         <Calendar
           mode="single"
           selected={date}

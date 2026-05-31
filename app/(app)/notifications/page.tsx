@@ -96,11 +96,12 @@ export default function NotificationsPage() {
         title="Notifications"
         description="A calm feed for due reminders, unread updates and quick actions."
         actions={
-          <>
+          <div className="flex flex-wrap gap-2">
             <Button
-              variant="outline"
+              variant={showUnreadOnly ? "default" : "outline"}
               data-testid="notification-filter"
               onClick={() => setShowUnreadOnly((value) => !value)}
+              className="rounded-full shadow-sm transition-all hover:scale-105 active:scale-95"
             >
               {showUnreadOnly ? "Show all" : "Unread only"}
             </Button>
@@ -109,23 +110,29 @@ export default function NotificationsPage() {
               data-testid="notification-mark-all-read"
               disabled={markAllReadMutation.isPending || unreadCount === 0}
               onClick={handleMarkAllRead}
+              className="rounded-full shadow-sm transition-all"
             >
               Mark all as read
             </Button>
-            <Button data-testid="notification-clear-all" disabled title="Not supported yet by backend API">
+            <Button 
+              data-testid="notification-clear-all" 
+              disabled 
+              title="Not supported yet by backend API"
+              className="rounded-full shadow-sm opacity-50 cursor-not-allowed"
+            >
               Clear all
             </Button>
-          </>
+          </div>
         }
       >
         {errorMessage ? (
-          <Alert variant="destructive">
-            <AlertDescription>{errorMessage}</AlertDescription>
+          <Alert variant="destructive" className="rounded-2xl shadow-sm border-destructive/20 bg-destructive/5 animate-in slide-in-from-top-2 fade-in">
+            <AlertDescription className="font-medium">{errorMessage}</AlertDescription>
           </Alert>
         ) : null}
         {feedbackMessage ? (
-          <Alert>
-            <AlertDescription>{feedbackMessage}</AlertDescription>
+          <Alert className="rounded-2xl shadow-sm border-primary/20 bg-primary/5 text-primary animate-in slide-in-from-top-2 fade-in">
+            <AlertDescription className="font-medium">{feedbackMessage}</AlertDescription>
           </Alert>
         ) : null}
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">

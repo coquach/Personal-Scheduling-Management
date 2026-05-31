@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import type { CalendarEvent } from "@schedule-x/calendar";
 import dynamic from "next/dynamic";
 import { PlusIcon } from "lucide-react";
-import { toast } from "sonner";
 
 const ScheduleXCalendar = dynamic(
   () => import("@/components/calendar/ScheduleXCalendar").then((mod) => mod.ScheduleXCalendar),
@@ -17,131 +14,37 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getApiErrorMessage } from "@/lib/api-core";
-import { useCalendarAppointments } from "@/query/calendar-hooks";
-import { useUpdateAppointmentMutation } from "@/query/appointments-hooks";
-import type { Appointment } from "@/services/appointments.service";
+import { useCalendarAdapter } from "@/hooks/use-calendar-adapter";
 
 function formatTimeRange(startAt: string, endAt: string) {
   const formatter = new Intl.DateTimeFormat("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
   });
 
   return `${formatter.format(new Date(startAt))} - ${formatter.format(new Date(endAt))}`;
 }
 
 export default function CalendarPage() {
-  const [dateRange, setDateRange] = useState<{ fromDate?: string; toDate?: string }>({});
-  
-  const appointmentsQuery = useCalendarAppointments({
-    fromDate: dateRange.fromDate,
-    toDate: dateRange.toDate,
-    limit: 100, // Fetch up to 100 events within this date range (max allowed by API)
-  });
-  
-  const updateMutation = useUpdateAppointmentMutation({
-    onSuccess: () => {
-      toast.success("Appointment updated successfully");
-    },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, "Failed to update appointment."));
-      appointmentsQuery.refetch();
-    },
-  });
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-  const [clickedDate, setClickedDate] = useState<string | null>(null);
-  const [confirmDragEvent, setConfirmDragEvent] = useState<{
-    calendarEvent: CalendarEvent;
-    originalAppointment: Appointment;
-  } | null>(null);
-
-  const handleRangeUpdate = (range: { start: string; end: string }) => {
-    // Only update if it actually changed to avoid infinite loops
-    setDateRange((prev) => {
-      if (prev.fromDate === range.start && prev.toDate === range.end) return prev;
-      return { fromDate: range.start, toDate: range.end };
-    });
-  };
-
-  const handleCreateNew = () => {
-    setEditingAppointment(null);
-    setClickedDate(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEventClick = (event: CalendarEvent) => {
-    // Find the original appointment data by ID
-    const appointment = appointmentsQuery.appointments.find((app) => app.seriesId === event.id || app.id === event.id);
-    if (appointment) {
-      if (appointment.isRecurringInstance) {
-        toast.info("Editing recurring appointments is not supported yet.");
-        return;
-      }
-      setEditingAppointment(appointment);
-      setIsModalOpen(true);
-    }
-  };
-
-  const handleDateClick = (date: string) => {
-    setEditingAppointment(null);
-    setClickedDate(date);
-    setIsModalOpen(true);
-  };
-
-  const executeDragUpdate = (calendarEvent: CalendarEvent, appointment: Appointment) => {
-    // Convert Schedule-X date to string and ensure ISO 8601 format (replace space with 'T')
-    const startAt = new Date(calendarEvent.start.toString().replace(" ", "T")).toISOString();
-    const endAt = new Date(calendarEvent.end.toString().replace(" ", "T")).toISOString();
-    
-    if (appointment.seriesId) {
-      updateMutation.mutate({
-        id: appointment.seriesId,
-        payload: { startAt, endAt, recurrenceType: "ONETIME" },
-      });
-    }
-  };
-
-  const handleEventUpdate = (event: CalendarEvent) => {
-    const appointment = appointmentsQuery.appointments.find((app) => app.seriesId === event.id || app.id === event.id);
-    if (!appointment) return;
-
-    if (appointment.isRecurringInstance) {
-      toast.info("Moving recurring appointments is not supported yet.");
-      appointmentsQuery.refetch(); // Revert visual drag in Schedule-X
-    } else {
-      executeDragUpdate(event, appointment);
-    }
-  };
-
-  const handleCancelDrag = () => {
-    setConfirmDragEvent(null);
-    appointmentsQuery.refetch(); // Revert visual drag in Schedule-X
-  };
-
-  const handleConfirmDrag = () => {
-    if (confirmDragEvent) {
-      executeDragUpdate(confirmDragEvent.calendarEvent, confirmDragEvent.originalAppointment);
-      setConfirmDragEvent(null);
-    }
-  };
-
-  const todayDate = new Date().toISOString().slice(0, 10);
-  const todayAppointments = useMemo(() => {
-    const items = appointmentsQuery.appointments;
-    const currentDayItems = items.filter(
-      (appointment) => appointment.startAt.slice(0, 10) === todayDate,
-    );
-
-    return currentDayItems.length > 0 ? currentDayItems : items.slice(0, 4);
-  }, [appointmentsQuery.appointments, todayDate]);
+  const {
+    appointmentsQuery,
+    todayAppointments,
+    isModalOpen,
+    setIsModalOpen,
+    editingAppointment,
+    clickedDate,
+    setClickedDate,
+    confirmDragEvent,
+    handlers,
+  } = useCalendarAdapter();
 
   return (
     <div data-testid="calendar-page" className="space-y-6">
       <PageSection
         actions={
-          <Button onClick={handleCreateNew}>
+          <Button onClick={handlers.handleCreateNew}>
             <PlusIcon className="mr-2 size-4" />
             <span>Create event</span>
           </Button>
@@ -172,10 +75,10 @@ export default function CalendarPage() {
               
               <ScheduleXCalendar 
                 events={appointmentsQuery.calendarEvents} 
-                onEventClick={handleEventClick}
-                onDateClick={handleDateClick}
-                onRangeUpdate={handleRangeUpdate}
-                onEventUpdate={handleEventUpdate}
+                onEventClick={handlers.handleEventClick}
+                onDateClick={handlers.handleDateClick}
+                onRangeUpdate={handlers.handleRangeUpdate}
+                onEventUpdate={handlers.handleEventUpdate}
               />
           </div>
 
@@ -267,7 +170,7 @@ export default function CalendarPage() {
         initialDate={clickedDate}
       />
 
-      <Dialog open={!!confirmDragEvent} onOpenChange={(open) => !open && handleCancelDrag()}>
+      <Dialog open={!!confirmDragEvent} onOpenChange={(open) => !open && handlers.handleCancelDrag()}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Update recurring series?</DialogTitle>
@@ -276,8 +179,8 @@ export default function CalendarPage() {
             You are moving a recurring appointment. This action will shift the <strong>entire series</strong> to the new time slot. Do you want to continue?
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={handleCancelDrag}>Cancel</Button>
-            <Button onClick={handleConfirmDrag}>Yes, move series</Button>
+            <Button variant="outline" onClick={handlers.handleCancelDrag}>Cancel</Button>
+            <Button onClick={handlers.handleConfirmDrag}>Yes, move series</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

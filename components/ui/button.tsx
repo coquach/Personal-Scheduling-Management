@@ -43,18 +43,32 @@ const buttonVariants = cva(
   }
 )
 
+import { Spinner } from "@/components/ui/spinner"
+
+export interface ButtonProps
+  extends ButtonPrimitive.Props,
+    VariantProps<typeof buttonVariants> {
+  isLoading?: boolean
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  isLoading,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
   return (
     <ButtonPrimitive
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
+      disabled={isLoading || props.disabled}
       {...props}
-    />
+    >
+      {isLoading && <Spinner className="-ml-1 mr-2" size="default" />}
+      {children}
+    </ButtonPrimitive>
   )
 }
 

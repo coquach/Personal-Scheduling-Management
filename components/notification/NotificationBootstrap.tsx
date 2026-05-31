@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -57,6 +58,7 @@ function getBrowserContext() {
 
 export function NotificationBootstrap() {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
@@ -76,6 +78,10 @@ export function NotificationBootstrap() {
       inFlight = true;
 
       try {
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission !== "granted") {
+          return;
+        }
+
         const fcmToken = await getFirebaseMessagingToken();
 
         if (!fcmToken || cancelled) {
@@ -118,7 +124,7 @@ export function NotificationBootstrap() {
         action: {
           label: "Open",
           onClick: () => {
-            window.location.assign(link);
+            router.push(link);
           },
         },
       });
@@ -132,7 +138,7 @@ export function NotificationBootstrap() {
       unsubscribeAuthStore();
       unsubscribeForeground();
     };
-  }, [queryClient]);
+  }, [queryClient, router]);
 
   return null;
 }

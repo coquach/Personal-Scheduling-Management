@@ -20,21 +20,32 @@ function statusToCalendarId(status: AppointmentStatus) {
   }
 }
 
-function toZonedDateTime(isoDateTime: string) {
+/**
+ * Schedule-X v3 requires dates as "YYYY-MM-DD HH:mm" strings in LOCAL time.
+ * We convert the ISO 8601 UTC string from the backend into that format using
+ * the Temporal API for correct timezone handling.
+ */
+function toScheduleXDateTime(isoDateTime: string): string {
   const instant = Temporal.Instant.from(isoDateTime);
   const timezone = Temporal.Now.timeZoneId();
-  return instant.toZonedDateTimeISO(timezone);
+  const zdt = instant.toZonedDateTimeISO(timezone);
+  // Zero-pad each component to match "YYYY-MM-DD HH:mm"
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${zdt.year}-${pad(zdt.month)}-${pad(zdt.day)}` +
+    ` ${pad(zdt.hour)}:${pad(zdt.minute)}`
+  );
 }
 
 export function mapAppointmentToCalendarEvent(
   appointment: Appointment,
 ): CalendarEvent {
   return {
-    id: appointment.id,
+    id: appointment.seriesId ?? appointment.id,
     title: appointment.title,
     description: appointment.description ?? undefined,
-    start: toZonedDateTime(appointment.startAt),
-    end: toZonedDateTime(appointment.endAt),
+    start: toScheduleXDateTime(appointment.startAt),
+    end: toScheduleXDateTime(appointment.endAt),
     calendarId: statusToCalendarId(appointment.status),
   };
 }

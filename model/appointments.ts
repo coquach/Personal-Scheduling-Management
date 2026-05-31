@@ -5,9 +5,13 @@ export const uuidSchema = z.string().uuid();
 const dateTimeStringSchema = z
   .string()
   .min(1)
-  .refine((value) => !Number.isNaN(Date.parse(value)), {
+  .refine((value) => {
+    const safeValue = value.includes(" ") ? value.replace(" ", "T") : value;
+    return !Number.isNaN(Date.parse(safeValue));
+  }, {
     message: "Invalid datetime value.",
-  });
+  })
+  .transform((value) => value.includes(" ") ? value.replace(" ", "T") : value);
 
 const weekdaySchema = z.enum([
   "MONDAY",
@@ -112,6 +116,13 @@ export const createAppointmentInputSchema = z.object({
   seriesTimezone: z.string().min(1).max(64).optional(),
   tagIds: z.array(uuidSchema).optional(),
 }).superRefine((value, ctx) => {
+  if (new Date(value.startAt).getTime() < Date.now()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["startAt"],
+      message: "startAt cannot be in the past.",
+    });
+  }
   if (!isEndAfterStart(value.startAt, value.endAt)) {
     ctx.addIssue({
       code: "custom",
@@ -136,6 +147,13 @@ export const createSeriesRequestSchema = z.object({
   seriesTimezone: z.string().min(1).max(64).optional(),
   tagIds: z.array(uuidSchema),
 }).superRefine((value, ctx) => {
+  if (new Date(value.startAt).getTime() < Date.now()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["startAt"],
+      message: "startAt cannot be in the past.",
+    });
+  }
   if (!isEndAfterStart(value.startAt, value.endAt)) {
     ctx.addIssue({
       code: "custom",

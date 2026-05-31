@@ -103,12 +103,6 @@ export function AppHeader() {
             >
               Profile Settings
             </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="cursor-pointer rounded-xl px-3 py-2 text-sm transition-colors hover:bg-white/50 focus:bg-white/50 dark:hover:bg-white/10 dark:focus:bg-white/10"
-              render={<Link href="/statistics" />}
-            >
-              View Statistics
-            </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-border/50" />
             <div className="mt-1 px-1">
               <LogoutButton

@@ -17,14 +17,14 @@ import { Badge } from "@/components/ui/badge";
 
 
 import { useGetTeams, useGetTeamMembers } from "@/query/team-hooks";
-import { useCreateTeamAppointment, useUpdateTeamAppointment, useCheckTeamAppointmentConflicts } from "@/query/team-appointments-hooks";
+import { useCreateTeamAppointment, useUpdateTeamAppointment } from "@/query/team-appointments-hooks";
+import { useTeamAvailability } from "@/hooks/use-team-availability";
 import { 
   createTeamAppointmentRequestSchema,
   type CreateTeamAppointmentRequest,
   type TeamAppointmentListItem,
   type UpdateTeamAppointmentRequest
 } from "@/model/team-appointments";
-import { useDebounce } from "@/hooks/use-debounce";
 import { toast } from "sonner";
 
 function toDateTimeLocalValue(value: string) {
@@ -99,8 +99,6 @@ export function TeamAppointmentForm({
 
   const createMutation = useCreateTeamAppointment(selectedTeamId);
   const updateMutation = useUpdateTeamAppointment(selectedTeamId);
-  const checkConflictsMutation = useCheckTeamAppointmentConflicts(selectedTeamId);
-  const { mutate: checkConflicts, reset: resetConflicts } = checkConflictsMutation;
 
   // Initialize dates
   useEffect(() => {
@@ -127,53 +125,12 @@ export function TeamAppointmentForm({
     return selectedParticipantIds;
   }, [selectedTeamId, teamMembers, selectedMode, selectedParticipantIds]);
 
-  // Debounce the inputs so we don't spam the API on every keystroke/tick
-  const debouncedStartAt = useDebounce(selectedStartAt, 500);
-  const debouncedEndAt = useDebounce(selectedEndAt, 500);
-  // Stringify the array for stable dependency comparison
-  const participantIdsString = effectiveParticipantIds.join(",");
-  const debouncedParticipantIdsString = useDebounce(participantIdsString, 500);
-
-  // Auto-check conflicts effect
-  useEffect(() => {
-    if (!selectedTeamId || !debouncedStartAt || !debouncedEndAt || !debouncedParticipantIdsString) {
-      return;
-    }
-
-    try {
-      const start = new Date(debouncedStartAt).toISOString();
-      const end = new Date(debouncedEndAt).toISOString();
-      
-      // Ensure start is before end
-      if (new Date(start) >= new Date(end)) return;
-
-      const participantIds = debouncedParticipantIdsString.split(",");
-
-      checkConflicts({
-        startAt: start,
-        endAt: end,
-        participantUserIds: participantIds,
-      });
-    } catch (e: unknown) {
-      // Invalid date formats, wait for valid input
-      
-    }
-  }, [selectedTeamId, debouncedStartAt, debouncedEndAt, debouncedParticipantIdsString, checkConflicts]);
-
-  // Clear stale conflict data as soon as inputs change
-  useEffect(() => {
-    if (checkConflictsMutation.data || checkConflictsMutation.error) {
-      resetConflicts();
-    }
-  }, [selectedTeamId, selectedStartAt, selectedEndAt, participantIdsString, checkConflictsMutation.data, checkConflictsMutation.error, resetConflicts]);
-
-  const conflictData = checkConflictsMutation.data;
-  const hasConflicts = conflictData?.hasConflict ?? false;
-
-  const isDebouncing = 
-    selectedStartAt !== debouncedStartAt || 
-    selectedEndAt !== debouncedEndAt || 
-    participantIdsString !== debouncedParticipantIdsString;
+  const { isChecking, hasConflicts, conflictData } = useTeamAvailability({
+    teamId: selectedTeamId,
+    startAt: selectedStartAt,
+    endAt: selectedEndAt,
+    participantIds: effectiveParticipantIds,
+  });
 
   const onSubmit = (data: CreateTeamAppointmentRequest) => {
     if (!selectedTeamId) {
@@ -345,11 +302,11 @@ export function TeamAppointmentForm({
             )}
 
             {/* Availability Insight Block */}
-            {(checkConflictsMutation.isPending || isDebouncing) && (
+            {isChecking && (
               <p className="text-xs text-muted-foreground animate-pulse">Checking availability...</p>
             )}
 
-            {!checkConflictsMutation.isPending && !isDebouncing && conflictData && (
+            {!isChecking && conflictData && (
               <div className="space-y-3 mt-4 pt-4 border-t border-border/30">
                 {hasConflicts ? (
                   <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
@@ -413,7 +370,8 @@ export function TeamAppointmentForm({
         </Button>
         <Button 
           type="submit" 
-          disabled={isSaving || checkConflictsMutation.isPending || isDebouncing || hasConflicts || !selectedTeamId}
+          disabled={isChecking || hasConflicts || !selectedTeamId}
+          isLoading={isSaving}
         >
           {isSaving ? "Saving..." : editingAppointment ? "Update Appointment" : "Create Appointment"}
         </Button>

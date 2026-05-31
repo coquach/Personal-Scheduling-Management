@@ -50,20 +50,11 @@ export function RightBentoSidebar() {
         
         <div className="flex-1 overflow-y-auto py-4 space-y-6 scrollbar-none">
           {/* Bento 1: Mini Calendar */}
-          <div className="rounded-[1.25rem] border border-white/20 bg-white/40 p-3 shadow-sm dark:border-white/10 dark:bg-black/20">
+          <div className="rounded-[1.25rem] border border-white/20 bg-white/40 p-3 shadow-sm dark:border-white/10 dark:bg-black/20 flex justify-center">
             <Calendar
               mode="single"
               selected={today}
-              className="pointer-events-none p-0"
-              classNames={{
-                months: "w-full",
-                month: "space-y-3 w-full",
-                month_grid: "w-full border-collapse space-y-1",
-                weekdays: "flex w-full justify-between",
-                week: "flex w-full justify-between mt-1",
-                day: "h-8 w-8 p-0 font-normal hover:bg-transparent rounded-full flex items-center justify-center",
-                today: "bg-accent text-accent-foreground font-semibold rounded-full",
-              }}
+              className="pointer-events-none p-0 bg-transparent"
             />
           </div>
 

@@ -103,10 +103,18 @@ export default function VerifyEmailPage() {
     <div data-testid="verify-email-page" className="space-y-8 text-center">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Verify email
+          {status === "success"
+            ? "Email Verified"
+            : status === "error"
+              ? "Verification Failed"
+              : "Verify Email"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Checking your verification token...
+          {status === "success"
+            ? "Thank you for confirming your email address."
+            : status === "error"
+              ? "We couldn't verify your email with the provided token."
+              : "Please wait while we check your verification token..."}
         </p>
       </div>
 

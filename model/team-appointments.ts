@@ -23,6 +23,21 @@ export const createTeamAppointmentRequestSchema = z.object({
   endAt: z.string().datetime(),
   participantSelectionMode: participantSelectionModeSchema.optional(),
   participantUserIds: z.array(z.string().uuid()).optional(),
+}).superRefine((value, ctx) => {
+  if (new Date(value.startAt).getTime() < Date.now()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["startAt"],
+      message: "startAt cannot be in the past.",
+    });
+  }
+  if (new Date(value.startAt).getTime() >= new Date(value.endAt).getTime()) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["endAt"],
+      message: "endAt must be greater than startAt.",
+    });
+  }
 });
 
 export const updateTeamAppointmentRequestSchema = z.object({
