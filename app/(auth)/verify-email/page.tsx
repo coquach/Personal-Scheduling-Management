@@ -40,7 +40,8 @@ export default function VerifyEmailPage() {
   const [resendMessage, setResendMessage] = useState<string | null>(null);
   const resendForm = useForm<ResendVerificationEmailRequestDto>({
     resolver: zodResolver(resendVerificationEmailRequestSchema),
-    mode: "onChange",
+    mode: "onBlur",
+    reValidateMode: "onBlur",
     defaultValues: {
       email: "",
     },

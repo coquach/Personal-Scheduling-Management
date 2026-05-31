@@ -75,6 +75,10 @@ export default function CalendarPage() {
     // Find the original appointment data by ID
     const appointment = appointmentsQuery.appointments.find((app) => app.seriesId === event.id || app.id === event.id);
     if (appointment) {
+      if (appointment.isRecurringInstance) {
+        toast.info("Editing recurring appointments is not supported yet.");
+        return;
+      }
       setEditingAppointment(appointment);
       setIsModalOpen(true);
     }
@@ -94,7 +98,7 @@ export default function CalendarPage() {
     if (appointment.seriesId) {
       updateMutation.mutate({
         id: appointment.seriesId,
-        payload: { startAt, endAt },
+        payload: { startAt, endAt, recurrenceType: "ONETIME" },
       });
     }
   };
@@ -104,7 +108,8 @@ export default function CalendarPage() {
     if (!appointment) return;
 
     if (appointment.isRecurringInstance) {
-      setConfirmDragEvent({ calendarEvent: event, originalAppointment: appointment });
+      toast.info("Moving recurring appointments is not supported yet.");
+      appointmentsQuery.refetch(); // Revert visual drag in Schedule-X
     } else {
       executeDragUpdate(event, appointment);
     }

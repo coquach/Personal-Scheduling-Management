@@ -1,21 +1,24 @@
-"use client";
+'use client';
 
-import "temporal-polyfill/global";
+import 'temporal-polyfill/global';
 
-import { useEffect, useMemo } from "react";
 import {
   createViewDay,
   createViewMonthAgenda,
   createViewMonthGrid,
   createViewWeek,
   type CalendarEvent,
-} from "@schedule-x/calendar";
-import { createEventsServicePlugin } from "@schedule-x/events-service";
-import { createDragAndDropPlugin } from "@schedule-x/drag-and-drop";
-import { ScheduleXCalendar as ReactScheduleXCalendar, useCalendarApp } from "@schedule-x/react";
-import { useTheme } from "next-themes";
+} from '@schedule-x/calendar';
+import { createDragAndDropPlugin } from '@schedule-x/drag-and-drop';
+import { createEventsServicePlugin } from '@schedule-x/events-service';
+import {
+  ScheduleXCalendar as ReactScheduleXCalendar,
+  useCalendarApp,
+} from '@schedule-x/react';
+import { useTheme } from 'next-themes';
+import { useEffect, useMemo } from 'react';
 
-import { CALENDAR_STATUS_IDS } from "@/lib/constants/calendar";
+import { CALENDAR_STATUS_IDS } from '@/lib/constants/calendar';
 
 type ScheduleXCalendarProps = {
   events: CalendarEvent[];
@@ -29,7 +32,14 @@ function getTodayString() {
   return Temporal.Now.plainDateISO();
 }
 
-function InnerCalendar({ isDark, events, onEventClick, onDateClick, onRangeUpdate, onEventUpdate }: ScheduleXCalendarProps & { isDark: boolean }) {
+function InnerCalendar({
+  isDark,
+  events,
+  onEventClick,
+  onDateClick,
+  onRangeUpdate,
+  onEventUpdate,
+}: ScheduleXCalendarProps & { isDark: boolean }) {
   const eventsService = useMemo(() => createEventsServicePlugin(), []);
   const dragAndDrop = useMemo(() => createDragAndDropPlugin(), []);
   const calendar = useCalendarApp(
@@ -42,7 +52,7 @@ function InnerCalendar({ isDark, events, onEventClick, onDateClick, onRangeUpdat
         createViewMonthGrid(),
         createViewMonthAgenda(),
       ],
-      defaultView: "week",
+      defaultView: 'week',
       events,
       plugins: [eventsService, dragAndDrop],
       callbacks: {
@@ -66,53 +76,53 @@ function InnerCalendar({ isDark, events, onEventClick, onDateClick, onRangeUpdat
         [CALENDAR_STATUS_IDS.scheduled]: {
           colorName: CALENDAR_STATUS_IDS.scheduled,
           lightColors: {
-            main: "#8b5cf6",
-            container: "rgba(139, 92, 246, 0.15)",
-            onContainer: "#4c1d95",
+            main: '#8b5cf6',
+            container: 'rgba(139, 92, 246, 0.15)',
+            onContainer: '#4c1d95',
           },
           darkColors: {
-            main: "#a78bfa",
-            container: "rgba(139, 92, 246, 0.25)",
-            onContainer: "#ede9fe",
+            main: '#a78bfa',
+            container: 'rgba(139, 92, 246, 0.25)',
+            onContainer: '#ede9fe',
           },
         },
         [CALENDAR_STATUS_IDS.completed]: {
           colorName: CALENDAR_STATUS_IDS.completed,
           lightColors: {
-            main: "#10b981",
-            container: "rgba(16, 185, 129, 0.15)",
-            onContainer: "#064e3b",
+            main: '#10b981',
+            container: 'rgba(16, 185, 129, 0.15)',
+            onContainer: '#064e3b',
           },
           darkColors: {
-            main: "#34d399",
-            container: "rgba(16, 185, 129, 0.25)",
-            onContainer: "#d1fae5",
+            main: '#34d399',
+            container: 'rgba(16, 185, 129, 0.25)',
+            onContainer: '#d1fae5',
           },
         },
         [CALENDAR_STATUS_IDS.missed]: {
           colorName: CALENDAR_STATUS_IDS.missed,
           lightColors: {
-            main: "#f59e0b",
-            container: "rgba(245, 158, 11, 0.15)",
-            onContainer: "#78350f",
+            main: '#f59e0b',
+            container: 'rgba(245, 158, 11, 0.15)',
+            onContainer: '#78350f',
           },
           darkColors: {
-            main: "#fbbf24",
-            container: "rgba(245, 158, 11, 0.25)",
-            onContainer: "#fef3c7",
+            main: '#fbbf24',
+            container: 'rgba(245, 158, 11, 0.25)',
+            onContainer: '#fef3c7',
           },
         },
         [CALENDAR_STATUS_IDS.cancelled]: {
           colorName: CALENDAR_STATUS_IDS.cancelled,
           lightColors: {
-            main: "#ef4444",
-            container: "rgba(239, 68, 68, 0.15)",
-            onContainer: "#7f1d1d",
+            main: '#ef4444',
+            container: 'rgba(239, 68, 68, 0.15)',
+            onContainer: '#7f1d1d',
           },
           darkColors: {
-            main: "#f87171",
-            container: "rgba(239, 68, 68, 0.25)",
-            onContainer: "#fee2e2",
+            main: '#f87171',
+            container: 'rgba(239, 68, 68, 0.25)',
+            onContainer: '#fee2e2',
           },
         },
       },
@@ -132,12 +142,19 @@ function InnerCalendar({ isDark, events, onEventClick, onDateClick, onRangeUpdat
 
 export function ScheduleXCalendar(props: ScheduleXCalendarProps) {
   const { resolvedTheme } = useTheme();
-  
-  const isDark = resolvedTheme === "dark";
+
+  const isDark = resolvedTheme === 'dark';
 
   return (
-    <div className="sx-react-calendar-wrapper" data-testid="calendar-sx-wrapper">
-      <InnerCalendar key={isDark ? "dark" : "light"} isDark={isDark} {...props} />
+    <div
+      className="sx-react-calendar-wrapper"
+      data-testid="calendar-sx-wrapper"
+    >
+      <InnerCalendar
+        key={isDark ? 'dark' : 'light'}
+        isDark={isDark}
+        {...props}
+      />
     </div>
   );
 }

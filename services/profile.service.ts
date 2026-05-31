@@ -21,3 +21,10 @@ export async function updateProfile(
   });
   return userProfileSchema.parse(raw);
 }
+
+export async function searchUserByEmail(email: string): Promise<UserProfile> {
+  const raw = await browserApiRequest<unknown>("/users/search", undefined, {
+    params: { email },
+  });
+  return userProfileSchema.parse(raw);
+}

@@ -7,7 +7,6 @@ import {
   CheckCircle2Icon
 } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const featureCards = [

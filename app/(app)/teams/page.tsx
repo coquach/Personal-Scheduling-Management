@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { PlusIcon, UsersIcon } from "lucide-react";
+import Link from "next/link";
+import { PlusIcon, UsersIcon, CheckIcon, XIcon, MailIcon } from "lucide-react";
 
 import { PageSection } from "@/components/layout/page-section";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
-import { useGetTeams } from "@/query/team-hooks";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+
+import { useGetTeams, useGetMyInvitations, useAcceptInvitation, useDeclineInvitation } from "@/query/team-hooks";
 import { getApiErrorMessage } from "@/lib/api-core";
 
 // 1. Deferred Interactive Loading (ADR 0007)
@@ -22,8 +32,28 @@ const CreateTeamModal = dynamic(loadCreateTeamModal, {
 
 export default function TeamsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const teamsQuery = useGetTeams({ page: 1, limit: 20 });
+  const [page, setPage] = useState(1);
+  const limit = 6;
+  
+  const teamsQuery = useGetTeams({ page, limit });
   const teams = teamsQuery.data?.items ?? [];
+  const totalPages = Math.ceil((teamsQuery.data?.total ?? 0) / limit);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+
+  const invitationsQuery = useGetMyInvitations({ status: "PENDING" });
+  const invitations = invitationsQuery.data ?? [];
+
+  const acceptMutation = useAcceptInvitation();
+  const declineMutation = useDeclineInvitation();
+
+  const handleAccept = (teamId: string, invitationId: string) => {
+    acceptMutation.mutate({ teamId, invitationId });
+  };
+
+  const handleDecline = (teamId: string, invitationId: string) => {
+    declineMutation.mutate({ teamId, invitationId });
+  };
 
   return (
     <div data-testid="teams-page" className="space-y-6">
@@ -42,6 +72,46 @@ export default function TeamsPage() {
           </Button>
         }
       >
+        {/* Pending Invitations Section */}
+        {invitations.length > 0 && (
+          <div className="mb-8 space-y-4">
+            <h3 className="text-lg font-semibold tracking-tight text-foreground flex items-center gap-2">
+              <MailIcon className="h-5 w-5 text-primary" />
+              Pending Invitations
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {invitations.map((invitation) => (
+                <Card key={invitation.invitationId} className="border-primary/50 bg-primary/5 shadow-md">
+                  <CardContent className="p-5 flex flex-col h-full justify-between">
+                    <div>
+                      <h4 className="font-semibold text-lg text-foreground truncate">{invitation.teamName}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">Invited as {invitation.role.toLowerCase()}</p>
+                    </div>
+                    <div className="mt-4 flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleAccept(invitation.teamId, invitation.invitationId)}
+                        disabled={acceptMutation.isPending || declineMutation.isPending}
+                        className="w-full"
+                      >
+                        <CheckIcon className="mr-1.5 h-4 w-4" /> Accept
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleDecline(invitation.teamId, invitation.invitationId)}
+                        disabled={acceptMutation.isPending || declineMutation.isPending}
+                        className="w-full"
+                      >
+                        <XIcon className="mr-1.5 h-4 w-4" /> Decline
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
         {teamsQuery.isLoading && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((i) => (
@@ -115,13 +185,55 @@ export default function TeamsPage() {
                           <UsersIcon className="h-3.5 w-3.5" />
                           <span>{team.memberCount} members</span>
                         </div>
-                        <Button variant="ghost" size="sm" className="h-8 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                          Manage
+                        <Button variant="ghost" size="sm" className="h-8 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity" >
+                          <Link href={`/teams/${team.id}`}>
+                            Manage
+                          </Link>
                         </Button>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+            
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground text-center sm:text-left">
+                  Showing page {page} of {totalPages}
+                </p>
+                <Pagination className="justify-end w-auto mx-0">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasPrevPage && !teamsQuery.isLoading) setPage((p) => p - 1);
+                        }}
+                        className={!hasPrevPage || teamsQuery.isLoading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    <PaginationItem>
+                      <PaginationLink href="#" isActive>
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasNextPage && !teamsQuery.isLoading) setPage((p) => p + 1);
+                        }}
+                        className={!hasNextPage || teamsQuery.isLoading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
               </div>
             )}
           </>

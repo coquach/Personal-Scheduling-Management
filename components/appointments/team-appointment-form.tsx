@@ -1,0 +1,423 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState, useMemo } from "react";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { AlertCircle, CalendarClock, Users } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/datetime-picker";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+
+
+import { useGetTeams, useGetTeamMembers } from "@/query/team-hooks";
+import { useCreateTeamAppointment, useUpdateTeamAppointment, useCheckTeamAppointmentConflicts } from "@/query/team-appointments-hooks";
+import { 
+  createTeamAppointmentRequestSchema,
+  type CreateTeamAppointmentRequest,
+  type TeamAppointmentListItem,
+  type UpdateTeamAppointmentRequest
+} from "@/model/team-appointments";
+import { useDebounce } from "@/hooks/use-debounce";
+import { toast } from "sonner";
+
+function toDateTimeLocalValue(value: string) {
+  const date = new Date(value);
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
+function formatTimeOnly(dateString: string | Date) {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("en-GB", {
+    timeStyle: "short",
+  }).format(date);
+}
+
+interface TeamAppointmentFormProps {
+  onOpenChange: (open: boolean) => void;
+  initialDate?: string | null;
+  editingAppointment?: TeamAppointmentListItem | null;
+}
+
+export function TeamAppointmentForm({
+  onOpenChange,
+  initialDate,
+  editingAppointment,
+}: TeamAppointmentFormProps) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    control,
+    formState: { errors },
+  } = useForm<CreateTeamAppointmentRequest>({
+    resolver: zodResolver(createTeamAppointmentRequestSchema),
+    mode: "onBlur",
+    reValidateMode: "onBlur",
+    defaultValues: editingAppointment ? {
+      title: editingAppointment.title,
+      description: "",
+      location: "",
+      startAt: toDateTimeLocalValue(editingAppointment.startAt as string),
+      endAt: toDateTimeLocalValue(editingAppointment.endAt as string),
+      participantSelectionMode: "ALL",
+      participantUserIds: [],
+    } : {
+      title: "",
+      description: "",
+      location: "",
+      startAt: "",
+      endAt: "",
+      participantSelectionMode: "ALL",
+      participantUserIds: [],
+    },
+  });
+
+  const selectedStartAt = useWatch({ control, name: "startAt" });
+  const selectedEndAt = useWatch({ control, name: "endAt" });
+  const selectedMode = useWatch({ control, name: "participantSelectionMode" });
+  const rawParticipantIds = useWatch({ control, name: "participantUserIds" });
+  const selectedParticipantIds = useMemo(() => rawParticipantIds || [], [rawParticipantIds]);
+  
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(
+    editingAppointment ? editingAppointment.teamId : ""
+  );
+
+  const teamsQuery = useGetTeams({ page: 1, limit: 100 });
+  const teams = teamsQuery.data?.items ?? [];
+
+  const teamMembersQuery = useGetTeamMembers(selectedTeamId);
+  const teamMembers = useMemo(() => teamMembersQuery.data?.items ?? [], [teamMembersQuery.data?.items]);
+
+  const createMutation = useCreateTeamAppointment(selectedTeamId);
+  const updateMutation = useUpdateTeamAppointment(selectedTeamId);
+  const checkConflictsMutation = useCheckTeamAppointmentConflicts(selectedTeamId);
+  const { mutate: checkConflicts, reset: resetConflicts } = checkConflictsMutation;
+
+  // Initialize dates
+  useEffect(() => {
+    if (initialDate) {
+      const baseDate = initialDate.slice(0, 10);
+      reset({
+        title: "",
+        description: "",
+        location: "",
+        startAt: `${baseDate}T09:00`,
+        endAt: `${baseDate}T10:00`,
+        participantSelectionMode: "ALL",
+        participantUserIds: [],
+      });
+    }
+  }, [initialDate, reset]);
+
+  // Derived effective participants for the API
+  const effectiveParticipantIds = useMemo(() => {
+    if (!selectedTeamId || teamMembers.length === 0) return [];
+    if (selectedMode === "ALL") {
+      return teamMembers.map(m => m.userId);
+    }
+    return selectedParticipantIds;
+  }, [selectedTeamId, teamMembers, selectedMode, selectedParticipantIds]);
+
+  // Debounce the inputs so we don't spam the API on every keystroke/tick
+  const debouncedStartAt = useDebounce(selectedStartAt, 500);
+  const debouncedEndAt = useDebounce(selectedEndAt, 500);
+  // Stringify the array for stable dependency comparison
+  const participantIdsString = effectiveParticipantIds.join(",");
+  const debouncedParticipantIdsString = useDebounce(participantIdsString, 500);
+
+  // Auto-check conflicts effect
+  useEffect(() => {
+    if (!selectedTeamId || !debouncedStartAt || !debouncedEndAt || !debouncedParticipantIdsString) {
+      return;
+    }
+
+    try {
+      const start = new Date(debouncedStartAt).toISOString();
+      const end = new Date(debouncedEndAt).toISOString();
+      
+      // Ensure start is before end
+      if (new Date(start) >= new Date(end)) return;
+
+      const participantIds = debouncedParticipantIdsString.split(",");
+
+      checkConflicts({
+        startAt: start,
+        endAt: end,
+        participantUserIds: participantIds,
+      });
+    } catch (e: unknown) {
+      // Invalid date formats, wait for valid input
+      
+    }
+  }, [selectedTeamId, debouncedStartAt, debouncedEndAt, debouncedParticipantIdsString, checkConflicts]);
+
+  // Clear stale conflict data as soon as inputs change
+  useEffect(() => {
+    if (checkConflictsMutation.data || checkConflictsMutation.error) {
+      resetConflicts();
+    }
+  }, [selectedTeamId, selectedStartAt, selectedEndAt, participantIdsString, checkConflictsMutation.data, checkConflictsMutation.error, resetConflicts]);
+
+  const conflictData = checkConflictsMutation.data;
+  const hasConflicts = conflictData?.hasConflict ?? false;
+
+  const isDebouncing = 
+    selectedStartAt !== debouncedStartAt || 
+    selectedEndAt !== debouncedEndAt || 
+    participantIdsString !== debouncedParticipantIdsString;
+
+  const onSubmit = (data: CreateTeamAppointmentRequest) => {
+    if (!selectedTeamId) {
+      toast.error("Please select a team first.");
+      return;
+    }
+
+    if (hasConflicts) {
+      toast.error("Cannot create appointment with time conflicts. Please resolve them first.");
+      return;
+    }
+
+    const payload: CreateTeamAppointmentRequest = {
+      ...data,
+      startAt: new Date(data.startAt).toISOString(),
+      endAt: new Date(data.endAt).toISOString(),
+      // Send the appropriate participant data
+      participantSelectionMode: data.participantSelectionMode,
+      participantUserIds: data.participantSelectionMode === "CUSTOM" ? data.participantUserIds : undefined,
+    };
+
+    if (editingAppointment) {
+      updateMutation.mutate(
+        { appointmentId: editingAppointment.id, input: payload as UpdateTeamAppointmentRequest },
+        {
+          onSuccess: () => onOpenChange(false),
+        }
+      );
+    } else {
+      createMutation.mutate(payload, {
+        onSuccess: () => {
+          onOpenChange(false);
+        },
+      });
+    }
+  };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="mt-4">
+      <div className="grid gap-4 py-4">
+        {/* Team Selection */}
+        <div className="space-y-1">
+          <Label>Select Team <span className="text-destructive">*</span></Label>
+          <Select
+            value={selectedTeamId}
+            onValueChange={(val) => {
+              setSelectedTeamId(val ?? "");
+              setValue("participantSelectionMode", "ALL");
+              setValue("participantUserIds", []);
+            }}
+          >
+            <SelectTrigger className={!selectedTeamId ? "text-muted-foreground" : ""}>
+              <SelectValue placeholder="Choose a team" />
+            </SelectTrigger>
+            <SelectContent>
+              {teams.map((t) => (
+                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
+          <Input
+            {...register("title")}
+            placeholder="Appointment Title"
+            disabled={!selectedTeamId}
+          />
+          {errors.title && (
+            <p className="text-sm text-destructive">{errors.title.message}</p>
+          )}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Start time <span className="text-destructive">*</span></Label>
+            <Controller
+              control={control}
+              name="startAt"
+              render={({ field }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select start time"
+                  isInvalid={!!errors.startAt}
+                />
+              )}
+            />
+            {errors.startAt && (
+              <p className="text-sm text-destructive">{errors.startAt.message}</p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label>End time <span className="text-destructive">*</span></Label>
+            <Controller
+              control={control}
+              name="endAt"
+              render={({ field }) => (
+                <DateTimePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="Select end time"
+                  isInvalid={!!errors.endAt}
+                />
+              )}
+            />
+            {errors.endAt && (
+              <p className="text-sm text-destructive">{errors.endAt.message}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Location & Description */}
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1 sm:col-span-2">
+            <Input
+              {...register("location")}
+              placeholder="Location (Optional)"
+              disabled={!selectedTeamId}
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Textarea
+              {...register("description")}
+              placeholder="Description (Optional)"
+              disabled={!selectedTeamId}
+            />
+          </div>
+        </div>
+
+        {/* Participants & Availability Insight */}
+        {selectedTeamId && (
+          <div className="space-y-4 rounded-xl border border-border/50 bg-muted/20 p-4">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 text-base">
+                <Users className="w-4 h-4 text-primary" />
+                Participants
+              </Label>
+              <div className="flex items-center gap-2">
+                <Badge variant={selectedMode === "ALL" ? "default" : "outline"} className="cursor-pointer" onClick={() => setValue("participantSelectionMode", "ALL")}>
+                  All Members
+                </Badge>
+                <Badge variant={selectedMode === "CUSTOM" ? "default" : "outline"} className="cursor-pointer" onClick={() => setValue("participantSelectionMode", "CUSTOM")}>
+                  Custom
+                </Badge>
+              </div>
+            </div>
+
+            {/* Custom Mode Member Selection */}
+            {selectedMode === "CUSTOM" && (
+              <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-border/30">
+                {teamMembers.map((member) => (
+                  <label key={member.userId} className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-muted/50 p-1.5 rounded-md">
+                    <Checkbox
+                      checked={selectedParticipantIds.includes(member.userId)}
+                      onCheckedChange={(checked) => {
+                        const current = new Set(selectedParticipantIds);
+                        if (checked) current.add(member.userId);
+                        else current.delete(member.userId);
+                        setValue("participantUserIds", Array.from(current));
+                      }}
+                    />
+                    <span>{member.email}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {/* Availability Insight Block */}
+            {(checkConflictsMutation.isPending || isDebouncing) && (
+              <p className="text-xs text-muted-foreground animate-pulse">Checking availability...</p>
+            )}
+
+            {!checkConflictsMutation.isPending && !isDebouncing && conflictData && (
+              <div className="space-y-3 mt-4 pt-4 border-t border-border/30">
+                {hasConflicts ? (
+                  <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Time Conflicts Detected</AlertTitle>
+                    <AlertDescription className="text-xs mt-1">
+                      <p>The following members are busy:</p>
+                      <ul className="list-disc list-inside mt-1 font-medium">
+                        {conflictData.busyParticipants.map(bp => (
+                          <li key={bp.userId}>{bp.displayName}</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400">
+                    <CalendarClock className="h-4 w-4 !text-emerald-600 dark:!text-emerald-400" />
+                    <AlertTitle>Everyone is available</AlertTitle>
+                    <AlertDescription className="text-xs">
+                      All {conflictData.availableParticipants.length} selected participants are free at this time.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {/* Suggestions */}
+                {conflictData.suggestedSlots && conflictData.suggestedSlots.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Suggested Alternative Times:</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {conflictData.suggestedSlots.map((slot, idx) => (
+                        <Button
+                          key={idx}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
+                          onClick={() => {
+                            setValue("startAt", toDateTimeLocalValue(slot.startAt as string));
+                            setValue("endAt", toDateTimeLocalValue(slot.endAt as string));
+                          }}
+                        >
+                          {formatTimeOnly(slot.startAt)} - {formatTimeOnly(slot.endAt)}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+        >
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={isSaving || checkConflictsMutation.isPending || isDebouncing || hasConflicts || !selectedTeamId}
+        >
+          {isSaving ? "Saving..." : editingAppointment ? "Update Appointment" : "Create Appointment"}
+        </Button>
+      </div>
+    </form>
+  );
+}

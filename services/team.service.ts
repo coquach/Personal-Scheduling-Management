@@ -14,6 +14,9 @@ import {
   teamMemberRoleResponseSchema,
   teamMyInvitationItemSchema,
   teamResponseSchema,
+  updateTeamRequestSchema,
+  getTeamMembersQuerySchema,
+  removeTeamMemberResponseSchema,
   type ChangeMemberRoleRequest,
   type CreateTeamInvitationRequest,
   type CreateTeamRequest,
@@ -28,6 +31,9 @@ import {
   type TeamMemberRoleResponse,
   type TeamMyInvitationItem,
   type TeamResponse,
+  type UpdateTeamRequest,
+  type GetTeamMembersQuery,
+  type RemoveTeamMemberResponse,
 } from "@/model/team";
 import { z } from "zod";
 
@@ -69,8 +75,14 @@ export async function getTeamDetail(teamId: string): Promise<TeamDetailResponse>
   return teamDetailResponseSchema.parse(rawResponse);
 }
 
-export async function getTeamMembers(teamId: string): Promise<TeamMemberListResponse> {
-  const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}/members`);
+export async function getTeamMembers(teamId: string, query?: GetTeamMembersQuery): Promise<TeamMemberListResponse> {
+  const parsedQuery = query ? getTeamMembersQuerySchema.parse(query) : { page: 1, limit: 100 };
+  const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}/members`, undefined, {
+    params: {
+      page: parsedQuery.page,
+      limit: parsedQuery.limit,
+    }
+  });
   return teamMemberListResponseSchema.parse(rawResponse);
 }
 
@@ -111,4 +123,27 @@ export async function leaveTeam(teamId: string): Promise<LeaveTeamResponse> {
     method: "POST",
   });
   return leaveTeamResponseSchema.parse(rawResponse);
+}
+
+export async function updateTeam(teamId: string, input: UpdateTeamRequest): Promise<TeamResponse> {
+  const parsedInput = updateTeamRequestSchema.parse(input);
+  const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}`, {
+    method: "PATCH",
+    body: JSON.stringify(parsedInput),
+  });
+  return teamResponseSchema.parse(rawResponse);
+}
+
+export async function removeMember(teamId: string, userId: string): Promise<RemoveTeamMemberResponse> {
+  const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}/members/${userId}`, {
+    method: "DELETE",
+  });
+  return removeTeamMemberResponseSchema.parse(rawResponse);
+}
+
+export async function deleteTeam(teamId: string): Promise<{ message: string; data: null }> {
+  const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}`, {
+    method: "DELETE",
+  });
+  return z.object({ message: z.string(), data: z.null() }).parse(rawResponse);
 }

@@ -22,7 +22,8 @@ export default function ForgotPasswordPage() {
   const forgotPasswordMutation = useForgotPasswordMutation();
   const form = useForm<ForgotPasswordRequestDto>({
     resolver: zodResolver(forgotPasswordRequestSchema),
-    mode: "onChange",
+    mode: "onBlur",
+    reValidateMode: "onBlur",
     defaultValues: {
       email: "",
     },

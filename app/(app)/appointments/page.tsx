@@ -1,52 +1,73 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import dynamic from "next/dynamic";
 import {
   CalendarClockIcon,
+  CalendarX2,
   PencilLineIcon,
   PlusIcon,
-  Trash2Icon,
   Search,
-  CalendarX2,
-  MoreHorizontal
+  Trash2Icon
 } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
 
-import {
-  type Appointment,
-  type AppointmentStatus,
-} from "@/services/appointments.service";
-import { PageSection } from "@/components/layout/page-section";
-import {
-  useAppointmentsListQuery,
-  useDeleteAppointmentMutation,
-  useUpdateAppointmentStatusMutation,
-} from "@/query/appointments-hooks";
 import {
   Alert,
   AlertDescription,
 } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getApiErrorMessage } from "@/lib/api-core";
 import { DateTimePicker } from "@/components/ui/datetime-picker";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuLabel
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getApiErrorMessage } from "@/lib/api-core";
+import {
+  useAppointmentsListQuery,
+  useDeleteAppointmentMutation,
+  useUpdateAppointmentStatusMutation,
+} from "@/query/appointments-hooks";
+import { 
+  useGetTeamAppointments,
+  useDeleteTeamAppointment,
+  useUpdateTeamAppointment 
+} from "@/query/team-appointments-hooks";
+import { type TeamAppointmentListItem } from "@/model/team-appointments";
+import { useGetTeams } from "@/query/team-hooks";
+import {
+  type Appointment,
+  type AppointmentStatus,
+} from "@/services/appointments.service";
 
 function formatDateTime(value: string) {
   const date = new Date(value);
@@ -73,19 +94,37 @@ const loadAppointmentModal = () => import("@/components/appointments/appointment
 const AppointmentModal = dynamic(loadAppointmentModal, { ssr: false });
 
 export default function AppointmentsPage() {
-  const appointmentsQuery = useAppointmentsListQuery({ page: 1, limit: 10 });
+  const [page, setPage] = useState(1);
+  const appointmentsQuery = useAppointmentsListQuery({ page, limit: 10 });
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   
   // Delete confirmation state
   const [deleteSeriesId, setDeleteSeriesId] = useState<string | null>(null);
+  
+  // Delete confirmation state for Team
+  const [deleteTeamAppointmentId, setDeleteTeamAppointmentId] = useState<string | null>(null);
+  const [editingTeamAppointment, setEditingTeamAppointment] = useState<TeamAppointmentListItem | null>(null);
 
   const [searchValue, setSearchValue] = useState("");
   const [statusValue, setStatusValue] = useState("");
   const [dateFromValue, setDateFromValue] = useState("");
   const [dateToValue, setDateToValue] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Team Appointments State
+  const [activeTab, setActiveTab] = useState("personal");
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("all");
+  const [teamPage, setTeamPage] = useState(1);
+  
+  const teamsQuery = useGetTeams({ page: 1, limit: 100 });
+  const teams = teamsQuery.data?.items ?? [];
+
+  const teamAppointmentsQuery = useGetTeamAppointments(
+    selectedTeamId !== "all" ? selectedTeamId : "",
+    { page: teamPage, limit: 10 }
+  );
 
   const filteredAppointments = useMemo(() => {
     const items = appointmentsQuery.data?.items ?? [];
@@ -146,8 +185,12 @@ export default function AppointmentsPage() {
     },
   });
 
+  const deleteTeamMutation = useDeleteTeamAppointment(selectedTeamId !== "all" ? selectedTeamId : "");
+  const updateTeamStatusMutation = useUpdateTeamAppointment(selectedTeamId !== "all" ? selectedTeamId : "");
+
   function openCreateDialog() {
     setEditingAppointment(null);
+    setEditingTeamAppointment(null);
     setIsDialogOpen(true);
   }
 
@@ -169,6 +212,35 @@ export default function AppointmentsPage() {
       deleteMutation.mutate(deleteSeriesId);
     }
   }
+
+  function openEditTeamDialog(appointment: TeamAppointmentListItem) {
+    setEditingTeamAppointment(appointment);
+    setIsDialogOpen(true);
+  }
+
+  function confirmTeamDelete(id: string) {
+    setDeleteTeamAppointmentId(id);
+  }
+
+  function handleTeamDeleteConfirm() {
+    if (deleteTeamAppointmentId) {
+      deleteTeamMutation.mutate(deleteTeamAppointmentId, {
+        onSuccess: () => setDeleteTeamAppointmentId(null),
+        onError: (err) => {
+          setActionError(getApiErrorMessage(err, "Unable to delete team appointment."));
+          setDeleteTeamAppointmentId(null);
+        }
+      });
+    }
+  }
+
+  const totalPages = Math.ceil((appointmentsQuery.data?.total ?? 0) / 10);
+  const hasNextPage = page < totalPages;
+  const hasPrevPage = page > 1;
+
+  const teamTotalPages = Math.ceil((teamAppointmentsQuery.data?.total ?? 0) / 10);
+  const teamHasNextPage = teamPage < teamTotalPages;
+  const teamHasPrevPage = teamPage > 1;
 
   return (
     <div data-testid="appointments-page" className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -231,153 +303,411 @@ export default function AppointmentsPage() {
             />
           </div>
         </div>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="personal">My Appointments</TabsTrigger>
+            <TabsTrigger value="team">Team Appointments</TabsTrigger>
+          </TabsList>
 
-        {appointmentsQuery.isError ? (
-          <Alert variant="destructive">
-            <AlertDescription>
-              {getApiErrorMessage(
-                appointmentsQuery.error,
-                "Unable to load appointments."
-              )}
-            </AlertDescription>
-          </Alert>
-        ) : null}
+          <TabsContent value="personal" className="mt-0 space-y-4">
+            {appointmentsQuery.isError ? (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {getApiErrorMessage(
+                    appointmentsQuery.error,
+                    "Unable to load appointments."
+                  )}
+                </AlertDescription>
+              </Alert>
+            ) : null}
 
-        {actionError ? (
-          <Alert variant="destructive">
-            <AlertDescription>{actionError}</AlertDescription>
-          </Alert>
-        ) : null}
+            {actionError ? (
+              <Alert variant="destructive">
+                <AlertDescription>{actionError}</AlertDescription>
+              </Alert>
+            ) : null}
 
-        {/* Linear Data-dense List */}
-        <div className="border border-border/40 rounded-xl bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
-          <div className="grid grid-cols-12 gap-4 p-3 px-4 border-b border-border/40 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-            <div className="col-span-8 md:col-span-5">Details</div>
-            <div className="hidden md:block col-span-3">Time Range</div>
-            <div className="hidden md:block col-span-2">Status</div>
-            <div className="col-span-4 md:col-span-2 text-right">Actions</div>
-          </div>
-          
-          <div className="divide-y divide-border/40">
-            {appointmentsQuery.isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-12 gap-4 p-4 items-center">
-                  <div className="col-span-8 md:col-span-5 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                  <div className="hidden md:block col-span-3">
-                    <Skeleton className="h-4 w-full" />
-                  </div>
-                  <div className="hidden md:block col-span-2">
-                    <Skeleton className="h-5 w-20 rounded-md" />
-                  </div>
-                  <div className="col-span-4 md:col-span-2 flex justify-end gap-2">
-                    <Skeleton className="size-8 rounded-md" />
-                    <Skeleton className="size-8 rounded-md" />
-                  </div>
-                </div>
-              ))
-            ) : (
-              <>
-                {filteredAppointments.map((row) => (
-                  <div key={row.id} className="grid grid-cols-12 gap-4 p-3 px-4 items-center hover:bg-muted/30 transition-colors group">
-                    <div className="col-span-8 md:col-span-5 flex flex-col">
-                      <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                        {row.title}
-                      </span>
-                      {row.description && (
-                        <span className="text-xs text-muted-foreground truncate max-w-[280px] mt-0.5">
-                          {row.description}
-                        </span>
-                      )}
+            {/* Linear Data-dense List */}
+            <div className="border border-border/40 rounded-xl bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
+              <div className="grid grid-cols-12 gap-4 p-3 px-4 border-b border-border/40 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                <div className="col-span-8 md:col-span-5">Details</div>
+                <div className="hidden md:block col-span-3">Time Range</div>
+                <div className="hidden md:block col-span-2">Status</div>
+                <div className="col-span-4 md:col-span-2 text-right">Actions</div>
+              </div>
+              
+              <div className="divide-y divide-border/40">
+                {appointmentsQuery.isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 p-4 items-start md:items-center">
+                      <div className="w-full md:col-span-5 space-y-2">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                      <div className="hidden md:block col-span-3">
+                        <Skeleton className="h-4 w-full" />
+                      </div>
+                      <div className="hidden md:block col-span-2">
+                        <Skeleton className="h-5 w-20 rounded-md" />
+                      </div>
+                      <div className="flex w-full md:w-auto md:col-span-2 justify-end gap-2 mt-2 md:mt-0">
+                        <Skeleton className="size-8 rounded-md" />
+                        <Skeleton className="size-8 rounded-md" />
+                      </div>
                     </div>
-                    <div className="hidden md:flex flex-col col-span-3 text-xs text-muted-foreground font-mono">
-                      <span>{formatDateTime(row.startAt)}</span>
-                      <span className="opacity-70">to {formatDateTime(row.endAt)}</span>
-                    </div>
-                    <div className="hidden md:flex col-span-2 items-center">
-                      <Badge 
-                        variant="outline" 
-                        className="text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
-                      >
-                        {row.status}
-                      </Badge>
-                    </div>
-                    <div className="col-span-4 md:col-span-2 flex justify-end items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger >
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" 
-                            disabled={updateStatusMutation.isPending}
-                          >
-                            <CalendarClockIcon size={14} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel className="text-xs">Update Status</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          {APPOINTMENT_STATUS_ORDER.map((status) => (
-                            <DropdownMenuItem
-                              key={status}
-                              disabled={row.status === status}
-                              onClick={() => {
-                                updateStatusMutation.mutate({
-                                  appointmentId: row.id,
-                                  status: status,
-                                });
-                              }}
-                              className="text-xs"
+                  ))
+                ) : (
+                  <>
+                    {filteredAppointments.map((row) => (
+                      <div key={row.id} className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 p-4 items-start md:items-center hover:bg-muted/30 transition-colors group relative">
+                        <div className="w-full md:col-span-5 flex flex-col">
+                          <div className="flex items-center justify-between w-full md:w-auto pr-10 md:pr-0">
+                            <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                              {row.title}
+                            </span>
+                            <Badge 
+                              variant="outline" 
+                              className="md:hidden text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20 shrink-0"
                             >
-                              {status}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              {row.status}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="w-full md:w-auto md:flex flex-col md:col-span-4 text-xs text-muted-foreground font-mono mt-1 md:mt-0">
+                          <span className="flex items-center gap-1.5 md:hidden text-muted-foreground/80 mb-1">
+                            <CalendarClockIcon className="w-3.5 h-3.5" />
+                            {formatDateTime(row.startAt as string)} - {formatDateTime(row.endAt as string)}
+                          </span>
+                          <div className="hidden md:flex flex-col">
+                            <span>{formatDateTime(row.startAt as string)}</span>
+                            <span className="opacity-70">to {formatDateTime(row.endAt as string)}</span>
+                          </div>
+                        </div>
+                        <div className="hidden md:flex col-span-2 items-center">
+                          <Badge 
+                            variant="outline" 
+                            className="text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
+                          >
+                            {row.status}
+                          </Badge>
+                        </div>
+                        <div className="absolute top-2 right-2 md:relative md:top-auto md:right-auto md:col-span-2 flex justify-end items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                          
+                          <DropdownMenu>
+                            <DropdownMenuTrigger >
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" 
+                                disabled={updateStatusMutation.isPending}
+                              >
+                                <CalendarClockIcon size={14} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel className="text-xs">Update Status</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {APPOINTMENT_STATUS_ORDER.map((status) => (
+                                <DropdownMenuItem
+                                  key={status}
+                                  disabled={row.status === status}
+                                  onClick={() => {
+                                    updateStatusMutation.mutate({
+                                      appointmentId: row.id,
+                                      status: status,
+                                    });
+                                  }}
+                                  className="text-xs"
+                                >
+                                  {status}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
 
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
-                        data-testid="appointment-edit-trigger"
-                        onMouseEnter={loadAppointmentModal}
-                        onClick={() => openEditDialog(row)}
-                      >
-                        <PencilLineIcon size={14} />
-                      </Button>
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
-                        data-testid="appointment-delete-trigger"
-                        disabled={deleteMutation.isPending}
-                        onClick={() => confirmDelete(row.seriesId)}
-                      >
-                        <Trash2Icon size={14} />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                
-                {filteredAppointments.length === 0 && (
-                  <div className="col-span-12 py-16 px-4 flex flex-col items-center justify-center text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                      <CalendarX2 className="w-8 h-8 text-muted-foreground/70" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground mb-1">No appointments found</h3>
-                    <p className="text-sm text-muted-foreground mb-5 max-w-[280px]">
-                      We couldn't find any appointments matching your current filters.
-                    </p>
-                  </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                            data-testid="appointment-edit-trigger"
+                            onMouseEnter={loadAppointmentModal}
+                            onClick={() => openEditDialog(row)}
+                            disabled={row.isRecurringInstance}
+                            title={row.isRecurringInstance ? "Editing recurring appointments is not supported yet." : "Edit"}
+                          >
+                            <PencilLineIcon size={14} />
+                          </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                            data-testid="appointment-delete-trigger"
+                            disabled={deleteMutation.isPending}
+                            onClick={() => confirmDelete(row.seriesId)}
+                          >
+                            <Trash2Icon size={14} />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {filteredAppointments.length === 0 && (
+                      <div className="col-span-12 py-16 px-4 flex flex-col items-center justify-center text-center">
+                        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                          <CalendarX2 className="w-8 h-8 text-muted-foreground/70" />
+                        </div>
+                        <h3 className="text-base font-semibold text-foreground mb-1">No appointments found</h3>
+                        <p className="text-sm text-muted-foreground mb-5 max-w-[280px]">
+                          We couldn&apos;t find any appointments matching your current filters.
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
+              </div>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground text-center sm:text-left">
+                  Showing page {page} of {totalPages}
+                </p>
+                <Pagination className="justify-end w-auto mx-0">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasPrevPage && !appointmentsQuery.isLoading) setPage((p) => p - 1);
+                        }}
+                        className={!hasPrevPage || appointmentsQuery.isLoading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    <PaginationItem>
+                      <PaginationLink href="#" isActive>
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (hasNextPage && !appointmentsQuery.isLoading) setPage((p) => p + 1);
+                        }}
+                        className={!hasNextPage || appointmentsQuery.isLoading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
             )}
-          </div>
-        </div>
+          </TabsContent>
+
+          <TabsContent value="team" className="mt-0 space-y-4">
+            <div className="flex items-center gap-4 bg-muted/30 border border-border/50 rounded-xl p-4">
+              <span className="text-sm font-medium">Select Team:</span>
+              <Select value={selectedTeamId} onValueChange={(val) => { setSelectedTeamId(val ?? ""); setTeamPage(1); }}>
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Select a team" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" disabled>-- Choose a Team --</SelectItem>
+                  {teams.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedTeamId === "all" ? (
+              <div className="border border-border/40 rounded-xl bg-card/50 backdrop-blur-sm py-16 px-4 flex flex-col items-center justify-center text-center shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                  <CalendarX2 className="w-8 h-8 text-muted-foreground/70" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground mb-1">Select a team</h3>
+                <p className="text-sm text-muted-foreground max-w-[280px]">
+                  Please choose a team from the dropdown above to view its appointments.
+                </p>
+              </div>
+            ) : (
+              <div className="border border-border/40 rounded-xl bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
+                <div className="grid grid-cols-12 gap-4 p-3 px-4 border-b border-border/40 bg-muted/40 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+                  <div className="col-span-8 md:col-span-6">Details</div>
+                  <div className="hidden md:block col-span-3">Time Range</div>
+                  <div className="hidden md:block col-span-2 text-center">Status</div>
+                  <div className="hidden md:flex col-span-1 justify-end">Actions</div>
+                </div>
+                
+                <div className="divide-y divide-border/40">
+                  {teamAppointmentsQuery.isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-4 p-4 items-start md:items-center">
+                        <div className="w-full md:col-span-6 space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
+                        </div>
+                        <div className="hidden md:block col-span-4">
+                          <Skeleton className="h-4 w-full" />
+                        </div>
+                        <div className="hidden md:flex col-span-2 justify-end">
+                          <Skeleton className="h-5 w-20 rounded-md" />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      {teamAppointmentsQuery.data?.items.map((row) => (
+                        <div key={row.id} className="flex flex-col md:grid md:grid-cols-12 gap-2 md:gap-4 p-4 items-start md:items-center hover:bg-muted/30 transition-colors">
+                          <div className="w-full md:col-span-6 flex flex-col">
+                            <div className="flex items-center justify-between w-full md:w-auto pr-10 md:pr-0">
+                              <span className="text-sm font-medium text-foreground">
+                                {row.title}
+                              </span>
+                              <Badge 
+                                variant="outline" 
+                                className="md:hidden text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20 shrink-0"
+                              >
+                                {row.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="w-full md:w-auto md:flex flex-col md:col-span-3 text-xs text-muted-foreground font-mono mt-1 md:mt-0">
+                            <span className="flex items-center gap-1.5 md:hidden text-muted-foreground/80 mb-1">
+                              <CalendarClockIcon className="w-3.5 h-3.5" />
+                              {formatDateTime(row.startAt as string)} - {formatDateTime(row.endAt as string)}
+                            </span>
+                            <div className="hidden md:flex flex-col">
+                              <span>{formatDateTime(row.startAt as string)}</span>
+                              <span className="opacity-70">to {formatDateTime(row.endAt as string)}</span>
+                            </div>
+                          </div>
+                          <div className="hidden md:flex col-span-2 justify-center items-center">
+                            <Badge 
+                              variant="outline" 
+                              className="text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
+                            >
+                              {row.status}
+                            </Badge>
+                          </div>
+                          <div className="flex md:col-span-1 justify-end items-center gap-1 mt-2 md:mt-0 w-full md:w-auto border-t md:border-0 border-border/40 pt-2 md:pt-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors ml-auto md:ml-0"
+                                >
+                                  <div className="w-4 h-4 rounded-full border-[1.5px] border-current flex items-center justify-center opacity-70">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                                  </div>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-[160px]">
+                                <DropdownMenuLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                  Update Status
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {APPOINTMENT_STATUS_ORDER.map((status) => (
+                                  <DropdownMenuItem
+                                    key={status}
+                                    className="text-sm cursor-pointer"
+                                    onClick={() => updateTeamStatusMutation.mutate({ appointmentId: row.id, input: { status } })}
+                                    disabled={row.status === status || updateTeamStatusMutation.isPending}
+                                  >
+                                    <span className={row.status === status ? "font-bold" : ""}>
+                                      {status.charAt(0) + status.slice(1).toLowerCase()}
+                                    </span>
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                            
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
+                              onClick={() => openEditTeamDialog(row)}
+                            >
+                              <PencilLineIcon className="w-4 h-4" />
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors text-muted-foreground"
+                              onClick={() => confirmTeamDelete(row.id)}
+                            >
+                              <Trash2Icon className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      
+                      {teamAppointmentsQuery.data?.items.length === 0 && (
+                        <div className="col-span-12 py-16 px-4 flex flex-col items-center justify-center text-center">
+                          <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                            <CalendarX2 className="w-8 h-8 text-muted-foreground/70" />
+                          </div>
+                          <h3 className="text-base font-semibold text-foreground mb-1">No appointments</h3>
+                          <p className="text-sm text-muted-foreground mb-5 max-w-[280px]">
+                            This team doesn&apos;t have any appointments scheduled yet.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Team Pagination Controls */}
+            {teamTotalPages > 1 && selectedTeamId !== "all" && (
+              <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-sm text-muted-foreground text-center sm:text-left">
+                  Showing page {teamPage} of {teamTotalPages}
+                </p>
+                <Pagination className="justify-end w-auto mx-0">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (teamHasPrevPage && !teamAppointmentsQuery.isLoading) setTeamPage((p) => p - 1);
+                        }}
+                        className={!teamHasPrevPage || teamAppointmentsQuery.isLoading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    
+                    <PaginationItem>
+                      <PaginationLink href="#" isActive>
+                        {teamPage}
+                      </PaginationLink>
+                    </PaginationItem>
+
+                    <PaginationItem>
+                      <PaginationNext 
+                        href="#" 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (teamHasNextPage && !teamAppointmentsQuery.isLoading) setTeamPage((p) => p + 1);
+                        }}
+                        className={!teamHasNextPage || teamAppointmentsQuery.isLoading ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {isDialogOpen && (
@@ -385,6 +715,8 @@ export default function AppointmentsPage() {
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
           editingAppointment={editingAppointment}
+          editingTeamAppointment={editingTeamAppointment}
+          defaultTab={activeTab === "team" ? "team" : "personal"}
         />
       )}
 
@@ -404,6 +736,26 @@ export default function AppointmentsPage() {
             </Button>
             <Button variant="destructive" onClick={handleDeleteConfirm} disabled={deleteMutation.isPending}>
               {deleteMutation.isPending ? "Deleting..." : "Delete permanently"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Team Appointment Delete Confirmation Dialog */}
+      <Dialog open={!!deleteTeamAppointmentId} onOpenChange={(open) => !open && setDeleteTeamAppointmentId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Team Appointment</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this team appointment? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setDeleteTeamAppointmentId(null)} disabled={deleteTeamMutation.isPending}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleTeamDeleteConfirm} disabled={deleteTeamMutation.isPending}>
+              {deleteTeamMutation.isPending ? "Deleting..." : "Delete permanently"}
             </Button>
           </DialogFooter>
         </DialogContent>

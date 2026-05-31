@@ -49,6 +49,9 @@ export const teamMemberItemSchema = z.object({
 
 export const teamMemberListResponseSchema = z.object({
   items: z.array(teamMemberItemSchema),
+  page: z.number(),
+  limit: z.number(),
+  total: z.number(),
 });
 
 export const teamInvitationResponseSchema = z.object({
@@ -78,6 +81,11 @@ export const invitationActionResponseSchema = z.object({
 });
 
 export const leaveTeamResponseSchema = z.object({
+  message: z.string(),
+  data: z.null(),
+});
+
+export const removeTeamMemberResponseSchema = z.object({
   message: z.string(),
   data: z.null(),
 });
@@ -116,6 +124,16 @@ export const changeMemberRoleRequestSchema = z.object({
   role: teamRoleSchema,
 });
 
+export const updateTeamRequestSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  description: z.string().max(1000).optional(),
+});
+
+export const getTeamMembersQuerySchema = z.object({
+  page: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+});
+
 // --- Types ---
 export type TeamResponse = z.infer<typeof teamResponseSchema>;
 export type TeamDetailResponse = z.infer<typeof teamDetailResponseSchema>;
@@ -128,9 +146,12 @@ export type TeamMyInvitationItem = z.infer<typeof teamMyInvitationItemSchema>;
 export type InvitationActionResponse = z.infer<typeof invitationActionResponseSchema>;
 export type LeaveTeamResponse = z.infer<typeof leaveTeamResponseSchema>;
 export type TeamMemberRoleResponse = z.infer<typeof teamMemberRoleResponseSchema>;
+export type RemoveTeamMemberResponse = z.infer<typeof removeTeamMemberResponseSchema>;
 
 export type CreateTeamRequest = z.infer<typeof createTeamRequestSchema>;
 export type GetTeamsQuery = z.infer<typeof getTeamsQuerySchema>;
 export type GetMyInvitationsQuery = z.infer<typeof getMyInvitationsQuerySchema>;
 export type CreateTeamInvitationRequest = z.infer<typeof createTeamInvitationRequestSchema>;
 export type ChangeMemberRoleRequest = z.infer<typeof changeMemberRoleRequestSchema>;
+export type UpdateTeamRequest = z.infer<typeof updateTeamRequestSchema>;
+export type GetTeamMembersQuery = z.infer<typeof getTeamMembersQuerySchema>;

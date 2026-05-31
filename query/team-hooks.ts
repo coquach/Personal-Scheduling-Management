@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryKeys } from "./keys";
 import { createInvalidatingMutation, type MutationCallbacks } from "./utils";
 import {
@@ -13,11 +13,14 @@ import {
   inviteMember,
   leaveTeam,
 } from "@/services/team.service";
+import { searchUserByEmail } from "@/services/profile.service";
 import type {
   ChangeMemberRoleRequest,
   CreateTeamInvitationRequest,
   GetMyInvitationsQuery,
   GetTeamsQuery,
+  GetTeamMembersQuery,
+  UpdateTeamRequest,
 } from "@/model/team";
 
 export type { MutationCallbacks };
@@ -37,10 +40,10 @@ export function useGetTeamDetail(teamId: string) {
   });
 }
 
-export function useGetTeamMembers(teamId: string) {
+export function useGetTeamMembers(teamId: string, query?: GetTeamMembersQuery) {
   return useQuery({
-    queryKey: queryKeys.teams.members(teamId),
-    queryFn: () => getTeamMembers(teamId),
+    queryKey: queryKeys.teams.members(teamId, query),
+    queryFn: () => getTeamMembers(teamId, query),
     enabled: !!teamId,
   });
 }
@@ -88,3 +91,30 @@ export const useLeaveTeam = createInvalidatingMutation(
   (teamId: string) => leaveTeam(teamId),
   (data, teamId) => [queryKeys.teams.all, queryKeys.teams.detail(teamId)]
 );
+
+export function useSearchUserByEmailMutation() {
+  return useMutation({
+    mutationFn: (email: string) => searchUserByEmail(email),
+  });
+}
+
+export function useRemoveTeamMember(teamId: string) {
+  return createInvalidatingMutation(
+    (userId: string) => import("@/services/team.service").then(m => m.removeMember(teamId, userId)),
+    [queryKeys.teams.members(teamId), queryKeys.teams.detail(teamId)]
+  )();
+}
+
+export function useUpdateTeam(teamId: string) {
+  return createInvalidatingMutation(
+    (input: UpdateTeamRequest) => import("@/services/team.service").then(m => m.updateTeam(teamId, input)),
+    [queryKeys.teams.detail(teamId), queryKeys.teams.all]
+  )();
+}
+
+export function useDeleteTeam() {
+  return createInvalidatingMutation(
+    (teamId: string) => import("@/services/team.service").then(m => m.deleteTeam(teamId)),
+    [queryKeys.teams.all]
+  )();
+}
