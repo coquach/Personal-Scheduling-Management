@@ -14,13 +14,13 @@ export const notificationTypeSchema = z.enum(["REMINDER", "SYSTEM"]);
 export const notificationItemSchema = z.object({
   id: uuidSchema,
   userId: uuidSchema,
-  appointmentId: uuidSchema.nullable(),
-  reminderId: uuidSchema.nullable(),
+  appointmentId: uuidSchema.nullish().transform((v) => v ?? null),
+  reminderId: uuidSchema.nullish().transform((v) => v ?? null),
   type: notificationTypeSchema,
   message: z.string().trim().min(1).max(5000),
-  triggeredAt: isoDateTimeSchema.nullable(),
+  triggeredAt: isoDateTimeSchema.nullish().transform((v) => v ?? null),
   createdAt: isoDateTimeSchema,
-  readAt: isoDateTimeSchema.nullable(),
+  readAt: isoDateTimeSchema.nullish().transform((v) => v ?? null),
 });
 
 export const notificationListResponseSchema = z.array(notificationItemSchema);
@@ -38,9 +38,9 @@ export const markReadInputSchema = z.object({
 export const userDeviceSchema = z.object({
   id: uuidSchema,
   fcmToken: z.string().trim().min(1),
-  deviceName: z.string().trim().min(1).max(255).nullable(),
-  platform: z.string().trim().min(1).max(32).nullable(),
-  lastActiveAt: isoDateTimeSchema,
+  deviceName: z.string().trim().min(1).max(255).nullish().transform((v) => v ?? null),
+  platform: z.string().trim().min(1).max(32).nullish().transform((v) => v ?? null),
+  lastActiveAt: isoDateTimeSchema.nullish().transform((v) => v ?? null),
 });
 
 export const markAllReadResponseSchema = z.object({
@@ -75,7 +75,7 @@ export type UserDevice = {
   fcmToken: string;
   deviceName: string | null;
   platform: string | null;
-  lastActiveAt: string;
+  lastActiveAt: string | null;
 };
 
 export type MarkReadInput = z.infer<typeof markReadInputSchema>;

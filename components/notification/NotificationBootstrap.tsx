@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { BellRingIcon, XIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { queryKeys } from "@/query/keys";
 import { getAccessToken, subscribe } from "@/lib/auth-store";
@@ -119,15 +121,45 @@ export function NotificationBootstrap() {
       const body = messageFromData || payload.notification?.body?.trim() || "";
       const link = resolveNotificationLink(data);
 
-      toast(title, {
-        description: body || undefined,
-        action: {
-          label: "Open",
-          onClick: () => {
-            router.push(link);
-          },
-        },
-      });
+      toast.custom((t) => (
+        <div className="flex w-[356px] flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-4 shadow-xl backdrop-blur-xl pointer-events-auto">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <BellRingIcon className="h-5 w-5" />
+            </div>
+            <div className="flex-1 space-y-1 pt-1">
+              <p className="font-semibold text-sm leading-none text-foreground">{title}</p>
+              {body && <p className="text-sm text-muted-foreground line-clamp-2 mt-1.5">{body}</p>}
+            </div>
+            <button 
+              onClick={() => toast.dismiss(t)}
+              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            >
+              <XIcon className="size-4" />
+            </button>
+          </div>
+          <div className="flex justify-end gap-2 mt-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl px-4 text-xs font-semibold h-8"
+              onClick={() => toast.dismiss(t)}
+            >
+              Dismiss
+            </Button>
+            <Button
+              size="sm"
+              className="rounded-xl px-4 text-xs font-semibold h-8"
+              onClick={() => {
+                toast.dismiss(t);
+                router.push(link);
+              }}
+            >
+              View details
+            </Button>
+          </div>
+        </div>
+      ), { duration: 6000 });
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
     }).then((unsubscribe) => {
       unsubscribeForeground = unsubscribe;

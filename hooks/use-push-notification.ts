@@ -56,11 +56,7 @@ export function usePushNotification() {
     setIsRegisteringPush(true);
     try {
       const fcmToken = await getFirebaseMessagingToken();
-      if (!fcmToken) {
-        setPushEnabled(false);
-        toast.error("Notification permission was not granted.");
-        return;
-      }
+      // fcmToken is guaranteed to be a string now, because getFirebaseMessagingToken throws if it fails.
 
       if (getRegisteredFcmToken() !== fcmToken) {
         const deviceName = navigator.userAgent.slice(0, 255);
@@ -75,7 +71,8 @@ export function usePushNotification() {
       toast.success("Push notifications enabled!");
     } catch (error) {
       console.error(error);
-      toast.error("Failed to setup push notifications.");
+      const msg = error instanceof Error ? error.message : "Failed to setup push notifications.";
+      toast.error(msg);
       setPushEnabled(false);
     } finally {
       setIsRegisteringPush(false);

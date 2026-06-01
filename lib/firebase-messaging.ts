@@ -82,7 +82,8 @@ export async function registerFirebaseMessagingServiceWorker() {
     return null;
   }
 
-  return navigator.serviceWorker.register(serviceWorkerUrl);
+  await navigator.serviceWorker.register(serviceWorkerUrl);
+  return navigator.serviceWorker.ready;
 }
 
 export async function getFirebaseMessaging() {
@@ -126,7 +127,7 @@ export async function getFirebaseMessagingToken() {
   const permission = await requestNotificationPermission();
 
   if (permission !== "granted") {
-    return null;
+    throw new Error(`Notification permission was not granted. Browser returned: '${permission}'.`);
   }
 
   const messaging = await getFirebaseMessaging();
@@ -134,8 +135,12 @@ export async function getFirebaseMessagingToken() {
     await registerFirebaseMessagingServiceWorker();
   const config = getFirebaseWebConfig();
 
-  if (!messaging || !serviceWorkerRegistration || !config?.vapidKey) {
-    return null;
+  if (!config || !config.vapidKey) {
+    throw new Error("Firebase configuration is missing or incomplete (missing vapidKey).");
+  }
+
+  if (!messaging || !serviceWorkerRegistration) {
+    throw new Error("Firebase Messaging could not be initialized.");
   }
 
   return getToken(messaging, {
