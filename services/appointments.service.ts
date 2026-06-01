@@ -4,31 +4,34 @@ import {
   createAppointmentInputSchema,
   createSeriesRequestSchema,
   deleteAppointmentResponseSchema,
-  deleteAppointmentScopeSchema,
   getAppointmentsInputSchema,
   idResponseSchema,
-  uuidSchema,
   updateAppointmentInputSchema,
   updateAppointmentStatusInputSchema,
   updateAppointmentStatusResponseSchema,
   updateSeriesRequestSchema,
-  type CreateSeriesRequest,
-  type UpdateSeriesRequest,
+  getAppointmentSeriesInputSchema,
+  appointmentSeriesListResponseSchema,
+  uuidSchema,
   type AppointmentStatus,
   type CreateAppointmentInput,
-  type DeleteAppointmentScopeInput,
+  type CreateSeriesRequest,
   type GetAppointmentsInput,
+  type GetAppointmentSeriesInput,
   type UpdateAppointmentInput,
+  type UpdateSeriesRequest
 } from "@/model/appointments";
 
 export type {
   Appointment,
   AppointmentListResponse,
+  AppointmentSeries,
+  AppointmentSeriesListResponse,
   AppointmentStatus,
   CreateAppointmentInput,
-  DeleteAppointmentScopeInput,
   GetAppointmentsInput,
-  UpdateAppointmentInput,
+  GetAppointmentSeriesInput,
+  UpdateAppointmentInput
 } from "@/model/appointments";
 
 
@@ -50,9 +53,25 @@ export async function getAppointments(input: GetAppointmentsInput) {
       limit: parsedInput.limit,
       ...(parsedInput.fromDate && { fromDate: parsedInput.fromDate }),
       ...(parsedInput.toDate && { toDate: parsedInput.toDate }),
+      ...(parsedInput.seriesId && { seriesId: parsedInput.seriesId }),
     },
   });
   const response = appointmentListResponseSchema.parse(rawResponse);
+
+  return response;
+}
+
+export async function getAppointmentSeries(input: GetAppointmentSeriesInput) {
+  const parsedInput = getAppointmentSeriesInputSchema.parse(input);
+  
+  const rawResponse = await browserApiRequest<unknown>("/series", undefined, {
+    params: {
+      page: parsedInput.page,
+      limit: parsedInput.limit,
+      ...(parsedInput.recurrenceType && { recurrenceType: parsedInput.recurrenceType }),
+    },
+  });
+  const response = appointmentSeriesListResponseSchema.parse(rawResponse);
 
   return response;
 }
@@ -117,14 +136,10 @@ export async function updateAppointment(
   return idResponseSchema.parse(rawResponse);
 }
 
-export async function deleteAppointment(
-  seriesId: string,
-  scope: DeleteAppointmentScopeInput = "series",
-) {
+export async function deleteAppointment(seriesId: string) {
   const parsedSeriesId = uuidSchema.parse(seriesId);
-  const parsedScope = deleteAppointmentScopeSchema.parse(scope);
   const rawResponse = await browserApiRequest<unknown>(
-    `/series/${parsedSeriesId}?scope=${parsedScope}`,
+    `/series/${parsedSeriesId}`,
     {
       method: "DELETE",
     },
@@ -149,3 +164,5 @@ export async function updateAppointmentStatus(
 
   return updateAppointmentStatusResponseSchema.parse(rawResponse);
 }
+
+

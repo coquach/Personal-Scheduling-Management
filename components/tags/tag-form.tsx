@@ -28,7 +28,6 @@ interface TagFormProps {
   onReset: () => void;
   isLoading: boolean;
   errorMessage: string | null;
-  feedbackMessage: string | null;
 }
 
 export function TagForm({
@@ -41,7 +40,6 @@ export function TagForm({
   onReset,
   isLoading,
   errorMessage,
-  feedbackMessage,
 }: TagFormProps) {
   const isCustomColor = !PRESET_COLORS.includes(color);
 
@@ -145,11 +143,6 @@ export function TagForm({
         {errorMessage && (
           <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
             <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-        {feedbackMessage && (
-          <Alert className="border-primary/20 bg-primary/5 text-primary animate-in fade-in slide-in-from-top-2">
-            <AlertDescription>{feedbackMessage}</AlertDescription>
           </Alert>
         )}
       </CardContent>

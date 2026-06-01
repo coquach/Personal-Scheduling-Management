@@ -61,6 +61,7 @@ export default function InviteMemberModal({
         role: role,
       });
 
+      toast.success("Invitation sent successfully.");
       onOpenChange(false);
       setEmail("");
       setRole("MEMBER");

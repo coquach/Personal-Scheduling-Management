@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { useAppointmentsListQuery } from "@/query/appointments-hooks";
+import { useCalendarAppointments } from "@/query/calendar-hooks";
 import { useTagsQuery } from "@/query/tags-hooks";
+import { useMemo } from "react";
 import { format, isSameDay } from "date-fns";
 import { motion } from "framer-motion";
 import { CalendarIcon, ClockIcon, XIcon } from "lucide-react";
@@ -17,13 +18,34 @@ export function RightBentoSidebar() {
   const tagsQuery = useTagsQuery();
   const tags = tagsQuery.data || [];
 
-  // 2. Fetch upcoming appointments
-  const upcomingQuery = useAppointmentsListQuery({
-    limit: 3,
-    fromDate: today.toISOString(),
+  const todayDate = useMemo(() => new Date(), []);
+  
+  const dateRange = useMemo(() => {
+    const from = new Date(todayDate);
+    const to = new Date(todayDate);
+    to.setDate(to.getDate() + 7);
+    to.setHours(23, 59, 59, 999);
+    return {
+      fromDate: from.toISOString(),
+      toDate: to.toISOString(),
+    };
+  }, [todayDate]);
+
+  // 2. Fetch upcoming appointments (both personal and team)
+  const upcomingQuery = useCalendarAppointments({
+    limit: 10,
+    fromDate: dateRange.fromDate,
+    toDate: dateRange.toDate,
   });
   
-  const upcomingAppointments = upcomingQuery.data?.items || [];
+  const upcomingAppointments = useMemo(() => {
+    if (!upcomingQuery.appointments) return [];
+    const now = todayDate.getTime();
+    return upcomingQuery.appointments
+      .filter((apt) => new Date(apt.startAt).getTime() >= now && apt.status !== "CANCELLED")
+      .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime())
+      .slice(0, 3);
+  }, [upcomingQuery.appointments, todayDate]);
 
   return (
     <>
@@ -80,7 +102,7 @@ export function RightBentoSidebar() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <span className="font-semibold text-sm line-clamp-1">{apt.title}</span>
-                      {apt.tags[0] && (
+                      {apt.tags?.[0] && (
                         <span 
                           className="size-2.5 rounded-full shrink-0 mt-1" 
                           style={{ backgroundColor: apt.tags[0].color }} 

@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 import { useCreateTeam } from "@/query/team-hooks";
 import {
@@ -47,6 +48,7 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
   const onSubmit = (data: CreateTeamRequest) => {
     createMutation.mutate(data, {
       onSuccess: () => {
+        toast.success("Team created successfully.");
         onOpenChange(false);
         reset();
       },

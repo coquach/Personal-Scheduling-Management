@@ -1,53 +1,48 @@
-import "temporal-polyfill/global";
+import 'temporal-polyfill/global';
 
-import type { CalendarEvent } from "@schedule-x/calendar";
+import type { CalendarEvent } from '@schedule-x/calendar';
 
-import { CALENDAR_STATUS_IDS } from "@/lib/constants/calendar";
-import type { Appointment } from "@/services/appointments.service";
-import type { AppointmentStatus } from "@/model/appointments";
+import { CALENDAR_STATUS_IDS } from '@/lib/constants/calendar';
+import type { Appointment } from '@/services/appointments.service';
+import type { AppointmentStatus } from '@/model/appointments';
 
 function statusToCalendarId(status: AppointmentStatus) {
   switch (status) {
-    case "COMPLETED":
+    case 'COMPLETED':
       return CALENDAR_STATUS_IDS.completed;
-    case "MISSED":
+    case 'MISSED':
       return CALENDAR_STATUS_IDS.missed;
-    case "CANCELLED":
+    case 'CANCELLED':
       return CALENDAR_STATUS_IDS.cancelled;
-    case "SCHEDULED":
+    case 'SCHEDULED':
     default:
       return CALENDAR_STATUS_IDS.scheduled;
   }
 }
 
-/**
- * Schedule-X v3 requires dates as "YYYY-MM-DD HH:mm" strings in LOCAL time.
- * We convert the ISO 8601 UTC string from the backend into that format using
- * the Temporal API for correct timezone handling.
- */
-function toScheduleXDateTime(isoDateTime: string): string {
-  const instant = Temporal.Instant.from(isoDateTime);
-  const timezone = Temporal.Now.timeZoneId();
-  const zdt = instant.toZonedDateTimeISO(timezone);
-  // Zero-pad each component to match "YYYY-MM-DD HH:mm"
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    `${zdt.year}-${pad(zdt.month)}-${pad(zdt.day)}` +
-    ` ${pad(zdt.hour)}:${pad(zdt.minute)}`
-  );
-}
-
 export function mapAppointmentToCalendarEvent(
   appointment: Appointment,
 ): CalendarEvent {
+  const startInstant = Temporal.Instant.from(appointment.startAt);
+  const endInstant = Temporal.Instant.from(appointment.endAt);
+  const timezone = Temporal.Now.timeZoneId();
+
+  const startZdt = startInstant.toZonedDateTimeISO(timezone);
+  const endZdt = endInstant.toZonedDateTimeISO(timezone);
+
+  // Check if the event spans multiple days in the local timezone
+  const isMultiDay =
+    startZdt.toPlainDate().toString() !== endZdt.toPlainDate().toString();
+
   return {
-    id: appointment.seriesId ?? appointment.id,
+    id: appointment.id,
     title: appointment.title,
     description: appointment.description ?? undefined,
-    start: toScheduleXDateTime(appointment.startAt),
-    end: toScheduleXDateTime(appointment.endAt),
+    start: isMultiDay ? startZdt.toPlainDate() : startZdt,
+    end: isMultiDay ? endZdt.toPlainDate() : endZdt,
     calendarId: statusToCalendarId(appointment.status),
-  };
+    _appointment: appointment,
+  } as CalendarEvent & { _appointment: Appointment };
 }
 
 export function mapAppointmentsToCalendarEvents(

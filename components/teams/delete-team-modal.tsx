@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import { useDeleteTeam } from "@/query/team-hooks";
 
@@ -36,6 +37,7 @@ export default function DeleteTeamModal({ teamId, teamName, open, onOpenChange }
     
     deleteMutation.mutate(teamId, {
       onSuccess: () => {
+        toast.success("Team deleted successfully.");
         onOpenChange(false);
         router.push("/teams");
       },

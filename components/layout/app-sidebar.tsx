@@ -28,7 +28,7 @@ import {
 const navigationGroups = [
   {
     label: "Planning",
-    items: ["Calendar", "Appointments", "Tags", "Reminders"],
+    items: ["Calendar", "Appointments", "Tags"],
   },
   {
     label: "Workspace",

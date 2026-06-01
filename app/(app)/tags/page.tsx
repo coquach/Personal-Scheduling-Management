@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { PageSection } from "@/components/layout/page-section";
 import { getApiErrorMessage } from "@/lib/api-core";
@@ -24,18 +25,16 @@ export default function TagsPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   // Clear messages after a delay
   useEffect(() => {
-    if (feedbackMessage || errorMessage) {
+    if (errorMessage) {
       const timer = setTimeout(() => {
-        setFeedbackMessage(null);
         setErrorMessage(null);
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [feedbackMessage, errorMessage]);
+  }, [errorMessage]);
 
   // Click outside delete confirmation
   useEffect(() => {
@@ -56,10 +55,9 @@ export default function TagsPage() {
   const createMutation = useCreateTagMutation({
     onSuccess: () => {
       resetForm();
-      setFeedbackMessage("Tag created successfully.");
+      toast.success("Tag created successfully.");
     },
     onError: (error) => {
-      setFeedbackMessage(null);
       setErrorMessage(getApiErrorMessage(error, "Unable to create tag."));
     },
   });
@@ -67,10 +65,9 @@ export default function TagsPage() {
   const updateMutation = useUpdateTagMutation({
     onSuccess: () => {
       resetForm();
-      setFeedbackMessage("Tag updated successfully.");
+      toast.success("Tag updated successfully.");
     },
     onError: (error) => {
-      setFeedbackMessage(null);
       setErrorMessage(getApiErrorMessage(error, "Unable to update tag."));
     },
   });
@@ -79,20 +76,18 @@ export default function TagsPage() {
     onSuccess: () => {
       setConfirmDeleteId(null);
       setErrorMessage(null);
-      setFeedbackMessage("Tag deleted successfully.");
+      toast.success("Tag deleted successfully.");
       if (editingTag && !tagsQuery.data?.find((t) => t.id === editingTag.id)) {
         resetForm();
       }
     },
     onError: (error) => {
-      setFeedbackMessage(null);
       setErrorMessage(getApiErrorMessage(error, "Unable to delete tag."));
     },
   });
 
   function handleSave() {
     setErrorMessage(null);
-    setFeedbackMessage(null);
 
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -152,7 +147,6 @@ export default function TagsPage() {
               onReset={resetForm}
               isLoading={isLoading}
               errorMessage={errorMessage}
-              feedbackMessage={feedbackMessage}
             />
           </div>
           <div className="space-y-4">

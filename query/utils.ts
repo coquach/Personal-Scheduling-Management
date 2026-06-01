@@ -9,7 +9,8 @@ export type MutationCallbacks<TData = unknown, TError = Error, TVariables = void
 
 export function createInvalidatingMutation<TData, TError = Error, TVariables = void, TContext = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
-  invalidateKeys: QueryKey[] | ((data: TData, variables: TVariables) => QueryKey[])
+  invalidateKeys: QueryKey[] | ((data: TData, variables: TVariables) => QueryKey[]),
+  options?: { delayMs?: number }
 ) {
   return function useInvalidatingMutation(callbacks?: MutationCallbacks<TData, TError, TVariables, TContext>) {
     const queryClient = useQueryClient();
@@ -21,9 +22,18 @@ export function createInvalidatingMutation<TData, TError = Error, TVariables = v
           ? invalidateKeys(data, variables)
           : invalidateKeys;
 
-        await Promise.all(
-          keysToInvalidate.map((queryKey) => queryClient.invalidateQueries({ queryKey }))
-        );
+        const invalidate = async () => {
+          await Promise.all(
+            keysToInvalidate.map((queryKey) => queryClient.invalidateQueries({ queryKey }))
+          );
+        };
+
+        if (options?.delayMs) {
+          await new Promise((resolve) => setTimeout(resolve, options.delayMs));
+          await invalidate();
+        } else {
+          await invalidate();
+        }
 
         await callbacks?.onSuccess?.(data, variables, context);
       },

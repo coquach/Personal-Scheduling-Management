@@ -14,7 +14,6 @@ export const appNavigation = [
   { href: "/calendar", label: "Calendar", icon: CalendarDays, testId: "nav-calendar" },
   { href: "/appointments", label: "Appointments", icon: LayoutDashboard, testId: "nav-appointments" },
   { href: "/tags", label: "Tags", icon: Tags, testId: "nav-tags" },
-  { href: "/reminders", label: "Reminders", icon: Bell, testId: "nav-reminders" },
   { href: "/notifications", label: "Notifications", icon: FolderKanban, testId: "nav-notifications" },
   { href: "/statistics", label: "Statistics", icon: ChartColumn, testId: "nav-statistics" },
   { href: "/teams", label: "Teams", icon: Users, testId: "nav-teams" },

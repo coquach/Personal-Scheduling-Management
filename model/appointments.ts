@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const uuidSchema = z.string().uuid();
 
-const dateTimeStringSchema = z
+export const dateTimeStringSchema = z
   .string()
   .min(1)
   .refine((value) => {
@@ -14,13 +14,13 @@ const dateTimeStringSchema = z
   .transform((value) => value.includes(" ") ? value.replace(" ", "T") : value);
 
 const weekdaySchema = z.enum([
-  "MONDAY",
-  "TUESDAY",
-  "WEDNESDAY",
-  "THURSDAY",
-  "FRIDAY",
-  "SATURDAY",
-  "SUNDAY",
+  "MON",
+  "TUE",
+  "WED",
+  "THU",
+  "FRI",
+  "SAT",
+  "SUN",
 ]);
 
 function isEndAfterStart(start: string, end: string) {
@@ -60,6 +60,12 @@ export const appointmentSchema = z.object({
   status: appointmentStatusSchema,
   jobId: z.string().nullable(),
   tags: z.array(appointmentTagSchema).default([]),
+  recurrenceType: recurrenceTypeSchema,
+  weeklyDay: z.array(weekdaySchema).optional(),
+  monthlyDay: z.number().nullable().optional(),
+  yearlyDay: z.number().nullable().optional(),
+  yearlyMonth: z.number().nullable().optional(),
+  seriesTimezone: z.string().optional(),
 }).superRefine((value, ctx) => {
   if (!isEndAfterStart(value.startAt, value.endAt)) {
     ctx.addIssue({
@@ -84,9 +90,42 @@ export const appointmentListResponseSchema = z.object({
 
 export type AppointmentListResponse = z.infer<typeof appointmentListResponseSchema>;
 
-export const deleteAppointmentScopeSchema = z.enum(["single", "series"]);
+export const getAppointmentSeriesInputSchema = z.object({
+  page: z.number().int().min(1).default(1).optional(),
+  limit: z.number().int().min(1).max(100).default(10).optional(),
+  recurrenceType: recurrenceTypeSchema.optional(),
+});
 
-export type DeleteAppointmentScopeInput = z.infer<typeof deleteAppointmentScopeSchema>;
+export type GetAppointmentSeriesInput = z.infer<typeof getAppointmentSeriesInputSchema>;
+
+export const appointmentSeriesSchema = z.object({
+  id: uuidSchema,
+  userId: uuidSchema,
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  startAt: z.string(),
+  endAt: z.string(),
+  recurrenceType: recurrenceTypeSchema,
+  weeklyDay: z.array(z.string()),
+  monthlyDay: z.number().nullable(),
+  yearlyDay: z.number().nullable(),
+  yearlyMonth: z.number().nullable(),
+  seriesTimezone: z.string(),
+  cancelledAt: z.string().nullable().optional(),
+  tags: z.array(appointmentTagSchema),
+});
+
+export type AppointmentSeries = z.infer<typeof appointmentSeriesSchema>;
+
+export const appointmentSeriesListResponseSchema = z.object({
+  items: z.array(appointmentSeriesSchema),
+  total: z.number(),
+  page: z.number(),
+  limit: z.number(),
+});
+
+export type AppointmentSeriesListResponse = z.infer<typeof appointmentSeriesListResponseSchema>;
+
 
 export const deleteAppointmentResponseSchema = z.object({
   success: z.boolean(),
@@ -95,10 +134,11 @@ export const deleteAppointmentResponseSchema = z.object({
 });
 
 export const getAppointmentsInputSchema = z.object({
-  page: z.number().int().min(1).optional(),
-  limit: z.number().int().min(1).max(100).optional(),
+  page: z.number().int().min(1).default(1).optional(),
+  limit: z.number().int().min(1).max(100).default(10).optional(),
   fromDate: dateTimeStringSchema.optional(),
   toDate: dateTimeStringSchema.optional(),
+  seriesId: uuidSchema.optional(),
 });
 
 export type GetAppointmentsInput = z.infer<typeof getAppointmentsInputSchema>;
@@ -223,4 +263,18 @@ export const updateAppointmentStatusResponseSchema = z
 
 export type CreateSeriesRequest = z.infer<typeof createSeriesRequestSchema>;
 export type UpdateSeriesRequest = z.infer<typeof updateSeriesRequestSchema>;
-export type DeleteAppointmentScope = z.infer<typeof deleteAppointmentScopeSchema>;
+
+export const rescheduleOccurrenceInputSchema = z.object({
+  startAt: dateTimeStringSchema,
+  endAt: dateTimeStringSchema,
+}).superRefine((value, ctx) => {
+  if (!isEndAfterStart(value.startAt, value.endAt)) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["endAt"],
+      message: "endAt must be greater than startAt.",
+    });
+  }
+});
+
+export type RescheduleOccurrenceInput = z.infer<typeof rescheduleOccurrenceInputSchema>;

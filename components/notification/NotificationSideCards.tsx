@@ -1,8 +1,10 @@
 'use client';
 
-import { BellRingIcon, CheckCircle2Icon, InfoIcon } from 'lucide-react';
+import { BellRingIcon, CheckCircle2Icon, InfoIcon, SmartphoneIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
+import { usePushNotification } from '@/hooks/use-push-notification';
 
 type NotificationSideCardsProps = {
   unreadCount: number;
@@ -11,6 +13,8 @@ type NotificationSideCardsProps = {
 export function NotificationSideCards({
   unreadCount,
 }: NotificationSideCardsProps) {
+  const push = usePushNotification();
+
   return (
     <div className="space-y-6">
       <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl overflow-hidden relative">
@@ -38,6 +42,39 @@ export function NotificationSideCards({
               Unread Messages
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <SmartphoneIcon className="size-5 text-primary" />
+            Device Push
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+           <div className="flex items-center justify-between">
+             <div className="space-y-1">
+               <p className="font-semibold text-sm leading-none">Push Notifications</p>
+               <p className="text-xs text-muted-foreground">Receive reminders on this device.</p>
+             </div>
+             <button
+                type="button"
+                role="switch"
+                aria-checked={push.enabled}
+                disabled={push.isRegistering}
+                onClick={push.toggle}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 ${push.enabled ? "bg-primary" : "bg-muted-foreground/30"}`}
+              >
+                {push.isRegistering ? (
+                  <Spinner className="absolute left-1/2 top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 text-background" />
+                ) : (
+                  <span
+                    className={`pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform ${push.enabled ? "translate-x-5" : "translate-x-0"}`}
+                  />
+                )}
+              </button>
+           </div>
         </CardContent>
       </Card>
 

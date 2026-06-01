@@ -1,31 +1,42 @@
-"use client";
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ChevronDownIcon, ChevronUpIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { DateTimePicker } from "@/components/ui/datetime-picker";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { useTagsQuery } from "@/query/tags-hooks";
-
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { DateTimePicker } from '@/components/ui/datetime-picker';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useTagsQuery } from '@/query/tags-hooks';
 
 import {
   createAppointmentInputSchema,
   type CreateAppointmentInput,
-} from "@/model/appointments";
+} from '@/model/appointments';
 import {
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
-} from "@/query/appointments-hooks";
-import { type Appointment } from "@/services/appointments.service";
-import { toast } from "sonner";
+  useDeleteAppointmentMutation,
+  useUpdateAppointmentStatusMutation,
+} from '@/query/appointments-hooks';
+import {
+  type Appointment,
+  type AppointmentStatus,
+} from '@/services/appointments.service';
+import { Trash2Icon } from 'lucide-react';
+import { getApiErrorMessage } from '@/lib/api-core';
+import { toast } from 'sonner';
 
 function toDateTimeLocalValue(value: string) {
   const date = new Date(value);
@@ -45,16 +56,38 @@ export function PersonalAppointmentForm({
   initialDate,
 }: PersonalAppointmentFormProps) {
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
-
   const createMutation = useCreateAppointmentMutation({
     onSuccess: () => {
+      toast.success('Appointment created successfully.');
       onOpenChange(false);
     },
   });
 
   const updateMutation = useUpdateAppointmentMutation({
     onSuccess: () => {
+      toast.success('Appointment updated successfully.');
       onOpenChange(false);
+    },
+  });
+
+
+
+  const deleteMutation = useDeleteAppointmentMutation({
+    onSuccess: () => {
+      toast.success('Appointment deleted successfully.');
+      onOpenChange(false);
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, 'Unable to delete appointment.'));
+    },
+  });
+
+  const updateStatusMutation = useUpdateAppointmentStatusMutation({
+    onSuccess: () => {
+      toast.success('Status updated successfully.');
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, 'Unable to update status.'));
     },
   });
 
@@ -62,26 +95,25 @@ export function PersonalAppointmentForm({
     register,
     handleSubmit,
     reset,
-    watch,
     setValue,
     control,
     formState: { errors },
   } = useForm<CreateAppointmentInput>({
     resolver: zodResolver(createAppointmentInputSchema),
-    mode: "onBlur",
-    reValidateMode: "onBlur",
+    mode: 'onBlur',
+    reValidateMode: 'onBlur',
     defaultValues: {
-      title: "",
-      description: "",
-      startAt: "",
-      endAt: "",
-      recurrenceType: "ONETIME",
+      title: '',
+      description: '',
+      startAt: '',
+      endAt: '',
+      recurrenceType: 'ONETIME',
       tagIds: [],
     },
   });
 
-  const selectedTagIds = watch("tagIds") || [];
-  const selectedRecurrence = watch("recurrenceType");
+  const selectedTagIds = useWatch({ control, name: 'tagIds' }) || [];
+  const selectedRecurrence = useWatch({ control, name: 'recurrenceType' });
 
   const tagsQuery = useTagsQuery();
 
@@ -89,50 +121,95 @@ export function PersonalAppointmentForm({
     if (editingAppointment) {
       reset({
         title: editingAppointment.title,
-        description: editingAppointment.description ?? "",
-        startAt: toDateTimeLocalValue(editingAppointment.startAt),
-        endAt: toDateTimeLocalValue(editingAppointment.endAt),
-        recurrenceType: "ONETIME", // Keep it simple for edit mode unless the API returns it
+        description: editingAppointment.description ?? '',
+        startAt: toDateTimeLocalValue(editingAppointment.startAt as string),
+        endAt: toDateTimeLocalValue(editingAppointment.endAt as string),
+        recurrenceType: (editingAppointment as Appointment & { recurrenceType?: string }).recurrenceType || 'ONETIME',
+        weeklyDay: (editingAppointment as Appointment & { weeklyDay?: string[] }).weeklyDay || [],
+        monthlyDay: (editingAppointment as Appointment & { monthlyDay?: number }).monthlyDay || null,
+        yearlyDay: (editingAppointment as Appointment & { yearlyDay?: number }).yearlyDay || null,
+        yearlyMonth: (editingAppointment as Appointment & { yearlyMonth?: number }).yearlyMonth || null,
         tagIds: editingAppointment.tags?.map((t: { id: string }) => t.id) || [],
       });
     } else if (initialDate) {
-      // Schedule-X might return "YYYY-MM-DD" or "YYYY-MM-DD HH:mm". Extract just the date part.
       const baseDate = initialDate.slice(0, 10);
       reset({
-        title: "",
-        description: "",
+        title: '',
+        description: '',
         startAt: `${baseDate}T09:00`,
         endAt: `${baseDate}T10:00`,
-        recurrenceType: "ONETIME",
+        recurrenceType: 'ONETIME',
         tagIds: [],
       });
     } else {
       reset({
-        title: "",
-        description: "",
-        startAt: "",
-        endAt: "",
-        recurrenceType: "ONETIME",
+        title: '',
+        description: '',
+        startAt: '',
+        endAt: '',
+        recurrenceType: 'ONETIME',
         tagIds: [],
       });
     }
   }, [editingAppointment, initialDate, reset]);
 
+  // Reset recurrence fields when recurrenceType changes
+  useEffect(() => {
+    switch (selectedRecurrence) {
+      case 'ONETIME':
+      case 'DAILY':
+        setValue('weeklyDay', undefined);
+        setValue('monthlyDay', undefined);
+        setValue('yearlyDay', undefined);
+        setValue('yearlyMonth', undefined);
+        break;
+      case 'WEEKLY':
+        setValue('monthlyDay', undefined);
+        setValue('yearlyDay', undefined);
+        setValue('yearlyMonth', undefined);
+        break;
+      case 'MONTHLY':
+        setValue('weeklyDay', undefined);
+        setValue('yearlyDay', undefined);
+        setValue('yearlyMonth', undefined);
+        break;
+      case 'YEARLY':
+        setValue('weeklyDay', undefined);
+        setValue('monthlyDay', undefined);
+        break;
+    }
+  }, [selectedRecurrence, setValue]);
+
   const onSubmit = (data: CreateAppointmentInput) => {
-    const payload = {
-      ...data,
-      startAt: new Date(data.startAt).toISOString(),
-      endAt: new Date(data.endAt).toISOString(),
-    };
+    const startAtDate = new Date(data.startAt);
+    const startAt = startAtDate.toISOString();
+    const endAt = new Date(data.endAt).toISOString();
+
+    const payload = { ...data, startAt, endAt };
+
+    // Auto-populate recurrence fields based on startAt if they are missing from the form
+    if (payload.recurrenceType === 'WEEKLY' && (!payload.weeklyDay || payload.weeklyDay.length === 0)) {
+      const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'] as const;
+      payload.weeklyDay = [weekdays[startAtDate.getDay()]];
+    }
+    if (payload.recurrenceType === 'MONTHLY' && payload.monthlyDay == null) {
+      payload.monthlyDay = startAtDate.getDate();
+    }
+    if (payload.recurrenceType === 'YEARLY' && (payload.yearlyDay == null || payload.yearlyMonth == null)) {
+      payload.yearlyDay = startAtDate.getDate();
+      payload.yearlyMonth = startAtDate.getMonth() + 1; // 1-12
+    }
 
     if (editingAppointment) {
       if (!editingAppointment.seriesId) {
-        toast.error("This appointment cannot be edited because seriesId is missing.");
+        toast.error(
+          'This appointment cannot be edited because seriesId is missing.',
+        );
         return;
       }
       updateMutation.mutate({
-        id: editingAppointment.seriesId,
-        payload,
+        id: editingAppointment.seriesId || editingAppointment.id,
+        payload: payload,
       });
       return;
     }
@@ -140,14 +217,60 @@ export function PersonalAppointmentForm({
     createMutation.mutate(payload);
   };
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isSaving =
+    createMutation.isPending ||
+    updateMutation.isPending;
+
+  const APPOINTMENT_STATUS_ORDER: AppointmentStatus[] = [
+    'SCHEDULED',
+    'COMPLETED',
+    'MISSED',
+    'CANCELLED',
+  ];
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mt-4">
       <div className="grid gap-4 py-4">
+        {editingAppointment && (
+          <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg border border-border/50">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Status</Label>
+              <p className="text-xs text-muted-foreground">
+                Update the current status
+              </p>
+            </div>
+            <Select
+              value={editingAppointment.status}
+              onValueChange={(val) => {
+                updateStatusMutation.mutate({
+                  appointmentId: editingAppointment.id,
+                  status: val as AppointmentStatus,
+                });
+              }}
+              disabled={updateStatusMutation.isPending}
+            >
+              <SelectTrigger className="w-[140px] h-8 text-xs font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {APPOINTMENT_STATUS_ORDER.map((s) => (
+                  <SelectItem
+                    key={s}
+                    value={s}
+                    className="text-xs font-medium"
+                    disabled={editingAppointment.status === s}
+                  >
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div className="space-y-1">
           <Input
-            {...register("title")}
+            {...register('title')}
             data-testid="appointment-title-input"
             placeholder="Title"
           />
@@ -172,7 +295,9 @@ export function PersonalAppointmentForm({
               )}
             />
             {errors.startAt && (
-              <p className="text-sm text-destructive">{errors.startAt.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.startAt.message}
+              </p>
             )}
           </div>
           <div className="space-y-1">
@@ -195,7 +320,6 @@ export function PersonalAppointmentForm({
           </div>
         </div>
 
-        {/* Progressive Disclosure Toggle */}
         <button
           type="button"
           className="flex items-center text-sm font-medium text-primary hover:underline w-max"
@@ -206,7 +330,7 @@ export function PersonalAppointmentForm({
           ) : (
             <ChevronDownIcon className="mr-1 h-4 w-4" />
           )}
-          {isMoreOptionsOpen ? "Hide options" : "More options"}
+          {isMoreOptionsOpen ? 'Hide options' : 'More options'}
         </button>
 
         {/* Progressive Disclosure Content */}
@@ -215,7 +339,7 @@ export function PersonalAppointmentForm({
             <div className="space-y-1">
               <Label>Description</Label>
               <Textarea
-                {...register("description")}
+                {...register('description')}
                 data-testid="appointment-description-input"
                 placeholder="Add more details..."
               />
@@ -230,7 +354,7 @@ export function PersonalAppointmentForm({
               <Label>Recurrence</Label>
               <Select
                 value={selectedRecurrence}
-                onValueChange={(val: any) => setValue("recurrenceType", val)} // eslint-disable-line @typescript-eslint/no-explicit-any
+                onValueChange={(val: any) => setValue('recurrenceType', val)} // eslint-disable-line @typescript-eslint/no-explicit-any
               >
                 <SelectTrigger data-testid="appointment-recurrence-trigger">
                   <SelectValue placeholder="Select recurrence" />
@@ -247,27 +371,33 @@ export function PersonalAppointmentForm({
 
             <div className="space-y-2">
               <Label>Tags</Label>
-              {tagsQuery.isLoading && <p className="text-xs text-muted-foreground">Loading tags...</p>}
-              {!tagsQuery.isLoading && tagsQuery.data && tagsQuery.data.length > 0 ? (
+              {tagsQuery.isLoading && (
+                <p className="text-xs text-muted-foreground">Loading tags...</p>
+              )}
+              {!tagsQuery.isLoading &&
+              tagsQuery.data &&
+              tagsQuery.data.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {tagsQuery.data.map((tag) => {
                     const isSelected = selectedTagIds.includes(tag.id);
-                    const tagColor = tag.color || "var(--primary)";
+                    const tagColor = tag.color || 'var(--primary)';
                     return (
                       <Badge
                         key={tag.id}
-                        variant={isSelected ? "default" : "outline"}
+                        variant={isSelected ? 'default' : 'outline'}
                         className="cursor-pointer transition-colors"
                         onClick={() => {
                           const newTags = isSelected
                             ? selectedTagIds.filter((id) => id !== tag.id)
                             : [...selectedTagIds, tag.id];
-                          setValue("tagIds", newTags);
+                          setValue('tagIds', newTags);
                         }}
                         style={{
-                          backgroundColor: isSelected ? tagColor : "transparent",
+                          backgroundColor: isSelected
+                            ? tagColor
+                            : 'transparent',
                           borderColor: tagColor,
-                          color: isSelected ? "#fff" : tagColor,
+                          color: isSelected ? '#fff' : tagColor,
                         }}
                       >
                         {tag.name}
@@ -276,23 +406,57 @@ export function PersonalAppointmentForm({
                   })}
                 </div>
               ) : (
-                !tagsQuery.isLoading && <p className="text-xs text-muted-foreground">No tags available.</p>
+                !tagsQuery.isLoading && (
+                  <p className="text-xs text-muted-foreground">
+                    No tags available.
+                  </p>
+                )
               )}
             </div>
           </div>
         )}
       </div>
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-        >
-          Cancel
-        </Button>
-        <Button type="submit" data-testid="appointment-save" isLoading={isSaving}>
-          {isSaving ? "Saving..." : "Save appointment"}
-        </Button>
+      <div className="flex justify-between gap-2 items-center">
+        {editingAppointment ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => {
+              if (
+                confirm('Are you sure you want to delete this appointment?')
+              ) {
+                if (editingAppointment.seriesId) {
+                  deleteMutation.mutate(editingAppointment.seriesId);
+                } else {
+                  toast.error('Missing seriesId');
+                }
+              }
+            }}
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2Icon className="w-4 h-4 mr-2" />
+            Delete
+          </Button>
+        ) : (
+          <div /> // Spacer
+        )}
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            data-testid="appointment-save"
+            isLoading={isSaving}
+          >
+            {isSaving ? 'Saving...' : 'Save appointment'}
+          </Button>
+        </div>
       </div>
     </form>
   );

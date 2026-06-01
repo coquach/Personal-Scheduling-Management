@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState, useMemo } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import { AlertCircle, CalendarClock, Users } from "lucide-react";
+import { AlertCircle, CalendarClock, Users, Trash2Icon } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 
 
 import { useGetTeams, useGetTeamMembers } from "@/query/team-hooks";
-import { useCreateTeamAppointment, useUpdateTeamAppointment } from "@/query/team-appointments-hooks";
+import { useCreateTeamAppointment, useUpdateTeamAppointment, useDeleteTeamAppointment } from "@/query/team-appointments-hooks";
 import { useTeamAvailability } from "@/hooks/use-team-availability";
 import { 
   createTeamAppointmentRequestSchema,
@@ -99,6 +99,7 @@ export function TeamAppointmentForm({
 
   const createMutation = useCreateTeamAppointment(selectedTeamId);
   const updateMutation = useUpdateTeamAppointment(selectedTeamId);
+  const deleteMutation = useDeleteTeamAppointment(selectedTeamId);
 
   // Initialize dates
   useEffect(() => {
@@ -156,12 +157,16 @@ export function TeamAppointmentForm({
       updateMutation.mutate(
         { appointmentId: editingAppointment.id, input: payload as UpdateTeamAppointmentRequest },
         {
-          onSuccess: () => onOpenChange(false),
+          onSuccess: () => {
+            toast.success("Team appointment updated successfully.");
+            onOpenChange(false);
+          },
         }
       );
     } else {
       createMutation.mutate(payload, {
         onSuccess: () => {
+          toast.success("Team appointment created successfully.");
           onOpenChange(false);
         },
       });
@@ -170,9 +175,50 @@ export function TeamAppointmentForm({
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
 
+  const APPOINTMENT_STATUS_ORDER = [
+    "SCHEDULED",
+    "COMPLETED",
+    "MISSED",
+    "CANCELLED",
+  ];
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mt-4">
       <div className="grid gap-4 py-4">
+        {editingAppointment && (
+          <div className="flex items-center justify-between bg-muted/30 p-3 rounded-lg border border-border/50">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-medium">Status</Label>
+              <p className="text-xs text-muted-foreground">Update the current status</p>
+            </div>
+            <Select
+              value={editingAppointment.status}
+              onValueChange={(val) => {
+                updateMutation.mutate({
+                  appointmentId: editingAppointment.id,
+                  input: { status: val as "SCHEDULED" | "COMPLETED" | "MISSED" | "CANCELLED" },
+                }, {
+                  onSuccess: () => {
+                    toast.success("Status updated successfully.");
+                  }
+                });
+              }}
+              disabled={updateMutation.isPending}
+            >
+              <SelectTrigger className="w-[140px] h-8 text-xs font-semibold">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {APPOINTMENT_STATUS_ORDER.map((s) => (
+                  <SelectItem key={s} value={s} className="text-xs font-medium" disabled={editingAppointment.status === s}>
+                    {s}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Team Selection */}
         <div className="space-y-1">
           <Label>Select Team <span className="text-destructive">*</span></Label>
@@ -185,7 +231,9 @@ export function TeamAppointmentForm({
             }}
           >
             <SelectTrigger className={!selectedTeamId ? "text-muted-foreground" : ""}>
-              <SelectValue placeholder="Choose a team" />
+              <SelectValue placeholder="Choose a team">
+                {selectedTeamId ? (teams.find(t => t.id === selectedTeamId)?.name || "Loading team...") : undefined}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {teams.map((t) => (
@@ -360,21 +408,46 @@ export function TeamAppointmentForm({
         )}
       </div>
 
-      <div className="flex justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-        >
-          Cancel
-        </Button>
-        <Button 
-          type="submit" 
-          disabled={isChecking || hasConflicts || !selectedTeamId}
-          isLoading={isSaving}
-        >
-          {isSaving ? "Saving..." : editingAppointment ? "Update Appointment" : "Create Appointment"}
-        </Button>
+      <div className="flex justify-between gap-2 items-center">
+        {editingAppointment ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => {
+              if (confirm("Are you sure you want to delete this team appointment?")) {
+                deleteMutation.mutate(editingAppointment.id, {
+                  onSuccess: () => {
+                    toast.success("Team appointment deleted successfully.");
+                    onOpenChange(false);
+                  }
+                });
+              }
+            }}
+            disabled={deleteMutation.isPending}
+          >
+            <Trash2Icon className="w-4 h-4 mr-2" />
+            Delete
+          </Button>
+        ) : (
+          <div /> // Spacer
+        )}
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isChecking || hasConflicts || !selectedTeamId}
+            isLoading={isSaving}
+          >
+            {isSaving ? "Saving..." : editingAppointment ? "Update Appointment" : "Create Appointment"}
+          </Button>
+        </div>
       </div>
     </form>
   );

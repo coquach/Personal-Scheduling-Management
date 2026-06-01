@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { appointmentStatusSchema } from "./appointments";
+import { appointmentStatusSchema, dateTimeStringSchema } from "./appointments";
 
 // --- Enums ---
 export const participantSelectionModeSchema = z.enum(["ALL", "CUSTOM"]);
@@ -10,8 +10,8 @@ export type ParticipationType = z.infer<typeof participationTypeSchema>;
 
 // --- Requests ---
 export const checkTeamAppointmentConflictsRequestSchema = z.object({
-  startAt: z.string().datetime(),
-  endAt: z.string().datetime(),
+  startAt: dateTimeStringSchema,
+  endAt: dateTimeStringSchema,
   participantUserIds: z.array(z.string().uuid()).min(1),
 });
 
@@ -19,8 +19,8 @@ export const createTeamAppointmentRequestSchema = z.object({
   title: z.string().min(1).max(255),
   description: z.string().max(2000).optional(),
   location: z.string().max(255).optional(),
-  startAt: z.string().datetime(),
-  endAt: z.string().datetime(),
+  startAt: dateTimeStringSchema,
+  endAt: dateTimeStringSchema,
   participantSelectionMode: participantSelectionModeSchema.optional(),
   participantUserIds: z.array(z.string().uuid()).optional(),
 }).superRefine((value, ctx) => {
@@ -44,8 +44,8 @@ export const updateTeamAppointmentRequestSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   description: z.string().max(2000).nullable().optional(),
   location: z.string().max(255).nullable().optional(),
-  startAt: z.string().datetime().optional(),
-  endAt: z.string().datetime().optional(),
+  startAt: dateTimeStringSchema.optional(),
+  endAt: dateTimeStringSchema.optional(),
   status: appointmentStatusSchema.optional(),
   participantUserIds: z.array(z.string().uuid()).optional(),
 });
@@ -53,8 +53,8 @@ export const updateTeamAppointmentRequestSchema = z.object({
 export const getTeamAppointmentsQuerySchema = z.object({
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
+  from: dateTimeStringSchema.optional(),
+  to: dateTimeStringSchema.optional(),
 });
 
 // --- Responses ---

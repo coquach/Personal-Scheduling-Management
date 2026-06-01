@@ -25,26 +25,29 @@ export function useGetTeamAppointments(teamId: string, query: GetTeamAppointment
   });
 }
 
-export function useCreateTeamAppointment(teamId: string) {
+export function useCreateTeamAppointment(teamId: string, callbacks?: MutationCallbacks<unknown, Error, CreateTeamAppointmentRequest>) {
   return createInvalidatingMutation(
     (input: CreateTeamAppointmentRequest) => createTeamAppointment(teamId, input),
-    [queryKeys.teamAppointments.list(teamId, {})]
-  )();
+    [queryKeys.teamAppointments.list(teamId, {})],
+    { delayMs: 1000 }
+  )(callbacks);
 }
 
-export function useUpdateTeamAppointment(teamId: string) {
+export function useUpdateTeamAppointment(teamId: string, callbacks?: MutationCallbacks<unknown, Error, { appointmentId: string; input: UpdateTeamAppointmentRequest }>) {
   return createInvalidatingMutation(
     ({ appointmentId, input }: { appointmentId: string; input: UpdateTeamAppointmentRequest }) =>
       updateTeamAppointment(teamId, appointmentId, input),
-    [queryKeys.teamAppointments.list(teamId, {})]
-  )();
+    [queryKeys.teamAppointments.list(teamId, {})],
+    { delayMs: 1000 }
+  )(callbacks);
 }
 
-export function useDeleteTeamAppointment(teamId: string) {
+export function useDeleteTeamAppointment(teamId: string, callbacks?: MutationCallbacks<unknown, Error, string>) {
   return createInvalidatingMutation(
     (appointmentId: string) => deleteTeamAppointment(teamId, appointmentId),
-    [queryKeys.teamAppointments.list(teamId, {})]
-  )();
+    [queryKeys.teamAppointments.list(teamId, {})],
+    { delayMs: 1000 }
+  )(callbacks);
 }
 
 // this one is a pure check, so we just use useMutation directly to avoid invalidating things unnecessarily

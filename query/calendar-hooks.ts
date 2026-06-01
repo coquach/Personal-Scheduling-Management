@@ -77,6 +77,8 @@ export function useCalendarAppointments(input: CalendarAppointmentsInput = {}) {
           // Map TeamAppointment to Appointment format for Calendar
           teamApps.push({
             id: ta.id,
+            teamId: ta.teamId,
+            organizerId: ta.organizerId,
             title: `[${team.name}] ${ta.title}`,
             description: null,
             startAt: ta.startAt,
@@ -122,5 +124,6 @@ export function useCalendarAppointments(input: CalendarAppointmentsInput = {}) {
     },
     appointments,
     calendarEvents,
+    teams,
   };
 }

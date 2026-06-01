@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { NotificationLogCard } from "@/components/notification/NotificationLogCard";
 import { NotificationSideCards } from "@/components/notification/NotificationSideCards";
@@ -38,7 +39,6 @@ function getNotificationTitle(notification: NotificationItem) {
 
 export default function NotificationsPage() {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const notificationsQuery = useNotificationsQuery();
@@ -46,10 +46,9 @@ export default function NotificationsPage() {
   const markReadMutation = useMarkNotificationReadMutation({
     onSuccess: () => {
       setErrorMessage(null);
-      setFeedbackMessage("Notification marked as read.");
+      toast.success("Notification marked as read.");
     },
     onError: (error) => {
-      setFeedbackMessage(null);
       setErrorMessage(getApiErrorMessage(error, "Unable to update notification."));
     },
   });
@@ -57,10 +56,9 @@ export default function NotificationsPage() {
   const markAllReadMutation = useMarkAllNotificationsReadMutation({
     onSuccess: () => {
       setErrorMessage(null);
-      setFeedbackMessage("All notifications are marked as read.");
+      toast.success("All notifications are marked as read.");
     },
     onError: (error) => {
-      setFeedbackMessage(null);
       setErrorMessage(getApiErrorMessage(error, "Unable to update notifications."));
     },
   });
@@ -80,13 +78,11 @@ export default function NotificationsPage() {
 
   function handleMarkRead(notificationId: string) {
     setErrorMessage(null);
-    setFeedbackMessage(null);
     markReadMutation.mutate(notificationId);
   }
 
   function handleMarkAllRead() {
     setErrorMessage(null);
-    setFeedbackMessage(null);
     markAllReadMutation.mutate();
   }
 
@@ -128,11 +124,6 @@ export default function NotificationsPage() {
         {errorMessage ? (
           <Alert variant="destructive" className="rounded-2xl shadow-sm border-destructive/20 bg-destructive/5 animate-in slide-in-from-top-2 fade-in">
             <AlertDescription className="font-medium">{errorMessage}</AlertDescription>
-          </Alert>
-        ) : null}
-        {feedbackMessage ? (
-          <Alert className="rounded-2xl shadow-sm border-primary/20 bg-primary/5 text-primary animate-in slide-in-from-top-2 fade-in">
-            <AlertDescription className="font-medium">{feedbackMessage}</AlertDescription>
           </Alert>
         ) : null}
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">

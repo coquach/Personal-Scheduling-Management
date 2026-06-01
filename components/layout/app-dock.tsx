@@ -1,25 +1,22 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import {
+  CalendarDaysIcon,
+  ChartColumnIcon,
+  ClockIcon,
+  TagIcon,
+  UsersIcon
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { 
-  CalendarDaysIcon, 
-  ClockIcon, 
-  UsersIcon, 
-  ChartColumnIcon,
-  TagIcon,
-  AlarmClock,
-  FileDownIcon
-} from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const dockItems = [
   { href: "/calendar", icon: CalendarDaysIcon, label: "Calendar" },
   { href: "/appointments", icon: ClockIcon, label: "Appointments" },
   { href: "/teams", icon: UsersIcon, label: "Teams" },
   { href: "/tags", icon: TagIcon, label: "Tags" },
-  { href: "/reminders", icon: AlarmClock, label: "Reminders" },
   { href: "/statistics", icon: ChartColumnIcon, label: "Statistics" },
 ];
 

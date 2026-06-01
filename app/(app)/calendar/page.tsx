@@ -36,7 +36,8 @@ export default function CalendarPage() {
     editingAppointment,
     clickedDate,
     setClickedDate,
-    confirmDragEvent,
+    dragConfirm,
+    triggerReset,
     handlers,
   } = useCalendarAdapter();
 
@@ -79,6 +80,7 @@ export default function CalendarPage() {
                 onDateClick={handlers.handleDateClick}
                 onRangeUpdate={handlers.handleRangeUpdate}
                 onEventUpdate={handlers.handleEventUpdate}
+                triggerReset={triggerReset}
               />
           </div>
 
@@ -170,17 +172,22 @@ export default function CalendarPage() {
         initialDate={clickedDate}
       />
 
-      <Dialog open={!!confirmDragEvent} onOpenChange={(open) => !open && handlers.handleCancelDrag()}>
+      <Dialog open={!!dragConfirm} onOpenChange={(open) => !open && handlers.handleCancelDrag()}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Update recurring series?</DialogTitle>
+            <DialogTitle>Move appointment?</DialogTitle>
           </DialogHeader>
           <div className="py-2 text-sm text-muted-foreground leading-relaxed">
-            You are moving a recurring appointment. This action will shift the <strong>entire series</strong> to the new time slot. Do you want to continue?
+            Move <strong>{dragConfirm?.appointment.title}</strong> to the new time slot?
+            {dragConfirm?.appointment.seriesId && !dragConfirm?.appointment.teamId ? (
+              <div className="mt-2 text-yellow-600 dark:text-yellow-500">
+                Note: This will reschedule the entire recurring series.
+              </div>
+            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={handlers.handleCancelDrag}>Cancel</Button>
-            <Button onClick={handlers.handleConfirmDrag}>Yes, move series</Button>
+            <Button onClick={handlers.handleConfirmDrag}>Move appointment</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
