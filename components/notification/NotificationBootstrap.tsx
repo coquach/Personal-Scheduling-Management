@@ -35,6 +35,22 @@ function resolveNotificationLink(data: Record<string, unknown>) {
     return `/appointments/${appointmentId}`;
   }
 
+  const teamInvitationId =
+    typeof data.teamInvitationId === "string" ? data.teamInvitationId : null;
+  if (teamInvitationId) {
+    return `/teams`;
+  }
+
+  const teamAppointmentId =
+    typeof data.teamAppointmentId === "string" ? data.teamAppointmentId : null;
+  if (teamAppointmentId) {
+    // If it's a team appointment event, navigate to calendar or teams.
+    // For now we'll route to calendar since that's where appointments usually are.
+    // Assuming team ID is also provided if we need it, but we can default to calendar or teams.
+    // Actually, going to /calendar is standard for appointments.
+    return `/calendar`;
+  }
+
   return "/notifications";
 }
 

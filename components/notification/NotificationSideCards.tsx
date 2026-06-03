@@ -87,36 +87,7 @@ export function NotificationSideCards({
         </CardContent>
       </Card>
 
-      <Card
-        data-testid="notification-testing-card"
-        className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl"
-      >
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <InfoIcon className="size-5 text-secondary-foreground" />
-            Testing Info
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-sm animate-in slide-in-from-bottom-2 fade-in">
-            <p className="font-semibold text-primary text-sm leading-none">
-              Push payload test
-            </p>
-            <p className="mt-2 text-sm text-primary/80 leading-relaxed">
-              Foreground pushes will automatically refresh the notification
-              feed.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="w-full rounded-xl shadow-sm transition-all hover:bg-muted"
-            data-testid="notification-snooze-test"
-            disabled
-          >
-            Snooze test (Phase 5)
-          </Button>
-        </CardContent>
-      </Card>
+  
     </div>
   );
 }

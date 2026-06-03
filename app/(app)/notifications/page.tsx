@@ -30,11 +30,49 @@ function formatDateTime(value: string) {
 }
 
 function getNotificationTitle(notification: NotificationItem) {
+  if (notification.title) {
+    return notification.title;
+  }
+  
   if (notification.type === "REMINDER") {
     return "Appointment reminder";
   }
 
+  if (notification.type === "TEAM_INVITATION") {
+    return "Team Invitation";
+  }
+  
+  if (notification.type === "TEAM_ACTIVITY") {
+    return "Team Activity";
+  }
+
   return "System update";
+}
+
+function resolveNotificationLink(notification: NotificationItem) {
+  const deepLink = notification.payload?.deepLink;
+  if (typeof deepLink === "string" && deepLink.trim()) {
+    return deepLink;
+  }
+  
+  const link = notification.payload?.link;
+  if (typeof link === "string" && link.trim()) {
+    return link;
+  }
+
+  if (notification.appointmentId) {
+    return `/appointments/${notification.appointmentId}`;
+  }
+
+  if (notification.teamInvitationId) {
+    return `/teams`;
+  }
+
+  if (notification.teamAppointmentId) {
+    return `/calendar`;
+  }
+
+  return "/notifications";
 }
 
 export default function NotificationsPage() {
@@ -137,6 +175,7 @@ export default function NotificationsPage() {
             getApiErrorMessage={getApiErrorMessage}
             formatDateTime={formatDateTime}
             getNotificationTitle={getNotificationTitle}
+            resolveNotificationLink={resolveNotificationLink}
           />
           <NotificationSideCards unreadCount={unreadCount} />
         </div>

@@ -141,9 +141,9 @@ export async function removeMember(teamId: string, userId: string): Promise<Remo
   return removeTeamMemberResponseSchema.parse(rawResponse);
 }
 
-export async function deleteTeam(teamId: string): Promise<{ message: string; data: null }> {
+export async function deleteTeam(teamId: string): Promise<null> {
   const rawResponse = await browserApiRequest<unknown>(`/teams/${teamId}`, {
     method: "DELETE",
   });
-  return z.object({ message: z.string(), data: z.null() }).parse(rawResponse);
+  return z.null().parse(rawResponse);
 }

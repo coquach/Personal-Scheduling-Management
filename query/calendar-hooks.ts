@@ -45,11 +45,12 @@ export function useCalendarAppointments(input: CalendarAppointmentsInput = {}) {
 
   const teamAppointmentsQueries = useQueries({
     queries: teams.map((team) => ({
-      queryKey: [
-        'teamAppointments',
-        team.id,
-        { fromDate: input.fromDate, toDate: input.toDate },
-      ],
+      queryKey: queryKeys.teamAppointments.list(team.id, {
+        page: 1,
+        limit: 100,
+        from: input.fromDate,
+        to: input.toDate,
+      }),
       queryFn: () =>
         getTeamAppointments(team.id, {
           page: 1,

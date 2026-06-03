@@ -6,6 +6,7 @@ import {
   CheckIcon,
   BellIcon,
 } from 'lucide-react';
+import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ type NotificationLogCardProps = {
   getApiErrorMessage: (error: unknown, fallback?: string) => string;
   formatDateTime: (value: string) => string;
   getNotificationTitle: (notification: NotificationItem) => string;
+  resolveNotificationLink: (notification: NotificationItem) => string;
 };
 
 export function NotificationLogCard({
@@ -40,6 +42,7 @@ export function NotificationLogCard({
   getApiErrorMessage,
   formatDateTime,
   getNotificationTitle,
+  resolveNotificationLink,
 }: NotificationLogCardProps) {
   return (
     <Card className="border-border/50 shadow-sm transition-all h-full bg-card/60 backdrop-blur-xl">
@@ -73,7 +76,8 @@ export function NotificationLogCard({
             const isUnread = notification.status === 'UNREAD';
 
             return (
-              <div
+              <Link
+                href={resolveNotificationLink(notification)}
                 key={notification.id}
                 className={`group flex items-start gap-4 rounded-2xl border p-4 transition-all duration-300 hover:shadow-md animate-in slide-in-from-top-2 fade-in ${
                   isUnread
@@ -128,14 +132,18 @@ export function NotificationLogCard({
                       variant="ghost"
                       className="size-8 text-primary hover:bg-primary/10 hover:text-primary rounded-full transition-colors"
                       disabled={markReadPending}
-                      onClick={() => onMarkRead(notification.id)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onMarkRead(notification.id);
+                      }}
                       title="Mark as read"
                     >
                       <CheckIcon className="size-4" />
                     </Button>
                   </div>
                 )}
-              </div>
+              </Link>
             );
           })}
         </div>

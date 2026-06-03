@@ -73,7 +73,7 @@ export function useCalendarAdapter() {
     }) => updateTeamAppointment(teamId, id, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.teamAppointments.list(variables.teamId, {}),
+        queryKey: queryKeys.teamAppointments.all(variables.teamId),
       });
       toast.success('Team appointment updated.');
     },
@@ -155,6 +155,26 @@ export function useCalendarAdapter() {
 
     const startAt = parseScheduleXDate(event.start.toString());
     const endAt = parseScheduleXDate(event.end.toString());
+
+    const startAtDate = new Date(startAt);
+    const endAtDate = new Date(endAt);
+    const durationMs = endAtDate.getTime() - startAtDate.getTime();
+    if (durationMs > 24 * 60 * 60 * 1000) {
+      toast.error('Appointment duration cannot exceed 24 hours');
+      setTriggerReset((prev) => prev + 1);
+      return;
+    }
+
+    const effectiveEndDate = new Date(endAtDate.getTime() - 1);
+    if (
+      startAtDate.getFullYear() !== effectiveEndDate.getFullYear() ||
+      startAtDate.getMonth() !== effectiveEndDate.getMonth() ||
+      startAtDate.getDate() !== effectiveEndDate.getDate()
+    ) {
+      toast.error('Appointments cannot span across multiple calendar days');
+      setTriggerReset((prev) => prev + 1);
+      return;
+    }
 
     setDragConfirm({ calendarEvent: event, appointment, startAt, endAt });
   };

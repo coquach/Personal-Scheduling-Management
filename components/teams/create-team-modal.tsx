@@ -52,9 +52,6 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
         toast.success("Team created successfully.");
         onOpenChange(false);
         reset();
-      },
-      onError: (err) => {
-        toast.error(getApiErrorMessage(err, "Failed to create team."));
       }
     });
   };

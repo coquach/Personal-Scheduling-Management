@@ -61,18 +61,12 @@ export function PersonalAppointmentForm({
       toast.success('Appointment created successfully.');
       onOpenChange(false);
     },
-    onError: (err) => {
-      toast.error(getApiErrorMessage(err, 'Unable to create appointment.'));
-    },
   });
 
   const updateMutation = useUpdateAppointmentMutation({
     onSuccess: () => {
       toast.success('Appointment updated successfully.');
       onOpenChange(false);
-    },
-    onError: (err) => {
-      toast.error(getApiErrorMessage(err, 'Unable to update appointment.'));
     },
   });
 
@@ -83,17 +77,11 @@ export function PersonalAppointmentForm({
       toast.success('Appointment deleted successfully.');
       onOpenChange(false);
     },
-    onError: (err) => {
-      toast.error(getApiErrorMessage(err, 'Unable to delete appointment.'));
-    },
   });
 
   const updateStatusMutation = useUpdateAppointmentStatusMutation({
     onSuccess: () => {
       toast.success('Status updated successfully.');
-    },
-    onError: (err) => {
-      toast.error(getApiErrorMessage(err, 'Unable to update status.'));
     },
   });
 
@@ -189,7 +177,18 @@ export function PersonalAppointmentForm({
   const onSubmit = (data: CreateAppointmentInput) => {
     const startAtDate = new Date(data.startAt);
     const startAt = startAtDate.toISOString();
-    const endAt = new Date(data.endAt).toISOString();
+    const endAtDate = new Date(data.endAt);
+    const endAt = endAtDate.toISOString();
+
+    const effectiveEndDate = new Date(endAtDate.getTime() - 1);
+    if (
+      startAtDate.getFullYear() !== effectiveEndDate.getFullYear() ||
+      startAtDate.getMonth() !== effectiveEndDate.getMonth() ||
+      startAtDate.getDate() !== effectiveEndDate.getDate()
+    ) {
+      toast.error('Appointments cannot span across multiple calendar days');
+      return;
+    }
 
     const payload = { ...data, startAt, endAt };
 
@@ -376,18 +375,7 @@ export function PersonalAppointmentForm({
                 </SelectContent>
               </Select>
             </div>
-
-            {selectedRecurrence !== 'ONETIME' && (
-              <div className="space-y-1">
-                <Label>End Recurrence</Label>
-                <DateTimePicker
-                  data-testid="appointment-recurrence-end"
-                  placeholder="Recurrence end date"
-                  onChange={() => {}} // Placeholder for now
-                />
-              </div>
-            )}
-
+            
             <div className="space-y-2">
               <Label>Tags</Label>
               {tagsQuery.isLoading && (

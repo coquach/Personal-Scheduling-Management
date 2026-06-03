@@ -75,20 +75,11 @@ export const teamMyInvitationItemSchema = z.object({
   expiresAt: z.string().datetime().or(z.date()).nullable(),
 });
 
-export const invitationActionResponseSchema = z.object({
-  message: z.string(),
-  data: z.null(),
-});
+export const invitationActionResponseSchema = z.null();
 
-export const leaveTeamResponseSchema = z.object({
-  message: z.string(),
-  data: z.null(),
-});
+export const leaveTeamResponseSchema = z.null();
 
-export const removeTeamMemberResponseSchema = z.object({
-  message: z.string(),
-  data: z.null(),
-});
+export const removeTeamMemberResponseSchema = z.null();
 
 export const teamMemberRoleResponseSchema = z.object({
   teamId: z.string().uuid(),

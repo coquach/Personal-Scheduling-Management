@@ -144,6 +144,18 @@ export function TeamAppointmentForm({
       return;
     }
 
+    const startAtDate = new Date(data.startAt);
+    const endAtDate = new Date(data.endAt);
+    const effectiveEndDate = new Date(endAtDate.getTime() - 1);
+    if (
+      startAtDate.getFullYear() !== effectiveEndDate.getFullYear() ||
+      startAtDate.getMonth() !== effectiveEndDate.getMonth() ||
+      startAtDate.getDate() !== effectiveEndDate.getDate()
+    ) {
+      toast.error('Appointments cannot span across multiple calendar days');
+      return;
+    }
+
     const payload: CreateTeamAppointmentRequest = {
       ...data,
       startAt: new Date(data.startAt).toISOString(),

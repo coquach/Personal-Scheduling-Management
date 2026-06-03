@@ -53,7 +53,7 @@ test.describe("Appointments Management", () => {
     
     const deleteResponsePromise = page.waitForResponse(r => r.url().includes("/series/") && r.request().method() === "DELETE");
     const getResponsePromise = page.waitForResponse(r => r.url().includes("/appointments") && r.request().method() === "GET");
-    await page.getByTestId("delete-scope-single").click();
+    await page.getByTestId("delete-confirm").click();
     await deleteResponsePromise;
     await getResponsePromise;
     

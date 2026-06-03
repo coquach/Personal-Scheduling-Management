@@ -10,7 +10,7 @@ test.describe("Notifications Center", () => {
       if (request.method() === "GET" && path.includes("/users/me/notifications")) {
         await route.fulfill({
           status: 200, contentType: "application/json",
-          body: JSON.stringify({ success: true, data: [{ id: "11111111-1111-4111-8111-111111111111", userId: "33333333-3333-4333-8333-333333333333", appointmentId: null, reminderId: null, type: "SYSTEM", message: "Notice", status: "UNREAD", triggeredAt: new Date().toISOString(), readAt: null, createdAt: new Date().toISOString() }], message: "OK" })
+          body: JSON.stringify({ success: true, data: [{ id: "11111111-1111-4111-8111-111111111111", userId: "33333333-3333-4333-8333-333333333333", actorUserId: null, appointmentId: null, teamInvitationId: null, teamAppointmentId: null, type: "SYSTEM", eventType: null, title: null, message: "Notice", payload: null, readAt: null, createdAt: new Date().toISOString() }], message: "OK" })
         });
         return true;
       }

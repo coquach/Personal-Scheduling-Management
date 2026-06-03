@@ -28,7 +28,7 @@ export function useGetTeamAppointments(teamId: string, query: GetTeamAppointment
 export function useCreateTeamAppointment(teamId: string, callbacks?: MutationCallbacks<unknown, Error, CreateTeamAppointmentRequest>) {
   return createInvalidatingMutation(
     (input: CreateTeamAppointmentRequest) => createTeamAppointment(teamId, input),
-    [queryKeys.teamAppointments.list(teamId, {})],
+    [queryKeys.teamAppointments.all(teamId)],
     { delayMs: 1000 }
   )(callbacks);
 }
@@ -37,7 +37,7 @@ export function useUpdateTeamAppointment(teamId: string, callbacks?: MutationCal
   return createInvalidatingMutation(
     ({ appointmentId, input }: { appointmentId: string; input: UpdateTeamAppointmentRequest }) =>
       updateTeamAppointment(teamId, appointmentId, input),
-    [queryKeys.teamAppointments.list(teamId, {})],
+    [queryKeys.teamAppointments.all(teamId)],
     { delayMs: 1000 }
   )(callbacks);
 }
@@ -45,7 +45,7 @@ export function useUpdateTeamAppointment(teamId: string, callbacks?: MutationCal
 export function useDeleteTeamAppointment(teamId: string, callbacks?: MutationCallbacks<unknown, Error, string>) {
   return createInvalidatingMutation(
     (appointmentId: string) => deleteTeamAppointment(teamId, appointmentId),
-    [queryKeys.teamAppointments.list(teamId, {})],
+    [queryKeys.teamAppointments.all(teamId)],
     { delayMs: 1000 }
   )(callbacks);
 }

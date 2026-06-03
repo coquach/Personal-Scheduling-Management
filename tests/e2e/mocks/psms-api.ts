@@ -4,11 +4,15 @@ export type PsmsApiMockPayload = {
   notifications: Array<{
     id: string;
     userId: string;
+    actorUserId: string | null;
     appointmentId: string | null;
-    reminderId: string | null;
-    type: "REMINDER" | "SYSTEM";
+    teamInvitationId: string | null;
+    teamAppointmentId: string | null;
+    type: "REMINDER" | "SYSTEM" | "TEAM_INVITATION" | "TEAM_ACTIVITY";
+    eventType: string | null;
+    title: string | null;
     message: string;
-    triggeredAt: string | null;
+    payload: any | null;
     readAt: string | null;
     createdAt: string;
   }>;
@@ -132,33 +136,45 @@ const defaultPayload: PsmsApiMockPayload = {
     {
       id: "11111111-1111-4111-8111-111111111111",
       userId: "33333333-3333-4333-8333-333333333333",
+      actorUserId: null,
       appointmentId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      reminderId: null,
+      teamInvitationId: null,
+      teamAppointmentId: null,
       type: "REMINDER",
+      eventType: null,
+      title: null,
       message: "Team Standup in 10 minutes",
-      triggeredAt: now,
+      payload: null,
       readAt: null,
       createdAt: now,
     },
     {
       id: "22222222-2222-4222-8222-222222222222",
       userId: "33333333-3333-4333-8333-333333333333",
+      actorUserId: null,
       appointmentId: null,
-      reminderId: null,
+      teamInvitationId: null,
+      teamAppointmentId: null,
       type: "SYSTEM",
+      eventType: null,
+      title: null,
       message: "Quarterly review tomorrow",
-      triggeredAt: now,
+      payload: null,
       readAt: null,
       createdAt: now,
     },
     {
       id: "44444444-4444-4444-8444-444444444444",
       userId: "33333333-3333-4333-8333-333333333333",
+      actorUserId: null,
       appointmentId: null,
-      reminderId: null,
+      teamInvitationId: null,
+      teamAppointmentId: null,
       type: "SYSTEM",
+      eventType: null,
+      title: null,
       message: "Profile updated successfully",
-      triggeredAt: now,
+      payload: null,
       readAt: now,
       createdAt: now,
     },

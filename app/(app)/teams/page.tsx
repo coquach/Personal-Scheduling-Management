@@ -1,15 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { CheckIcon, MailIcon, PlusIcon, UsersIcon, XIcon } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { PlusIcon, UsersIcon, CheckIcon, XIcon, MailIcon } from 'lucide-react';
+import { useState } from 'react';
 
 import { PageSection } from '@/components/layout/page-section';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import {
@@ -21,8 +21,8 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-import { useGetTeams, useGetMyInvitations, useAcceptInvitation, useDeclineInvitation } from '@/query/team-hooks';
 import { getApiErrorMessage } from '@/lib/api-core';
+import { useAcceptInvitation, useDeclineInvitation, useGetMyInvitations, useGetTeams } from '@/query/team-hooks';
 import { toast } from 'sonner';
 
 // 1. Deferred Interactive Loading (ADR 0007)
@@ -56,9 +56,6 @@ export default function TeamsPage() {
         onSuccess: () => {
           toast.success('Invitation accepted.');
         },
-        onError: (err) => {
-          toast.error(getApiErrorMessage(err, 'Failed to accept invitation.'));
-        },
       },
     );
   };
@@ -69,9 +66,6 @@ export default function TeamsPage() {
       {
         onSuccess: () => {
           toast.success('Invitation declined.');
-        },
-        onError: (err) => {
-          toast.error(getApiErrorMessage(err, 'Failed to decline invitation.'));
         },
       },
     );

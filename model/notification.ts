@@ -9,16 +9,20 @@ const isoDateTimeSchema = z
     message: "Invalid datetime value.",
   });
 
-export const notificationTypeSchema = z.enum(["REMINDER", "SYSTEM"]);
+export const notificationTypeSchema = z.enum(["REMINDER", "SYSTEM", "TEAM_INVITATION", "TEAM_ACTIVITY"]);
 
 export const notificationItemSchema = z.object({
   id: uuidSchema,
   userId: uuidSchema,
+  actorUserId: uuidSchema.nullish().transform((v) => v ?? null),
   appointmentId: uuidSchema.nullish().transform((v) => v ?? null),
-  reminderId: uuidSchema.nullish().transform((v) => v ?? null),
+  teamInvitationId: uuidSchema.nullish().transform((v) => v ?? null),
+  teamAppointmentId: uuidSchema.nullish().transform((v) => v ?? null),
   type: notificationTypeSchema,
+  eventType: z.string().nullish().transform((v) => v ?? null),
+  title: z.string().nullish().transform((v) => v ?? null),
   message: z.string().trim().min(1).max(5000),
-  triggeredAt: isoDateTimeSchema.nullish().transform((v) => v ?? null),
+  payload: z.any().nullish().transform((v) => v ?? null),
   createdAt: isoDateTimeSchema,
   readAt: isoDateTimeSchema.nullish().transform((v) => v ?? null),
 });
@@ -57,11 +61,15 @@ export type RegisterDevicePayload = z.infer<typeof registerDevicePayloadSchema>;
 export type NotificationItem = {
   id: string;
   userId: string;
+  actorUserId: string | null;
   appointmentId: string | null;
-  reminderId: string | null;
+  teamInvitationId: string | null;
+  teamAppointmentId: string | null;
   type: NotificationType;
+  eventType: string | null;
+  title: string | null;
   message: string;
-  triggeredAt: string | null;
+  payload: any | null;
   // Derived field for UI convenience; backend does not send this directly.
   status: "UNREAD" | "READ";
   createdAt: string;

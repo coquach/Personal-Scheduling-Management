@@ -20,7 +20,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never" }]]
-    : "list",
+    : [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
     trace: "on-first-retry",

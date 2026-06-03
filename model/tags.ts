@@ -24,9 +24,7 @@ export const updateTagInputSchema = z.object({
   color: z.string().trim().min(1).max(32).optional(),
 });
 
-export const deleteTagResponseSchema = z.object({
-  message: z.string().min(1),
-});
+export const deleteTagResponseSchema = z.null();
 
 // --- Inferred types ---
 

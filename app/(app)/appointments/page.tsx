@@ -157,11 +157,7 @@ export default function AppointmentsPage() {
       payload.startDate = new Date(dateFromValue).toISOString();
     if (dateToValue) payload.endDate = new Date(dateToValue).toISOString();
 
-    exportMutation.mutate(payload, {
-      onError: (err) => {
-        toast.error(getApiErrorMessage(err, 'Failed to export appointments.'));
-      },
-    });
+    exportMutation.mutate(payload);
   };
 
   // Team Appointments State
@@ -228,8 +224,7 @@ export default function AppointmentsPage() {
       toast.success('Appointment deleted successfully.');
       setDeleteSeriesId(null);
     },
-    onError: (error) => {
-      toast.error(getApiErrorMessage(error, 'Unable to delete appointment.'));
+    onError: () => {
       setDeleteSeriesId(null);
     },
   });
@@ -237,11 +232,6 @@ export default function AppointmentsPage() {
   const updateStatusMutation = useUpdateAppointmentStatusMutation({
     onSuccess: () => {
       toast.success('Appointment status updated successfully.');
-    },
-    onError: (error) => {
-      toast.error(
-        getApiErrorMessage(error, 'Unable to update appointment status.'),
-      );
     },
   });
 
@@ -293,8 +283,7 @@ export default function AppointmentsPage() {
           toast.success('Team appointment deleted successfully.');
           setDeleteTeamAppointmentId(null);
         },
-        onError: (err) => {
-          toast.error(getApiErrorMessage(err, 'Unable to delete team appointment.'));
+        onError: () => {
           setDeleteTeamAppointmentId(null);
         },
       });
@@ -1060,25 +1049,6 @@ export default function AppointmentsPage() {
                 series will be deleted.
               </DialogDescription>
             </DialogHeader>
-            <div
-              className="grid gap-4 py-4"
-              data-testid="recurrence-scope-dialog"
-            >
-              <Button
-                variant="outline"
-                data-testid="delete-scope-single"
-                onClick={handleDeleteConfirm}
-              >
-                Delete this occurrence only
-              </Button>
-              <Button
-                variant="outline"
-                data-testid="delete-scope-series"
-                onClick={handleDeleteConfirm}
-              >
-                Delete entire series
-              </Button>
-            </div>
             <DialogFooter className="mt-4">
               <Button
                 variant="outline"
