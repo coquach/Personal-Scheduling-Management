@@ -10,8 +10,8 @@ test.describe("Authentication and recovery", () => {
     await expect(page.getByTestId("marketing-page")).toBeVisible();
 
     await page.getByTestId("marketing-primary-cta").click();
-    await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByTestId("login-page")).toBeVisible();
+    await expect(page).toHaveURL(/\/register$/);
+    await expect(page.getByTestId("register-page")).toBeVisible();
   });
 
   test("logs in successfully from the auth page", async ({ page }) => {
@@ -29,11 +29,15 @@ test.describe("Authentication and recovery", () => {
 
     await expect(page.getByTestId("register-name-input")).toBeVisible();
     await page.getByTestId("register-name-input").fill("Jane Planner");
+    await page.getByTestId("register-name-input").blur();
     await page.getByTestId("register-email-input").fill("jane@example.com");
+    await page.getByTestId("register-email-input").blur();
     await page.getByTestId("register-password-input").fill("Password123");
+    await page.getByTestId("register-password-input").blur();
     await page
       .getByTestId("register-confirm-password-input")
       .fill("Password123");
+    await page.getByTestId("register-confirm-password-input").blur();
     await page.getByTestId("register-submit").click();
 
     await expect(page.getByTestId("register-name-input")).toHaveValue(
@@ -63,18 +67,20 @@ test.describe("Authentication and recovery", () => {
     await page.goto("/register");
     await expect(page.getByTestId("register-name-input")).toBeVisible();
     await page.getByTestId("register-name-input").fill("Jane Planner");
+    await page.getByTestId("register-name-input").blur();
     await page.getByTestId("register-email-input").fill("jane@example.com");
+    await page.getByTestId("register-email-input").blur();
     await page.getByTestId("register-password-input").fill("Password123");
+    await page.getByTestId("register-password-input").blur();
     await page
       .getByTestId("register-confirm-password-input")
       .fill("Password123");
+    await page.getByTestId("register-confirm-password-input").blur();
     await page.getByTestId("register-submit").click();
 
-    await expect(page.getByText("Email already registered")).toBeVisible();
+    const errorAlert = page.getByTestId("register-form").getByRole("alert");
+    await expect(errorAlert).toContainText("Email already registered");
     await expect(page).toHaveURL(/\/register$/);
-    await expect(page.getByText("Email already registered")).toContainText(
-      "Email already registered",
-    );
   });
 
   test("blocks registration when password confirmation does not match", async ({
@@ -94,8 +100,11 @@ test.describe("Authentication and recovery", () => {
     await page.goto("/register");
     await expect(page.getByTestId("register-name-input")).toBeVisible();
     await page.getByTestId("register-name-input").fill("Jane Planner");
+    await page.getByTestId("register-name-input").blur();
     await page.getByTestId("register-email-input").fill("jane@example.com");
+    await page.getByTestId("register-email-input").blur();
     await page.getByTestId("register-password-input").fill("Password123");
+    await page.getByTestId("register-password-input").blur();
     await page
       .getByTestId("register-confirm-password-input")
       .fill("Password456");
@@ -110,16 +119,8 @@ test.describe("Authentication and recovery", () => {
 
   test("shows invalid-credentials feedback when login fails", async ({
     page,
-    psmsApi,
   }) => {
-    psmsApi.mockFailure(
-      { method: "POST", path: "/auth/login" },
-      401,
-      "Invalid credentials",
-      { once: true },
-    );
-
-    await page.goto("/auth");
+    await page.goto("/login");
     await page.getByTestId("login-email-input").fill("profile@example.com");
     await page.getByTestId("login-password-input").fill("WrongPassword");
     await expect(page.getByTestId("login-submit")).toBeEnabled();
@@ -203,6 +204,7 @@ test.describe("Authentication and recovery", () => {
     await page
       .getByTestId("verify-email-resend-input")
       .fill("registered.user@example.com");
+    await page.getByTestId("verify-email-resend-input").blur();
     await page.getByTestId("verify-email-resend-submit").click();
 
     await expect(page.getByTestId("verify-email-resend-message")).toContainText(

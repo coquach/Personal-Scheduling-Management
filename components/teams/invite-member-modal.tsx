@@ -72,7 +72,7 @@ export default function InviteMemberModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent data-testid="invite-member-modal" className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Invite Member</DialogTitle>
           <DialogDescription>
@@ -91,6 +91,7 @@ export default function InviteMemberModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="pl-9"
+                data-testid="team-invite-email-input"
               />
             </div>
             <p className="text-[11px] text-muted-foreground">
@@ -118,6 +119,7 @@ export default function InviteMemberModal({
           <Button 
             onClick={handleInvite} 
             disabled={searchUserMutation.isPending || inviteMutation.isPending}
+            data-testid="team-invite-submit"
           >
             {searchUserMutation.isPending || inviteMutation.isPending ? "Inviting..." : "Send Invitation"}
           </Button>

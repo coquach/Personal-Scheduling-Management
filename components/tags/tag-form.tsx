@@ -108,6 +108,7 @@ export function TagForm({
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 className="sr-only"
+                data-testid="tag-color-input"
               />
               {isCustomColor ? (
                 <CheckIcon className="size-4 text-white drop-shadow-md mix-blend-difference" />
@@ -123,6 +124,7 @@ export function TagForm({
             Preview
           </p>
           <div
+            data-testid="tag-preview"
             className="inline-flex items-center gap-2 rounded-lg border border-border/50 px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
             style={{ backgroundColor: `${color}15` }}
           >

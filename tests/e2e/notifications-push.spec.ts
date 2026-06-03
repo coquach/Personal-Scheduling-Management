@@ -1,7 +1,8 @@
 import { authenticate, expect, test } from "./fixtures/app-fixture";
 
 test.describe("Notifications and push integration", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, context }) => {
+    await context.grantPermissions(['notifications']);
     await page.addInitScript(() => {
       (window as Window & { __PSMS_TEST_FCM_TOKEN__?: string }).__PSMS_TEST_FCM_TOKEN__ =
         "playwright-fcm-token";
@@ -64,6 +65,9 @@ test.describe("Notifications and push integration", () => {
     await page.goto("/notifications");
     await expect(page.getByTestId("notifications-page")).toBeVisible();
 
+    // Give React time to run useEffects
+    await page.waitForTimeout(500);
+
     shouldReturnUpdatedList = true;
     await page.evaluate(() => {
       window.dispatchEvent(
@@ -100,6 +104,7 @@ test.describe("Notifications and push integration", () => {
       window.localStorage.setItem("psms:registered-fcm-token", "playwright-fcm-token");
     });
 
+    await page.waitForTimeout(1000); // Wait for potential animations/load
     await page.getByTestId("profile-menu-trigger").click();
     await page.getByTestId("sign-out-action").click();
 

@@ -88,7 +88,7 @@ export function NotificationSideCards({
       </Card>
 
       <Card
-        data-testid="notification-popup"
+        data-testid="notification-testing-card"
         className="border-border/50 shadow-sm bg-card/60 backdrop-blur-xl"
       >
         <CardHeader>
@@ -110,7 +110,7 @@ export function NotificationSideCards({
           <Button
             variant="outline"
             className="w-full rounded-xl shadow-sm transition-all hover:bg-muted"
-            data-testid="notification-popup-snooze"
+            data-testid="notification-snooze-test"
             disabled
           >
             Snooze test (Phase 5)

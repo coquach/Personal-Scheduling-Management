@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const port = Number(process.env.PLAYWRIGHT_PORT ?? 3000);
+const port = Number(process.env.PLAYWRIGHT_PORT ?? 3001);
 const baseURL =
   process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 const shouldReuseExistingServer =
@@ -16,7 +16,7 @@ export default defineConfig({
   testMatch: "**/*.spec.ts",
   timeout: 45_000,
   fullyParallel: true,
-  workers: process.env.CI ? 1 : undefined,
+  workers: process.env.CI ? 1 : 2,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI
     ? [["github"], ["html", { open: "never" }]]

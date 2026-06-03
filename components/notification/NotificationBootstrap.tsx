@@ -71,16 +71,16 @@ export function NotificationBootstrap() {
         return;
       }
 
-      const accessToken = getAccessToken();
+      const isTestOverride = typeof window !== "undefined" && !!(window as Window & { __PSMS_TEST_ACCESS_TOKEN__?: string }).__PSMS_TEST_ACCESS_TOKEN__;
 
-      if (!accessToken) {
+      if (!getAccessToken() && !isTestOverride) {
         return;
       }
 
       inFlight = true;
 
       try {
-        if (typeof window !== "undefined" && "Notification" in window && Notification.permission !== "granted") {
+        if (!isTestOverride && typeof window !== "undefined" && "Notification" in window && Notification.permission !== "granted") {
           return;
         }
 
@@ -90,7 +90,7 @@ export function NotificationBootstrap() {
           return;
         }
 
-        if (getRegisteredFcmToken() === fcmToken) {
+        if (!isTestOverride && getRegisteredFcmToken() === fcmToken) {
           return;
         }
 
@@ -112,7 +112,7 @@ export function NotificationBootstrap() {
       void registerIfNeeded();
     });
 
-    let unsubscribeForeground: () => void = () => {};
+    let unsubscribeForeground: (() => void) | null = null;
     void onForegroundMessage((payload) => {
       const data = (payload.data ?? {}) as Record<string, unknown>;
       const title = payload.notification?.title?.trim() || "New notification";
@@ -122,7 +122,7 @@ export function NotificationBootstrap() {
       const link = resolveNotificationLink(data);
 
       toast.custom((t) => (
-        <div className="flex w-[356px] flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-4 shadow-xl backdrop-blur-xl pointer-events-auto">
+        <div data-testid="notification-popup" className="flex w-[356px] flex-col gap-3 rounded-2xl border border-primary/20 bg-card p-4 shadow-xl backdrop-blur-xl pointer-events-auto">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <BellRingIcon className="h-5 w-5" />
@@ -140,6 +140,7 @@ export function NotificationBootstrap() {
           </div>
           <div className="flex justify-end gap-2 mt-1">
             <Button
+              data-testid="notification-popup-dismiss"
               variant="outline"
               size="sm"
               className="rounded-xl px-4 text-xs font-semibold h-8"
@@ -160,15 +161,19 @@ export function NotificationBootstrap() {
           </div>
         </div>
       ), { duration: 6000 });
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+      queryClient.refetchQueries({ queryKey: queryKeys.notifications.all });
     }).then((unsubscribe) => {
-      unsubscribeForeground = unsubscribe;
+      if (cancelled) {
+        unsubscribe();
+      } else {
+        unsubscribeForeground = unsubscribe;
+      }
     });
 
     return () => {
       cancelled = true;
       unsubscribeAuthStore();
-      unsubscribeForeground();
+      if (unsubscribeForeground) unsubscribeForeground();
     };
   }, [queryClient, router]);
 

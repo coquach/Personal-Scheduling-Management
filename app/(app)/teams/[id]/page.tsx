@@ -220,6 +220,7 @@ export default function TeamDetailPage() {
                   variant="destructive"
                   className="w-full"
                   onClick={() => setIsDeleteModalOpen(true)}
+                  data-testid="team-delete-trigger"
                 >
                   <Trash2Icon className="mr-2 h-4 w-4" />
                   Delete Team
@@ -230,6 +231,7 @@ export default function TeamDetailPage() {
                   className="w-full"
                   onClick={handleLeaveTeam}
                   disabled={leaveTeamMutation.isPending}
+                  data-testid="team-leave-trigger"
                 >
                   <LogOutIcon className="mr-2 h-4 w-4" />
                   Leave Team
@@ -244,7 +246,7 @@ export default function TeamDetailPage() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
             <CardTitle>Members</CardTitle>
             {canInviteMember && (
-              <Button size="sm" onClick={() => setIsInviteModalOpen(true)}>
+              <Button size="sm" onClick={() => setIsInviteModalOpen(true)} data-testid="team-invite-trigger">
                 <MailPlusIcon className="mr-2 h-4 w-4" />
                 Invite member
               </Button>
@@ -280,7 +282,7 @@ export default function TeamDetailPage() {
                   </TableHeader>
                   <TableBody>
                     {members.map((member) => (
-                      <TableRow key={member.userId}>
+                      <TableRow key={member.userId} data-testid={`member-row-${member.userId}`}>
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium text-foreground">
@@ -303,7 +305,7 @@ export default function TeamDetailPage() {
                             {member.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell data-testid="member-role">
                           {canChangeRole(member.role) ? (
                             <Select
                               defaultValue={member.role}
@@ -315,7 +317,7 @@ export default function TeamDetailPage() {
                               }
                               disabled={changeRoleMutation.isPending}
                             >
-                              <SelectTrigger className="w-[120px] h-8 text-xs">
+                              <SelectTrigger data-testid="role-change-trigger" className="w-[120px] h-8 text-xs">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>

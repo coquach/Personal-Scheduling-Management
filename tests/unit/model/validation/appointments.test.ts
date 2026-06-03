@@ -9,8 +9,8 @@ describe("appointments validation", () => {
   it("rejects create payload when endAt is not after startAt", () => {
     const result = createAppointmentInputSchema.safeParse({
       title: "Broken slot",
-      startAt: "2026-05-08T10:00:00.000Z",
-      endAt: "2026-05-08T09:00:00.000Z",
+      startAt: "2030-05-08T10:00:00.000Z",
+      endAt: "2030-05-08T09:00:00.000Z",
     });
 
     expect(result.success).toBe(false);

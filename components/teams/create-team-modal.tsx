@@ -21,6 +21,7 @@ import {
   createTeamRequestSchema,
   type CreateTeamRequest,
 } from "@/model/team";
+import { getApiErrorMessage } from "@/lib/api-core";
 
 interface CreateTeamModalProps {
   open: boolean;
@@ -52,6 +53,9 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
         onOpenChange(false);
         reset();
       },
+      onError: (err) => {
+        toast.error(getApiErrorMessage(err, "Failed to create team."));
+      }
     });
   };
 
@@ -62,12 +66,17 @@ export default function CreateTeamModal({ open, onOpenChange }: CreateTeamModalP
         reset();
       }
     }}>
-      <DialogContent>
+      <DialogContent data-testid="create-team-modal">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Create new team</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+            {createMutation.isError && (
+              <p className="text-sm font-medium text-destructive">
+                {getApiErrorMessage(createMutation.error, "Duplicate team names within the owner scope are rejected.")}
+              </p>
+            )}
             <div className="space-y-1">
               <Label>Team Name</Label>
               <Input

@@ -28,13 +28,14 @@ const state = {
       startAt: "2026-03-29T09:00:00.000Z",
       endAt: "2026-03-29T09:30:00.000Z",
       isRecurringInstance: false,
+      recurrenceType: "ONETIME",
       status: "SCHEDULED",
       jobId: null,
       tags: [],
     },
   ],
   profile: {
-    id: "user-1",
+    id: "33333333-3333-4333-8333-333333333333",
     displayName: "Initial Name",
     email: "profile@example.com",
     timezone: "UTC",
@@ -110,7 +111,7 @@ const server = createServer(async (req, res) => {
       res,
       201,
       ok({
-        id: "user-1",
+        id: "33333333-3333-4333-8333-333333333333",
         email: body.email ?? "user@example.com",
         displayName: body.displayName ?? "New User",
         createdAt: now,
@@ -153,7 +154,7 @@ const server = createServer(async (req, res) => {
       res,
       200,
       ok({
-        accessToken: "refreshed-access-token",
+        accessToken: "test-access-token",
         refreshToken: "refreshed-refresh-token",
         tokenType: "Bearer",
         expiresIn: 3600,

@@ -100,7 +100,12 @@ export function toBackendApiError(
   }
 
   if (axios.isAxiosError(error)) {
-    const axiosError = error as AxiosError<BackendErrorPayload | string>;
+    const axiosError = error as AxiosError<BackendErrorPayload | string | Blob>;
+    
+    // If the data is a Blob (common in file exports), we can't easily parse it synchronously here.
+    // However, if we're in a browser, we might have already tried to parse it in an interceptor.
+    // For now, we'll try to use the status code and the fallback.
+    
     return new BackendApiError(
       parseBackendErrorMessage(axiosError, fallback),
       axiosError.response?.status ?? 500,
@@ -116,6 +121,10 @@ export function getApiErrorMessage(
 ) {
   if (error instanceof BackendApiError) {
     return error.message;
+  }
+
+  if (axios.isAxiosError(error)) {
+    return parseBackendErrorMessage(error, fallback);
   }
 
   if (error instanceof Error && error.message.trim()) {

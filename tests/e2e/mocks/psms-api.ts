@@ -23,18 +23,29 @@ export type PsmsApiMockPayload = {
     id: string;
     userId: string;
     seriesId: string;
+    teamId: string | null;
+    organizerId: string | null;
     title: string;
     description: string | null;
     startAt: string;
     endAt: string;
     isRecurringInstance: boolean;
+    recurrenceType: string;
     status: string;
     jobId: string | null;
+    location?: string | null;
+    createdAt?: string;
+    updatedAt?: string;
     tags: Array<{
       id: string;
       name: string;
       color: string;
     }>;
+  }>;
+  tags: Array<{
+    id: string;
+    name: string;
+    color: string;
   }>;
   profile: {
     id: string;
@@ -44,6 +55,37 @@ export type PsmsApiMockPayload = {
     createdAt: string;
     updatedAt: string;
   };
+  teams: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    ownerId?: string;
+    role: string;
+    memberCount: number;
+    createdAt?: string;
+    updatedAt?: string;
+  }>;
+  teamMembers: Array<{
+    teamId: string;
+    userId: string;
+    email: string;
+    displayName: string | null;
+    role: string;
+    status: string;
+    joinedAt: string;
+  }>;
+  invitations: Array<{
+    id: string;
+    teamId: string;
+    teamName: string;
+    invitedUserId: string;
+    invitedBy?: string;
+    invitedById?: string;
+    role: string;
+    status: string;
+    createdAt: string;
+    expiresAt?: string | null;
+  }>;
 };
 
 type RouteMatcher = {
@@ -65,6 +107,7 @@ type RegisteredHandler = {
 
 export type PsmsApiMockController = {
   setPayload: (overrides: Partial<PsmsApiMockPayload>) => void;
+  setNow: (isoString: string) => void;
   mockSuccess: (
     matcher: RouteMatcher,
     data: unknown,
@@ -82,7 +125,7 @@ export type PsmsApiMockController = {
   ) => void;
 };
 
-const now = new Date("2026-03-29T10:00:00.000Z").toISOString();
+let now = new Date("2026-03-29T10:00:00.000Z").toISOString();
 
 const defaultPayload: PsmsApiMockPayload = {
   notifications: [
@@ -126,11 +169,14 @@ const defaultPayload: PsmsApiMockPayload = {
       id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
       userId: "33333333-3333-4333-8333-333333333333",
       seriesId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      teamId: null,
+      organizerId: null,
       title: "Team Standup",
       description: "Weekly product sync",
       startAt: "2026-03-29T09:00:00.000Z",
       endAt: "2026-03-29T09:30:00.000Z",
       isRecurringInstance: false,
+      recurrenceType: "ONETIME",
       status: "SCHEDULED",
       jobId: null,
       tags: [],
@@ -139,11 +185,14 @@ const defaultPayload: PsmsApiMockPayload = {
       id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       userId: "33333333-3333-4333-8333-333333333333",
       seriesId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      teamId: null,
+      organizerId: null,
       title: "Doctor Appointment",
       description: "Routine check-up",
       startAt: "2026-03-30T11:30:00.000Z",
       endAt: "2026-03-30T12:15:00.000Z",
       isRecurringInstance: false,
+      recurrenceType: "ONETIME",
       status: "SCHEDULED",
       jobId: null,
       tags: [],
@@ -152,24 +201,63 @@ const defaultPayload: PsmsApiMockPayload = {
       id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
       userId: "33333333-3333-4333-8333-333333333333",
       seriesId: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      teamId: null,
+      organizerId: null,
       title: "Study Session",
       description: "System design review",
       startAt: "2026-03-31T19:00:00.000Z",
       endAt: "2026-03-31T20:30:00.000Z",
       isRecurringInstance: false,
+      recurrenceType: "ONETIME",
       status: "COMPLETED",
       jobId: null,
       tags: [],
     },
   ],
+  tags: [
+    { id: "tag-1", name: "Work", color: "#ef4444" },
+    { id: "tag-2", name: "Personal", color: "#3b82f6" },
+  ],
   profile: {
-    id: "user-1",
+    id: "33333333-3333-4333-8333-333333333333",
     displayName: "Initial Name",
     email: "profile@example.com",
     timezone: "UTC",
     createdAt: now,
     updatedAt: now,
   },
+  teams: [
+    {
+      id: "11111111-1111-4111-8111-111111111111",
+      name: "Engineering Team",
+      description: "Core eng team",
+      role: "OWNER",
+      memberCount: 2,
+    },
+    {
+      id: "22222222-2222-4222-8222-222222222222",
+      name: "Design Team",
+      description: "Product design",
+      role: "MEMBER",
+      memberCount: 3,
+    }
+  ],
+  teamMembers: [
+    { teamId: "11111111-1111-4111-8111-111111111111", userId: "33333333-3333-4333-8333-333333333333", email: "profile@example.com", displayName: "Initial Name", role: "OWNER", status: "ACTIVE", joinedAt: now },
+    { teamId: "11111111-1111-4111-8111-111111111111", userId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", email: "coworker@example.com", displayName: "Co-worker", role: "MEMBER", status: "ACTIVE", joinedAt: now }
+  ],
+  invitations: [
+    {
+      id: "99999999-9999-4999-8999-999999999999",
+      teamId: "22222222-2222-4222-8222-222222222222",
+      teamName: "Marketing Team",
+      invitedUserId: "33333333-3333-4333-8333-333333333333",
+      invitedBy: "44444444-4444-4444-8444-444444444444",
+      role: "MEMBER",
+      status: "PENDING",
+      createdAt: now
+    }
+  ],
 };
 
 async function fulfillJson(route: Route, payload: unknown, status = 200) {
@@ -255,6 +343,9 @@ export async function mockPsmsApi(
     setPayload(nextOverrides) {
       payloadStore.set(nextOverrides);
     },
+    setNow(isoString) {
+      now = isoString;
+    },
     mockSuccess(matcher, data, options = {}) {
       handlers.push({
         once: options.once ?? false,
@@ -304,7 +395,10 @@ export async function mockPsmsApi(
       !path.startsWith("/series") &&
       !path.startsWith("/profile") &&
       !path.startsWith("/notifications") &&
-      !path.startsWith("/users")
+      !path.startsWith("/users") &&
+      !path.startsWith("/teams") &&
+      !path.startsWith("/tags") &&
+      !path.startsWith("/statistics")
     ) {
       await route.fallback();
       return;
@@ -329,26 +423,6 @@ export async function mockPsmsApi(
       }
     }
 
-    if (path === "/auth/login" && request.method() === "POST") {
-      const body = JSON.parse(request.postData() ?? "{}") as { email?: string };
-
-      if (body.email?.trim().toLowerCase() === "unverified@example.com") {
-        await fulfillJson(route, failureEnvelope("Email not verified"), 403);
-        return;
-      }
-
-      await fulfillJson(
-        route,
-        successEnvelope({
-          accessToken: "test-access-token",
-          refreshToken: "test-refresh-token",
-          tokenType: "Bearer",
-          expiresIn: 3600,
-        }),
-      );
-      return;
-    }
-
     if (path === "/auth/register" && request.method() === "POST") {
       const body = JSON.parse(request.postData() ?? "{}") as {
         displayName?: string;
@@ -359,7 +433,7 @@ export async function mockPsmsApi(
         route,
         successEnvelope(
           {
-            id: "user-1",
+            id: "33333333-3333-4333-8333-333333333333",
             email: body.email?.trim() || "user@example.com",
             displayName: body.displayName?.trim() || "New User",
             createdAt: now,
@@ -367,19 +441,6 @@ export async function mockPsmsApi(
           "OK",
         ),
         201,
-      );
-      return;
-    }
-
-    if (path === "/auth/refresh" && request.method() === "POST") {
-      await fulfillJson(
-        route,
-        successEnvelope({
-          accessToken: "refreshed-access-token",
-          refreshToken: "refreshed-refresh-token",
-          tokenType: "Bearer",
-          expiresIn: 3600,
-        }),
       );
       return;
     }
@@ -435,13 +496,37 @@ export async function mockPsmsApi(
       return;
     }
 
-    if (path === "/auth/logout" && request.method() === "POST") {
+    if (path.match(/^\/appointments\/[^/]+\/status$/) && request.method() === "PATCH") {
+      const id = path.split("/")[2];
+      const body = JSON.parse(request.postData() ?? "{}") as { status: string };
+      const payload = payloadStore.get();
+      const updatedAppts = payload.appointments.map(a => a.id === id ? { ...a, status: body.status } : a);
+      payloadStore.set({ appointments: updatedAppts });
+      await fulfillJson(route, successEnvelope(updatedAppts.find(a => a.id === id)));
+      return;
+    }
+
+    if (path === "/statistics/me" && request.method() === "GET") {
+      const payload = payloadStore.get();
+      const completedCount = payload.appointments.filter(a => a.status === "COMPLETED").length;
+      const totalCount = payload.appointments.length;
+      const completionRate = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
       await fulfillJson(
         route,
         successEnvelope({
-          success: true,
-          message: "Logged out successfully",
-        }),
+          periodStart: now,
+          periodEnd: now,
+          completionRate,
+          totalAppointments: totalCount,
+          completedAppointments: completedCount,
+          missedAppointments: payload.appointments.filter(a => a.status === "MISSED").length,
+          cancelledAppointments: payload.appointments.filter(a => a.status === "CANCELLED").length,
+          mostProductiveSlot: null,
+          trend: [
+            { bucket: now, total: totalCount, completed: completedCount }
+          ]
+        })
       );
       return;
     }
@@ -458,6 +543,21 @@ export async function mockPsmsApi(
 
     if (path === "/users/me/notifications" && request.method() === "GET") {
       await fulfillJson(route, successEnvelope(payloadStore.get().notifications));
+      return;
+    }
+
+    if (path.startsWith("/users/search") && request.method() === "GET") {
+      const email = new URL(request.url()).searchParams.get("email");
+      if (email === "newbie@example.com" || email === "profile@example.com") {
+        await fulfillJson(route, successEnvelope({
+          id: "33333333-3333-4333-8333-333333333333",
+          email,
+          displayName: "Mock User",
+          avatarUrl: null
+        }));
+      } else {
+        await fulfillJson(route, failureEnvelope("User not found"), 404);
+      }
       return;
     }
 
@@ -490,6 +590,17 @@ export async function mockPsmsApi(
       return;
     }
 
+    if (path.startsWith("/users/me/notifications/") && path.endsWith("/snooze") && request.method() === "POST") {
+      const notificationId = path.split("/")[4];
+      const payload = payloadStore.get();
+      const updatedNotifications = payload.notifications.map((item) =>
+        item.id === notificationId ? { ...item, readAt: now } : item
+      );
+      payloadStore.set({ notifications: updatedNotifications });
+      await fulfillJson(route, successEnvelope(null));
+      return;
+    }
+
     if (path === "/appointments" && request.method() === "GET") {
       const payload = payloadStore.get();
       await fulfillJson(
@@ -497,10 +608,378 @@ export async function mockPsmsApi(
         successEnvelope({
           items: payload.appointments,
           page: 1,
-          limit: payload.appointments.length,
+          limit: 100,
           total: payload.appointments.length,
         }),
       );
+      return;
+    }
+
+    if (path === "/tags" && request.method() === "GET") {
+      await fulfillJson(route, successEnvelope(payloadStore.get().tags));
+      return;
+    }
+
+    if (path === "/tags" && request.method() === "POST") {
+      const body = JSON.parse(request.postData() ?? "{}") as { name: string; color: string };
+      const payload = payloadStore.get();
+      const newTag = { id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", name: body.name, color: body.color };
+      payloadStore.set({ tags: [...payload.tags, newTag] });
+      await fulfillJson(route, successEnvelope(newTag), 201);
+      return;
+    }
+
+    if (path.startsWith("/tags/") && request.method() === "PATCH") {
+      const tagId = path.split("/").pop() ?? "";
+      const body = JSON.parse(request.postData() ?? "{}") as { name: string; color: string };
+      const payload = payloadStore.get();
+      const updatedTags = payload.tags.map(t => t.id === tagId ? { ...t, ...body } : t);
+      payloadStore.set({ tags: updatedTags });
+      await fulfillJson(route, successEnvelope(updatedTags.find(t => t.id === tagId)));
+      return;
+    }
+
+    if (path.startsWith("/tags/") && request.method() === "DELETE") {
+      const tagId = path.split("/").pop() ?? "";
+      const payload = payloadStore.get();
+      payloadStore.set({ tags: payload.tags.filter(t => t.id !== tagId) });
+      await fulfillJson(route, successEnvelope({ message: "Tag deleted successfully" }));
+      return;
+    }
+
+    if (path === "/teams" && request.method() === "GET") {
+      const payload = payloadStore.get();
+      await fulfillJson(
+        route,
+        successEnvelope({
+          items: payload.teams,
+          page: 1,
+          limit: 100,
+          total: payload.teams.length,
+        }),
+      );
+      return;
+    }
+
+    if (path === "/teams" && request.method() === "POST") {
+      const body = JSON.parse(request.postData() ?? "{}") as { name: string; description?: string };
+      const payload = payloadStore.get();
+      const newTeam = {
+        id: "77777777-7777-4777-8777-777777777777",
+        name: body.name,
+        description: body.description ?? null,
+        ownerId: "33333333-3333-4333-8333-333333333333",
+        role: "OWNER" as const,
+        memberCount: 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      payloadStore.set({
+        teams: [...payload.teams, newTeam],
+        teamMembers: [...payload.teamMembers, {
+          teamId: newTeam.id,
+          userId: "33333333-3333-4333-8333-333333333333",
+          email: "profile@example.com",
+          displayName: "Initial Name",
+          role: "OWNER",
+          status: "ACTIVE",
+          joinedAt: now
+        }]
+      });
+      await fulfillJson(route, successEnvelope(newTeam), 201);
+      return;
+    }
+
+    if (path.startsWith("/teams/") && !path.includes("/members") && !path.includes("/invitations") && !path.endsWith("/leave") && !path.includes("/appointments") && request.method() === "GET") {
+      const teamId = path.split("/")[2];
+      const payload = payloadStore.get();
+      const team = payload.teams.find(t => t.id === teamId);
+      if (!team) {
+        await fulfillJson(route, failureEnvelope("Team not found"), 404);
+        return;
+      }
+      await fulfillJson(route, successEnvelope({
+        ...team,
+        ownerId: "33333333-3333-4333-8333-333333333333",
+        createdAt: now,
+        updatedAt: now,
+        myRole: team.role,
+        memberCount: team.memberCount ?? 0
+      }));
+      return;
+    }
+
+    if (path.startsWith("/teams/") && path.endsWith("/members") && request.method() === "GET") {
+      const teamId = path.split("/")[2];
+      const payload = payloadStore.get();
+      const members = payload.teamMembers.filter(m => m.teamId === teamId);
+      await fulfillJson(
+        route,
+        successEnvelope({
+          items: members,
+          page: 1,
+          limit: 100,
+          total: members.length,
+        }),
+      );
+      return;
+    }
+
+    if (path.startsWith("/teams/") && path.includes("/members/") && path.endsWith("/role") && request.method() === "PATCH") {
+      const parts = path.split("/");
+      const teamId = parts[2];
+      const userId = parts[4];
+      const body = JSON.parse(request.postData() ?? "{}") as { role: string };
+      const payload = payloadStore.get();
+      const updatedMembers = payload.teamMembers.map(m =>
+        (m.teamId === teamId && m.userId === userId) ? { ...m, role: body.role } : m
+      );
+      payloadStore.set({ teamMembers: updatedMembers });
+      await fulfillJson(route, successEnvelope({
+        teamId,
+        userId,
+        role: body.role,
+        updatedById: "33333333-3333-4333-8333-333333333333",
+        updatedAt: now
+      }));
+      return;
+    }
+
+    if (path.startsWith("/teams/") && path.includes("/members/") && request.method() === "DELETE") {
+      const parts = path.split("/");
+      const teamId = parts[2];
+      const userId = parts[4];
+      const payload = payloadStore.get();
+      payloadStore.set({
+        teamMembers: payload.teamMembers.filter(m => !(m.teamId === teamId && m.userId === userId))
+      });
+      await fulfillJson(route, successEnvelope(null));
+      return;
+    }
+
+    if (path.startsWith("/teams/") && path.endsWith("/leave") && request.method() === "POST") {
+      const teamId = path.split("/")[2];
+      const payload = payloadStore.get();
+      payloadStore.set({
+        teamMembers: payload.teamMembers.filter(m => !(m.teamId === teamId && m.userId === "33333333-3333-4333-8333-333333333333")),
+        teams: payload.teams.filter(t => t.id !== teamId)
+      });
+      await fulfillJson(route, successEnvelope({ message: "Left team successfully", data: null }));
+      return;
+    }
+
+    if (path.startsWith("/teams/invitations/me") && request.method() === "GET") {
+      const payload = payloadStore.get();
+      const mapped = payload.invitations.map(i => ({
+        invitationId: i.id,
+        teamId: i.teamId,
+        teamName: i.teamName,
+        role: i.role,
+        status: i.status,
+        invitedAt: i.createdAt,
+        expiresAt: null
+      }));
+      await fulfillJson(
+        route,
+        successEnvelope(mapped),
+      );
+      return;
+    }
+
+    if (path.includes("/invitations/") && path.endsWith("/accept") && request.method() === "POST") {
+      const parts = path.split("/");
+      // Path: /teams/:teamId/invitations/:invitationId/accept
+      const teamId = parts[2];
+      const invitationId = parts[4];
+      const payload = payloadStore.get();
+      const invitation = payload.invitations.find(i => i.id === invitationId);
+      
+      if (invitation) {
+        payloadStore.set({
+          invitations: payload.invitations.filter(i => i.id !== invitationId),
+          teamMembers: [...payload.teamMembers, {
+            teamId: invitation.teamId,
+            userId: "33333333-3333-4333-8333-333333333333",
+            email: "profile@example.com",
+            displayName: "Initial Name",
+            role: invitation.role,
+            status: "ACTIVE",
+            joinedAt: now
+          }],
+          teams: [...payload.teams, {
+            id: invitation.teamId,
+            name: invitation.teamName,
+            description: "Joined team",
+            ownerId: invitation.invitedById ?? "other-user",
+            role: invitation.role,
+            memberCount: 2,
+            createdAt: now,
+            updatedAt: now
+          }]
+        });
+      }
+      await fulfillJson(route, successEnvelope({ message: "Invitation accepted", data: null }));
+      return;
+    }
+
+    if (path.includes("/invitations/") && path.endsWith("/decline") && request.method() === "POST") {
+      const parts = path.split("/");
+      const invitationId = parts[4];
+      const payload = payloadStore.get();
+      payloadStore.set({
+        invitations: payload.invitations.filter(i => i.id !== invitationId)
+      });
+      await fulfillJson(route, successEnvelope({ message: "Invitation declined", data: null }));
+      return;
+    }
+
+    if (path.startsWith("/teams/") && path.endsWith("/invitations") && request.method() === "POST") {
+      const teamId = path.split("/")[2];
+      const body = JSON.parse(request.postData() ?? "{}") as { invitedUserId: string; role: string };
+      const payload = payloadStore.get();
+      const newInv = {
+        id: "99999999-9999-4999-8999-999999999999",
+        teamId,
+        teamName: payload.teams.find(t => t.id === teamId)?.name ?? "Team",
+        invitedUserId: body.invitedUserId,
+        invitedById: "33333333-3333-4333-8333-333333333333",
+        role: body.role,
+        status: "PENDING",
+        createdAt: now,
+        expiresAt: null
+      };
+      payloadStore.set({ invitations: [...payload.invitations, newInv] });
+      await fulfillJson(route, successEnvelope(newInv), 201);
+      return;
+    }
+
+    if (path.startsWith("/teams/") && path.endsWith("/appointments/check-conflicts") && request.method() === "POST") {
+      const body = JSON.parse(request.postData() ?? "{}") as { startAt: string; endAt: string };
+      const hasConflict = body.startAt.includes("2030-03-29T");
+      await fulfillJson(
+        route,
+        successEnvelope({
+          teamId: path.split("/")[2],
+          startAt: body.startAt,
+          endAt: body.endAt,
+          hasConflict,
+          availableParticipants: hasConflict ? [] : [{ userId: "11111111-1111-4111-8111-111111111111", displayName: "Initial Name" }],
+          busyParticipants: hasConflict ? [{ userId: "22222222-2222-4222-8222-222222222222", displayName: "Co-worker" }] : [],
+          conflicts: hasConflict ? [
+            {
+              userId: "22222222-2222-4222-8222-222222222222",
+              displayName: "Co-worker",
+              conflictWith: "TEAM_APPOINTMENT",
+              startAt: body.startAt,
+              endAt: body.endAt
+            }
+          ] : [],
+          suggestedSlots: hasConflict ? [
+            { startAt: "2030-03-30T13:00:00.000Z", endAt: "2030-03-30T14:00:00.000Z" },
+            { startAt: "2030-03-30T09:00:00.000Z", endAt: "2030-03-30T10:00:00.000Z" }
+          ] : []
+        })
+      );
+      return;
+    }
+
+    if (path.match(/^\/teams\/[^/]+\/appointments$/) && request.method() === "GET") {
+      const teamId = path.split("/")[2];
+      const payload = payloadStore.get();
+      const teamAppts = payload.appointments.filter(a => a.teamId === teamId).map(a => ({
+        id: a.id,
+        teamId: a.teamId,
+        organizerId: a.organizerId,
+        title: a.title,
+        startAt: a.startAt,
+        endAt: a.endAt,
+        status: a.status,
+        participantCount: 1
+      }));
+      await fulfillJson(
+        route,
+        successEnvelope({
+          items: teamAppts,
+          page: 1,
+          limit: 100,
+          total: teamAppts.length,
+        }),
+      );
+      return;
+    }
+
+    if (path.match(/^\/teams\/[^/]+\/appointments$/) && request.method() === "POST") {
+      const teamId = path.split("/")[2];
+      const body = JSON.parse(request.postData() ?? "{}") as { title: string; startAt: string; endAt: string };
+      const payload = payloadStore.get();
+      const newAppt = {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        userId: "33333333-3333-4333-8333-333333333333",
+        seriesId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        teamId,
+        organizerId: "33333333-3333-4333-8333-333333333333",
+        title: body.title,
+        description: null,
+        location: null,
+        startAt: body.startAt,
+        endAt: body.endAt,
+        isRecurringInstance: false,
+        recurrenceType: "ONETIME",
+        status: "SCHEDULED" as const,
+        jobId: null,
+        tags: [],
+        participants: [{
+          userId: "33333333-3333-4333-8333-333333333333",
+          participationType: "REQUIRED" as const
+        }],
+        createdAt: now,
+        updatedAt: now
+      };
+      payloadStore.set({ appointments: [newAppt, ...payload.appointments] });
+      await fulfillJson(route, successEnvelope(newAppt), 201);
+      return;
+    }
+
+    if (path.match(/^\/teams\/[^/]+\/appointments\/[^/]+$/) && request.method() === "PATCH") {
+      const parts = path.split("/");
+      const teamId = parts[2];
+      const appointmentId = parts[4];
+      const body = JSON.parse(request.postData() ?? "{}");
+      const payload = payloadStore.get();
+      
+      const updatedAppointments = payload.appointments.map(appt => 
+        (appt.id === appointmentId && appt.teamId === teamId) 
+          ? { 
+              ...appt, 
+              ...body,
+              updatedAt: now
+            } 
+          : appt
+      );
+      
+      const updated = updatedAppointments.find(a => a.id === appointmentId);
+      payloadStore.set({ appointments: updatedAppointments });
+      await fulfillJson(route, successEnvelope({
+        ...updated,
+        location: updated?.location ?? null,
+        participants: [{
+          userId: "33333333-3333-4333-8333-333333333333",
+          participationType: "REQUIRED"
+        }]
+      }));
+      return;
+    }
+
+    if (path.match(/^\/teams\/[^/]+\/appointments\/[^/]+$/) && request.method() === "DELETE") {
+      const parts = path.split("/");
+      const teamId = parts[2];
+      const appointmentId = parts[4];
+      const payload = payloadStore.get();
+      
+      payloadStore.set({
+        appointments: payload.appointments.filter(appt => !(appt.id === appointmentId && appt.teamId === teamId))
+      });
+      await fulfillJson(route, successEnvelope({ success: true, deletedId: appointmentId }));
       return;
     }
 
@@ -537,9 +1016,12 @@ export async function mockPsmsApi(
             startAt: body.startAt ?? now,
             endAt: body.endAt ?? now,
             isRecurringInstance: false,
+            recurrenceType: "ONETIME",
             status: "SCHEDULED",
             jobId: null,
             tags: [],
+            teamId: null,
+            organizerId: null,
           },
           ...payload.appointments,
         ],
@@ -589,6 +1071,19 @@ export async function mockPsmsApi(
       return;
     }
 
+    if (/^\/appointments\/[^/]+$/.test(path) && request.method() === "DELETE") {
+      const appointmentId = path.split("/").pop()?.split("?")[0] ?? "";
+      const payload = payloadStore.get();
+      payloadStore.set({
+        appointments: payload.appointments.filter((item) => item.id !== appointmentId),
+      });
+      await fulfillJson(
+        route,
+        successEnvelope({ message: "Appointment deleted successfully." }),
+      );
+      return;
+    }
+
     if (path === "/users/me" && request.method() === "GET") {
       await fulfillJson(route, successEnvelope(payloadStore.get().profile));
       return;
@@ -625,7 +1120,7 @@ export async function mockPsmsApi(
       };
       const payload = payloadStore.get();
       const nextDevice = {
-        id: "device-1",
+        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
         fcmToken: body.fcmToken ?? "test-fcm-token",
         deviceName: body.deviceName ?? null,
         platform: body.platform ?? null,
@@ -644,7 +1139,12 @@ export async function mockPsmsApi(
       payloadStore.set({
         devices: payload.devices.filter((device) => device.fcmToken !== body.fcmToken),
       });
-      await fulfillJson(route, successEnvelope(target ?? null));
+      await fulfillJson(route, successEnvelope(target ?? {
+        fcmToken: body.fcmToken ?? "unknown",
+        deviceName: "Unknown",
+        platform: "Unknown",
+        registeredAt: now,
+      }));
       return;
     }
 

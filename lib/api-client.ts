@@ -111,8 +111,23 @@ browserApi.interceptors.request.use(async (config) => {
 });
 
 browserApi.interceptors.response.use(
-  (response) => response,
+  async (response) => {
+    // If we requested a blob but got an error-like JSON (some backends do this even with 200)
+    // or if we just want to ensure consistency.
+    return response;
+  },
   async (error) => {
+    if (axios.isAxiosError(error) && error.response?.data instanceof Blob) {
+      if (error.response.data.type === "application/json") {
+        try {
+          const text = await error.response.data.text();
+          error.response.data = JSON.parse(text);
+        } catch {
+          // Fallback to original blob if parsing fails
+        }
+      }
+    }
+
     if (!axios.isAxiosError(error) || !error.config) {
       return Promise.reject(error);
     }

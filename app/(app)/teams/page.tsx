@@ -21,13 +21,9 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-import {
-  useGetTeams,
-  useGetMyInvitations,
-  useAcceptInvitation,
-  useDeclineInvitation,
-} from '@/query/team-hooks';
+import { useGetTeams, useGetMyInvitations, useAcceptInvitation, useDeclineInvitation } from '@/query/team-hooks';
 import { getApiErrorMessage } from '@/lib/api-core';
+import { toast } from 'sonner';
 
 // 1. Deferred Interactive Loading (ADR 0007)
 const loadCreateTeamModal = () =>
@@ -54,11 +50,31 @@ export default function TeamsPage() {
   const declineMutation = useDeclineInvitation();
 
   const handleAccept = (teamId: string, invitationId: string) => {
-    acceptMutation.mutate({ teamId, invitationId });
+    acceptMutation.mutate(
+      { teamId, invitationId },
+      {
+        onSuccess: () => {
+          toast.success('Invitation accepted.');
+        },
+        onError: (err) => {
+          toast.error(getApiErrorMessage(err, 'Failed to accept invitation.'));
+        },
+      },
+    );
   };
 
   const handleDecline = (teamId: string, invitationId: string) => {
-    declineMutation.mutate({ teamId, invitationId });
+    declineMutation.mutate(
+      { teamId, invitationId },
+      {
+        onSuccess: () => {
+          toast.success('Invitation declined.');
+        },
+        onError: (err) => {
+          toast.error(getApiErrorMessage(err, 'Failed to decline invitation.'));
+        },
+      },
+    );
   };
 
   return (
@@ -113,6 +129,7 @@ export default function TeamsPage() {
                           acceptMutation.isPending || declineMutation.isPending
                         }
                         className="w-full"
+                        data-testid={`invitation-accept-${invitation.invitationId}`}
                       >
                         <CheckIcon className="mr-1.5 h-4 w-4" /> Accept
                       </Button>
@@ -129,6 +146,7 @@ export default function TeamsPage() {
                           acceptMutation.isPending || declineMutation.isPending
                         }
                         className="w-full"
+                        data-testid={`invitation-decline-${invitation.invitationId}`}
                       >
                         <XIcon className="mr-1.5 h-4 w-4" /> Decline
                       </Button>
@@ -190,6 +208,7 @@ export default function TeamsPage() {
                 {teams.map((team) => (
                   <Card
                     key={team.id}
+                    data-testid="team-card"
                     className="group relative overflow-hidden border border-border/50 bg-background/50 backdrop-blur-xl transition-all hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/20"
                   >
                     <CardContent className="p-5 flex flex-col h-full">

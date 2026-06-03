@@ -230,7 +230,7 @@ export function TeamAppointmentForm({
               setValue("participantUserIds", []);
             }}
           >
-            <SelectTrigger className={!selectedTeamId ? "text-muted-foreground" : ""}>
+            <SelectTrigger data-testid="form-team-select-trigger" className={!selectedTeamId ? "text-muted-foreground" : ""}>
               <SelectValue placeholder="Choose a team">
                 {selectedTeamId ? (teams.find(t => t.id === selectedTeamId)?.name || "Loading team...") : undefined}
               </SelectValue>
@@ -248,6 +248,7 @@ export function TeamAppointmentForm({
             {...register("title")}
             placeholder="Appointment Title"
             disabled={!selectedTeamId}
+            data-testid="team-appointment-title"
           />
           {errors.title && (
             <p className="text-sm text-destructive">{errors.title.message}</p>
@@ -266,6 +267,7 @@ export function TeamAppointmentForm({
                   onChange={field.onChange}
                   placeholder="Select start time"
                   isInvalid={!!errors.startAt}
+                  data-testid="team-appointment-start"
                 />
               )}
             />
@@ -284,6 +286,7 @@ export function TeamAppointmentForm({
                   onChange={field.onChange}
                   placeholder="Select end time"
                   isInvalid={!!errors.endAt}
+                  data-testid="team-appointment-end"
                 />
               )}
             />
@@ -357,14 +360,14 @@ export function TeamAppointmentForm({
             {!isChecking && conflictData && (
               <div className="space-y-3 mt-4 pt-4 border-t border-border/30">
                 {hasConflicts ? (
-                  <Alert variant="destructive" className="bg-destructive/5 border-destructive/20">
+                  <Alert variant="destructive" className="bg-destructive/5 border-destructive/20" data-testid="conflict-alert">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Time Conflicts Detected</AlertTitle>
                     <AlertDescription className="text-xs mt-1">
-                      <p>The following members are busy:</p>
+                      <p>The following members are busy (has a conflict):</p>
                       <ul className="list-disc list-inside mt-1 font-medium">
                         {conflictData.busyParticipants.map(bp => (
-                          <li key={bp.userId}>{bp.displayName}</li>
+                          <li key={bp.userId}>{bp.displayName} has a conflict</li>
                         ))}
                       </ul>
                     </AlertDescription>
@@ -391,6 +394,7 @@ export function TeamAppointmentForm({
                           variant="outline"
                           size="sm"
                           className="text-xs h-7 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground"
+                          data-testid="conflict-suggested-slot"
                           onClick={() => {
                             setValue("startAt", toDateTimeLocalValue(slot.startAt as string));
                             setValue("endAt", toDateTimeLocalValue(slot.endAt as string));
@@ -444,6 +448,7 @@ export function TeamAppointmentForm({
             type="submit" 
             disabled={isChecking || hasConflicts || !selectedTeamId}
             isLoading={isSaving}
+            data-testid="team-appointment-save"
           >
             {isSaving ? "Saving..." : editingAppointment ? "Update Appointment" : "Create Appointment"}
           </Button>

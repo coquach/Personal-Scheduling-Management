@@ -1,98 +1,92 @@
-# Personal Scheduling Management
+# Personal Scheduling Management (PSMS)
 
-PSM la ung dung Next.js quan ly lich ca nhan, nhac viec va thong bao. Repo nay da duoc bo sung CI/CD voi GitHub Actions va Playwright de chan loi giao dien truoc khi deploy production.
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-blue?logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)
+![Playwright](https://img.shields.io/badge/Playwright-E2E-green?logo=playwright)
+![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?logo=github-actions)
 
-## Yeu cau moi truong
+PSMS is a modern, production-ready personal scheduling management application built with **Next.js 16 (App Router)** and **React 19**. It features a rich dashboard for managing appointments, calendars, reminders, and notifications. 
 
-- Node.js 20
-- npm 10+
-- Playwright Chromium browser cho local E2E
+This project demonstrates clean architecture, robust state management, and a highly reliable testing infrastructure using Playwright BDD.
 
-## Cai dat va chay local
+## ✨ Core Features
 
-```bash
-npm ci
-copy .env.example .env.local
-# hoac tren macOS/Linux:
-# cp .env.example .env.local
-npx playwright install chromium
-npm run dev
-```
+- **🗓️ Smart Calendar & Scheduling:** 
+  - Manage personal and team appointments.
+  - Interactive drag-and-drop calendar interface powered by `@schedule-x/calendar`.
+  - Advanced time conflict detection and recurring event logic.
+- **🔔 Intelligent Reminders & Notifications:** 
+  - Granular notification settings (global and chat-specific).
+  - Push notifications and real-time alerts.
+- **📊 Analytics & Productivity:** 
+  - Real-time user statistics and productivity tracking.
+  - Bento-styled profile infrastructure and advanced tagging system.
 
-Mac dinh ung dung dung:
+## 🏗️ Architecture & Tech Stack Highlights
 
-- `NEXT_PUBLIC_PSMS_API_URL=http://localhost:4000/api/v1`
-- `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000`
-- `PLAYWRIGHT_PORT=3000`
+This project avoids generic MVC patterns in favor of modern frontend architecture:
 
-E2E hien tai mock API ngay trong browser, vi vay local va CI khong can dung backend rieng de chay Playwright.
+- **State Management Separation:** 
+  - **Server State:** Handled by `TanStack Query` for robust caching, background updates, and revalidation.
+  - **Client State:** Powered by `@preact/signals` for lightweight, reactive, and thread-safe UI updates without unnecessary re-renders.
+- **100% Type-Safe Forms:** End-to-end type safety using `Zod` schemas for both frontend validation (`react-hook-form`) and backend API payload verification.
+- **Testing Trophy Strategy:** Minimal implementation-coupled unit tests. Heavy emphasis on **End-to-End (E2E) testing via Playwright** (mocking APIs in-browser) to guarantee high confidence for a "Release-Ready" status.
+- **Styling:** `Tailwind CSS v4` combined with `Shadcn UI` for a scalable, accessible, and highly customizable design system.
 
-## Scripts chinh
+## 🚀 Getting Started
 
-```bash
-npm run lint
-npm run test
-npm run build
-npm run test:e2e
-npm run test:e2e:ui
-```
+### Prerequisites
+- **Node.js**: `v20.x` or higher
+- **npm**: `v10.x` or higher
 
-- `npm run test` chi chay Jest unit/integration va bo qua `tests/e2e`.
-- `npm run test:e2e` dung Playwright tren thu muc `tests/e2e`.
+### Installation & Local Development
 
-## CI/CD da cau hinh
+1. **Clone the repository and install dependencies:**
+   ```bash
+   npm ci
+   ```
 
-Workflow nam tai `.github/workflows/ci-cd.yml`.
+2. **Setup environment variables:**
+   ```bash
+   cp .env.example .env.local
+   ```
+   *Default configurations:*
+   - `NEXT_PUBLIC_PSMS_API_URL=http://localhost:4000/api/v1`
+   - `PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000`
 
-### CI
+3. **Install Playwright Browsers (for local E2E):**
+   ```bash
+   npx playwright install chromium
+   ```
 
-Khi mo `pull_request` vao `main` hoac `push` len `main`, pipeline se chay:
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
 
-1. `npm ci`
-2. `npm run lint`
-3. `npm test`
-4. `npm run build`
-5. `npm run test:e2e`
+## 🧪 Testing
 
-Playwright tren CI se:
+The testing suite heavily relies on Playwright to ensure UI reliability. The backend API is mocked directly in the browser during tests.
 
-- build app truoc
-- dung `next start` thay vi `next dev`
-- retry 2 lan khi fail
-- gioi han 1 worker de giam flaky
-- upload `playwright-report` va `test-results` lam artifact
+- `npm run test:e2e` - Run Playwright E2E tests in headless mode.
+- `npm run test:e2e:ui` - Open Playwright UI mode for debugging.
+- `npm run test` - Run Jest unit and integration tests only.
 
-### CD
+## 🚢 CI/CD & Deployment
 
-Neu pipeline `push` len `main` thanh cong va da khai bao du 3 secrets Vercel, workflow se deploy production:
+This repository is equipped with an automated GitHub Actions CI/CD pipeline (`.github/workflows/ci-cd.yml`):
 
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
+- **CI:** On `push` or `pull_request` to `main`, the pipeline automatically builds the Next.js app, runs ESLint, Jest, and Playwright E2E tests. Playwright artifacts are uploaded automatically on failure.
+- **CD (Vercel):** Upon a successful build on `main`, the application is automatically deployed to Vercel (Requires `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` in repository secrets).
 
-Neu chua co secrets, job deploy se tu dong bi skip, CI van chay binh thuong.
+## 🤝 Contributing Guidelines
 
-## Cach lay thong tin Vercel
+We welcome contributions! To maintain the quality of the project, please adhere to the following rules:
 
-1. Dang nhap Vercel CLI: `vercel login`
-2. Link project neu chua co: `vercel link`
-3. Lay `VERCEL_ORG_ID` va `VERCEL_PROJECT_ID` trong `.vercel/project.json`
-4. Tao `VERCEL_TOKEN` tai Vercel dashboard, sau do add vao GitHub repository secrets
+1. **Conventional Commits:** All commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) specification (e.g., `feat:`, `fix:`, `chore:`).
+2. **Testing Mandate:** Before opening a Pull Request, you **MUST** ensure all tests pass locally. Run `npm run test:e2e` and ensure 100% P0 test coverage is maintained.
+3. **CI/CD Checks:** GitHub Actions will strictly block any PR that fails linting, type-checking, or E2E tests. Please review the pipeline logs if your PR is blocked.
 
-## Bien moi truong GitHub Actions
-
-Workflow dang set san bien sau cho luc build/test:
-
-```text
-NEXT_PUBLIC_PSMS_API_URL=http://127.0.0.1:4000/api/v1
-PLAYWRIGHT_BASE_URL=http://127.0.0.1:3000
-PLAYWRIGHT_PORT=3000
-```
-
-Vi Playwright dang mock request `/api/**`, gia tri API URL trong CI chu yeu de dam bao Next.js build duoc on dinh.
-
-## Mo rong them neu can
-
-- Them preview deployment cho branch khac `main`
-- Tach workflow thanh `ci.yml` va `deploy.yml` neu muon quan ly rieng
-- Them unit test that su de `npm test` bao phu logic business thay vi chi la sanity check pipeline
+---
+*Built with ❤️ utilizing Next.js 16 and modern React ecosystem.*

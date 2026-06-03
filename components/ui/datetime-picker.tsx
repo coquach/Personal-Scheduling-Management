@@ -20,9 +20,10 @@ interface DateTimePickerProps {
   isInvalid?: boolean
   className?: string
   align?: "start" | "center" | "end"
+  "data-testid"?: string
 }
 
-export function DateTimePicker({ value, onChange, placeholder, isInvalid, className, align = "start" }: DateTimePickerProps) {
+export function DateTimePicker({ value, onChange, placeholder, isInvalid, className, align = "start", "data-testid": dataTestId }: DateTimePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(
     value ? new Date(value) : undefined
   )
@@ -106,6 +107,17 @@ export function DateTimePicker({ value, onChange, placeholder, isInvalid, classN
           />
         </div>
       </PopoverContent>
+      {dataTestId && (
+        <input
+          type="text"
+          data-testid={dataTestId}
+          value={value || ""}
+          onChange={(e) => onChange?.(e.target.value)}
+          className="absolute opacity-0 w-0 h-0 p-0 m-0 border-0 pointer-events-none"
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      )}
     </Popover>
   )
 }

@@ -26,16 +26,13 @@ test.describe("Workspace navigation", () => {
     await page.goto("/calendar");
 
     await expect(page.getByTestId("calendar-page")).toBeVisible();
-    await expect(page.getByTestId("app-sidebar")).toBeVisible();
+    await expect(page.getByTestId("app-dock")).toBeVisible();
 
-    await expect(page.getByRole("link", { name: "Appointments" })).toHaveAttribute(
+    await expect(page.getByTestId("nav-appointments")).toHaveAttribute(
       "href",
       "/appointments",
     );
-    await expect(page.getByRole("link", { name: "Profile" })).toHaveAttribute(
-      "href",
-      "/profile",
-    );
+    await expect(page.getByTestId("nav-tags")).toHaveAttribute("href", "/tags");
   });
 
   test("keeps shared header controls stable across routes", async ({
@@ -46,15 +43,12 @@ test.describe("Workspace navigation", () => {
 
     await expect(page.getByTestId("notifications-page")).toBeVisible();
 
-    await page
-      .getByTestId("global-search-input")
-      .fill("Quarterly review reminder");
-
-    await expect(page.getByTestId("global-search-input")).toHaveValue(
-      "Quarterly review reminder",
-    );
     await expect(page.getByTestId("notification-bell")).toBeVisible();
     await expect(page.getByTestId("notification-bell-badge")).toBeVisible();
+
+    await page.goto("/calendar");
+    await expect(page.getByTestId("calendar-page")).toBeVisible();
+    await expect(page.getByTestId("notification-bell")).toBeVisible();
   });
 
   test("refreshes the session before the first protected request when only a refresh token exists", async ({

@@ -23,10 +23,6 @@ export async function authenticate(page: import("@playwright/test").Page) {
   await page.addInitScript(() => {
     (window as Window & { __PSMS_TEST_ACCESS_TOKEN__?: string }).__PSMS_TEST_ACCESS_TOKEN__ =
       "test-access-token";
-    window.sessionStorage.setItem(
-      "psms-auth-session",
-      JSON.stringify({ refreshToken: "test-refresh-token" }),
-    );
   });
 
   await page.context().addCookies([

@@ -193,7 +193,7 @@ export default function AppointmentsPage() {
       const matchesSearch =
         !searchValue ||
         item.title.toLowerCase().includes(searchValue.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchValue.toLowerCase());
+        (item.description?.toLowerCase().includes(searchValue.toLowerCase()) ?? false);
 
       const matchesStatus =
         !statusValue ||
@@ -351,6 +351,7 @@ export default function AppointmentsPage() {
                 placeholder="Search appointments..."
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
+                data-testid="appointment-search-input"
                 className="w-full pl-9 pr-3 py-2 h-10 text-sm bg-background border border-input rounded-md focus:outline-none focus:ring-1 focus:ring-primary transition-shadow"
               />
             </div>
@@ -361,7 +362,7 @@ export default function AppointmentsPage() {
                   setStatusValue(val === 'ALL' ? '' : val || '')
                 }
               >
-                <SelectTrigger className="w-full bg-background border-input rounded-md h-10 text-sm">
+                <SelectTrigger data-testid="filter-status-trigger" className="w-full bg-background border-input rounded-md h-10 text-sm">
                   <SelectValue placeholder="Filter by status..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -380,7 +381,7 @@ export default function AppointmentsPage() {
                   setRecurrenceTypeValue(val === 'ALL' ? '' : val || '')
                 }
               >
-                <SelectTrigger className="w-full bg-background border-input rounded-md h-10 text-sm">
+                <SelectTrigger data-testid="filter-recurrence-trigger" className="w-full bg-background border-input rounded-md h-10 text-sm">
                   <SelectValue placeholder="Filter by recurrence..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -577,6 +578,7 @@ export default function AppointmentsPage() {
                               <Badge
                                 variant="outline"
                                 className="text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
+                                data-testid={`appointment-status-${row.id}`}
                               >
                                 {row.status}
                               </Badge>
@@ -586,6 +588,7 @@ export default function AppointmentsPage() {
                                 <DropdownMenuTrigger
                                   className="h-8 w-8 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted hover:text-foreground text-muted-foreground focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                                   disabled={updateStatusMutation.isPending}
+                                  data-testid="appointment-status-trigger"
                                 >
                                   <CalendarClockIcon size={14} />
                                 </DropdownMenuTrigger>
@@ -606,6 +609,13 @@ export default function AppointmentsPage() {
                                           });
                                         }}
                                         className="text-xs"
+                                        data-testid={
+                                          status === 'CANCELLED'
+                                            ? 'appointment-cancel-trigger'
+                                            : status === 'SCHEDULED'
+                                              ? 'appointment-reopen-trigger'
+                                              : undefined
+                                        }
                                       >
                                         {status}
                                       </DropdownMenuItem>
@@ -666,7 +676,7 @@ export default function AppointmentsPage() {
                       ))}
 
                       {filteredAppointments.length === 0 && (
-                        <div className="col-span-12 py-16 px-4 flex flex-col items-center justify-center text-center">
+                        <div data-testid="appointment-empty-state" className="col-span-12 py-16 px-4 flex flex-col items-center justify-center text-center">
                           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
                             <CalendarX2 className="w-8 h-8 text-muted-foreground/70" />
                           </div>
@@ -745,9 +755,15 @@ export default function AppointmentsPage() {
                     setTeamPage(1);
                   }}
                 >
-                  <SelectTrigger className="w-[250px]">
+                  <SelectTrigger
+                    data-testid="page-team-select-trigger"
+                    className="w-[250px]"
+                  >
                     <SelectValue placeholder="Select a team">
-                      {selectedTeamId === 'all' ? '-- Choose a Team --' : (teams.find(t => t.id === selectedTeamId)?.name || 'Loading...')}
+                      {selectedTeamId === 'all'
+                        ? '-- Choose a Team --'
+                        : teams.find((t) => t.id === selectedTeamId)?.name ||
+                          'Loading...'}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -849,6 +865,7 @@ export default function AppointmentsPage() {
                               <Badge
                                 variant="outline"
                                 className="text-[10px] font-medium uppercase tracking-wider bg-primary/5 text-primary border-primary/20"
+                                data-testid={`team-appointment-status-${row.id}`}
                               >
                                 {row.status}
                               </Badge>
@@ -922,6 +939,7 @@ export default function AppointmentsPage() {
                                 size="icon"
                                 className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-colors text-muted-foreground"
                                 onClick={() => openEditTeamDialog(row)}
+                                data-testid="team-appointment-edit"
                               >
                                 <PencilLineIcon className="w-4 h-4" />
                               </Button>
@@ -931,6 +949,7 @@ export default function AppointmentsPage() {
                                 size="icon"
                                 className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors text-muted-foreground"
                                 onClick={() => confirmTeamDelete(row.id)}
+                                data-testid="team-appointment-delete"
                               >
                                 <Trash2Icon className="w-4 h-4" />
                               </Button>
@@ -1032,7 +1051,7 @@ export default function AppointmentsPage() {
           open={!!deleteSeriesId}
           onOpenChange={(open) => !open && setDeleteSeriesId(null)}
         >
-          <DialogContent>
+          <DialogContent data-testid="appointment-delete-dialog">
             <DialogHeader>
               <DialogTitle>Delete Appointment</DialogTitle>
               <DialogDescription>
@@ -1041,6 +1060,25 @@ export default function AppointmentsPage() {
                 series will be deleted.
               </DialogDescription>
             </DialogHeader>
+            <div
+              className="grid gap-4 py-4"
+              data-testid="recurrence-scope-dialog"
+            >
+              <Button
+                variant="outline"
+                data-testid="delete-scope-single"
+                onClick={handleDeleteConfirm}
+              >
+                Delete this occurrence only
+              </Button>
+              <Button
+                variant="outline"
+                data-testid="delete-scope-series"
+                onClick={handleDeleteConfirm}
+              >
+                Delete entire series
+              </Button>
+            </div>
             <DialogFooter className="mt-4">
               <Button
                 variant="outline"
@@ -1053,6 +1091,7 @@ export default function AppointmentsPage() {
                 variant="destructive"
                 onClick={handleDeleteConfirm}
                 disabled={deleteMutation.isPending}
+                data-testid="delete-confirm"
               >
                 {deleteMutation.isPending
                   ? 'Deleting...'
@@ -1087,6 +1126,7 @@ export default function AppointmentsPage() {
                 variant="destructive"
                 onClick={handleTeamDeleteConfirm}
                 disabled={deleteTeamMutation.isPending}
+                data-testid="team-appointment-delete-confirm"
               >
                 {deleteTeamMutation.isPending
                   ? 'Deleting...'

@@ -61,12 +61,18 @@ export function PersonalAppointmentForm({
       toast.success('Appointment created successfully.');
       onOpenChange(false);
     },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, 'Unable to create appointment.'));
+    },
   });
 
   const updateMutation = useUpdateAppointmentMutation({
     onSuccess: () => {
       toast.success('Appointment updated successfully.');
       onOpenChange(false);
+    },
+    onError: (err) => {
+      toast.error(getApiErrorMessage(err, 'Unable to update appointment.'));
     },
   });
 
@@ -291,6 +297,7 @@ export function PersonalAppointmentForm({
                   onChange={field.onChange}
                   placeholder="Select start time"
                   isInvalid={!!errors.startAt}
+                  data-testid="appointment-start-input"
                 />
               )}
             />
@@ -311,6 +318,7 @@ export function PersonalAppointmentForm({
                   onChange={field.onChange}
                   placeholder="Select end time"
                   isInvalid={!!errors.endAt}
+                  data-testid="appointment-end-input"
                 />
               )}
             />
@@ -356,11 +364,11 @@ export function PersonalAppointmentForm({
                 value={selectedRecurrence}
                 onValueChange={(val: any) => setValue('recurrenceType', val)} // eslint-disable-line @typescript-eslint/no-explicit-any
               >
-                <SelectTrigger data-testid="appointment-recurrence-trigger">
+                <SelectTrigger data-testid="appointment-recurrence-toggle">
                   <SelectValue placeholder="Select recurrence" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ONETIME">None (One-time)</SelectItem>
+                  <SelectItem value="ONETIME" data-testid="appointment-recurrence-pattern">None (One-time)</SelectItem>
                   <SelectItem value="DAILY">Daily</SelectItem>
                   <SelectItem value="WEEKLY">Weekly</SelectItem>
                   <SelectItem value="MONTHLY">Monthly</SelectItem>
@@ -368,6 +376,17 @@ export function PersonalAppointmentForm({
                 </SelectContent>
               </Select>
             </div>
+
+            {selectedRecurrence !== 'ONETIME' && (
+              <div className="space-y-1">
+                <Label>End Recurrence</Label>
+                <DateTimePicker
+                  data-testid="appointment-recurrence-end"
+                  placeholder="Recurrence end date"
+                  onChange={() => {}} // Placeholder for now
+                />
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Tags</Label>

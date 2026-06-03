@@ -215,7 +215,7 @@ export default function ProfilePage() {
                       >
                         <SelectValue placeholder="Select a timezone" />
                       </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
+                      <SelectContent className="max-h-[300px]" alignItemWithTrigger={false}>
                         {TIMEZONES.map((tz) => (
                           <SelectItem key={tz} value={tz}>
                             {tz}

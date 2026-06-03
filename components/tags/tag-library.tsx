@@ -64,6 +64,7 @@ export function TagLibrary({
       {tags.map((tag) => (
         <div
           key={tag.id}
+          data-testid="tag-item"
           className="group relative flex h-24 flex-col justify-between rounded-2xl border border-border/50 p-4 transition-all duration-300 hover:border-border hover:shadow-md overflow-hidden animate-in fade-in slide-in-from-bottom-4"
           style={{
             backgroundColor: tag.color ? `${tag.color}08` : "var(--muted)",
